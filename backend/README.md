@@ -7,7 +7,15 @@
 
 # 2. Installation
 
-## 2.1 Install packages in all services
+## 2.1 Copy .env file
+
+```
+cp .env.example .env
+```
+
+- This `.env` file contains the database name MongoDB should use
+
+## 2.2 Install packages in all services
 
 ```
 pnpm -r install
@@ -15,10 +23,21 @@ pnpm -r install
 
 - Voila! You can now run individual services by going into their directories, OR, you can use the following to start **all services**
 
-## 2.2
+## 2.3 Start all Microservices
 
 ```
 pnpm run dev
 ```
 
 - This triggers the `dev` script in all `services`
+
+## 2.4 Working on an individual Microservice (without starting everything!)
+
+```
+cd collaboration_service
+pnpm add nodemon
+pnpm run dev
+```
+
+- Each micro-service is its own **npm project**
+- Simply use `pnpm` to add dependencies and run scripts

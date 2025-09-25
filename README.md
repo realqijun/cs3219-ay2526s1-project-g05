@@ -19,7 +19,7 @@
 ## 2.1 Setup Docker Containers
 
 ```
-docker-compose up -f docker-compose-local.yml
+docker-compose -f docker-compose-local.yml up
 ```
 
 - This sets up only MongoDB, for now

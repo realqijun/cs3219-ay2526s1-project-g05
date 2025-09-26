@@ -79,6 +79,7 @@ Successful response (`200 OK`):
 
 ### Fetch a user profile
 ```bash
+curl http://localhost:4001/api/users/<mongo_db _id>
 curl http://localhost:4001/api/users/665b4c2f8f720b6f83b7419d
 ```
 

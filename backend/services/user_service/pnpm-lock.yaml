@@ -12,6 +12,18 @@ importers:
         specifier: ^3.1.10
         version: 3.1.10
 
+  ../..: {}
+
+  ../../../frontend: {}
+
+  ../../db_management: {}
+
+  ../collaboration_service: {}
+
+  ../matching_service: {}
+
+  ../question_service: {}
+
 packages:
 
   anymatch@3.1.3:

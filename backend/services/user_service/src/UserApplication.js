@@ -32,7 +32,7 @@ export class UserApplication {
     app.use(enforceHttps);
 
     app.get("/status", (_req, res) => {
-      res.json({ status: "ok" });
+      res.json({ status: "User service is running" });
     });
 
     app.use("/api/users", createUserRouter(controller));

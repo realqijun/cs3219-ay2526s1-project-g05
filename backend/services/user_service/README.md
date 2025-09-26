@@ -24,11 +24,11 @@ All endpoints are prefixed with `/api/users` via the service router. 【F:backen
 | `GET /status` | Health probe exposed at the root of the service. |
 
 ## Example requests
-The service listens on port `4002` by default. 【F:backend/services/user_service/index.js†L1-L26】
+The service listens on port `4001` by default. 【F:backend/services/user_service/index.js†L1-L26】
 
 ### Register a user
 ```bash
-curl -X POST http://localhost:4002/api/users/register \
+curl -X POST http://localhost:4001/api/users/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "dev_alex",
@@ -54,7 +54,7 @@ Successful response (`201 Created`):
 
 ### Log in
 ```bash
-curl -X POST http://localhost:4002/api/users/login \
+curl -X POST http://localhost:4001/api/users/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "alex@example.com",
@@ -79,7 +79,7 @@ Successful response (`200 OK`):
 
 ### Fetch a user profile
 ```bash
-curl http://localhost:4002/api/users/665b4c2f8f720b6f83b7419d
+curl http://localhost:4001/api/users/665b4c2f8f720b6f83b7419d
 ```
 
 Successful response (`200 OK`):
@@ -98,7 +98,7 @@ Successful response (`200 OK`):
 
 ### Update an account
 ```bash
-curl -X PATCH http://localhost:4002/api/users/665b4c2f8f720b6f83b7419d \
+curl -X PATCH http://localhost:4001/api/users/665b4c2f8f720b6f83b7419d \
   -H "Content-Type: application/json" \
   -d '{
     "username": "dev_alexander",
@@ -123,7 +123,7 @@ Successful response (`200 OK`):
 
 ### Delete an account (requires password confirmation)
 ```bash
-curl -X DELETE http://localhost:4002/api/users/665b4c2f8f720b6f83b7419d \
+curl -X DELETE http://localhost:4001/api/users/665b4c2f8f720b6f83b7419d \
   -H "Content-Type: application/json" \
   -d '{ "password": "N3wP@ssword!" }'
 ```
@@ -136,7 +136,7 @@ Successful response (`200 OK`):
 
 ### Request a password reset
 ```bash
-curl -X POST http://localhost:4002/api/users/password-reset/request \
+curl -X POST http://localhost:4001/api/users/password-reset/request \
   -H "Content-Type: application/json" \
   -d '{ "email": "alex@example.com" }'
 ```
@@ -155,7 +155,7 @@ Successful response (`200 OK`):
 
 ### Confirm a password reset
 ```bash
-curl -X POST http://localhost:4002/api/users/password-reset/confirm \
+curl -X POST http://localhost:4001/api/users/password-reset/confirm \
   -H "Content-Type: application/json" \
   -d '{
     "token": "3a0f7b8ccf8042d78ee75c74d0a71b35",
@@ -204,7 +204,7 @@ cp .env.example .env
    cd services/user_service
    pnpm run dev
    ```
-   This runs `nodemon index.js`, which boots the service on port `4002` by default. 【F:backend/services/user_service/package.json L5-L18】【F:backend/services/user_service/index.js L1-L26】
+   This runs `nodemon index.js`, which boots the service on port `4001` by default. 【F:backend/services/user_service/package.json L5-L18】【F:backend/services/user_service/index.js L1-L26】
 
 ## Error handling
 Domain failures throw `ApiError` instances that encode status codes and optional details. The controller’s error middleware converts them into JSON responses, while unexpected errors return a generic 500 payload. 【F:backend/services/user_service/src/controllers/UserController.js L1-L86】

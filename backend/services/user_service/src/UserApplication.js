@@ -9,7 +9,7 @@ import { enforceHttps } from "./middleware/enforceHttps.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
 
 export class UserApplication {
-  constructor({ port = process.env.PORT || 4002 } = {}) {
+  constructor({ port = process.env.USERSERVICEPORT || 4001 } = {}) {
     this.port = port;
     this.app = null;
   }

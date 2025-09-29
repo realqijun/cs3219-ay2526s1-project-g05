@@ -8,8 +8,6 @@ import {
   errorMiddleware,
 } from "./controllers/UserController.js";
 import { createUserRouter } from "./routes/userRoutes.js";
-import { enforceHttps } from "./middleware/enforceHttps.js";
-import { securityHeaders } from "./middleware/securityHeaders.js";
 
 export class UserApplication {
   constructor({ port = process.env.USERSERVICEPORT || 4001 } = {}) {

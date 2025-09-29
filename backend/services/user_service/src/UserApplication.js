@@ -3,7 +3,10 @@ import { MongoClientInstance } from "../../../common_scripts/mongo.js";
 import { PasswordHasher } from "./security/PasswordHasher.js";
 import { UserRepository } from "./repositories/UserRepository.js";
 import { UserService } from "./services/UserService.js";
-import { UserController, errorMiddleware } from "./controllers/UserController.js";
+import {
+  UserController,
+  errorMiddleware,
+} from "./controllers/UserController.js";
 import { createUserRouter } from "./routes/userRoutes.js";
 import { enforceHttps } from "./middleware/enforceHttps.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
@@ -28,8 +31,6 @@ export class UserApplication {
     const app = express();
     app.enable("trust proxy");
     app.use(express.json());
-    app.use(securityHeaders);
-    app.use(enforceHttps);
 
     app.get("/status", (_req, res) => {
       res.json({ status: "User service is running" });

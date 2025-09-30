@@ -1,6 +1,6 @@
 import { Button, buttonVariants } from "./ui/button";
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import hero from "@/assets/hero.png";
+import { Link } from "react-router-dom";
 
 export const Hero = () => {
   return (
@@ -26,7 +26,11 @@ export const Hero = () => {
         </p>
 
         <div className="space-y-4 md:space-y-0 md:space-x-4">
-          <Button className="w-full md:w-1/3" variant="secondary">Get Started</Button>
+          <Link to="/login">
+            <Button variant="default" className="w-full md:w-1/3">
+              Get Started
+            </Button>
+          </Link>
         </div>
       </div>
 

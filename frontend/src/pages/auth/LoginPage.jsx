@@ -1,4 +1,3 @@
-import { GalleryVerticalEnd } from "lucide-react"
 import { LoginForm } from "@/components/form/login-form"
 import MainLayout from "@/layout/MainLayout"
 

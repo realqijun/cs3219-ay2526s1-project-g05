@@ -8,7 +8,7 @@ export const Footer = () => {
       <section className="container px-4 md:px-8 xl:px-16 py-20 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-x-12 gap-y-8">
         <div className="col-span-full xl:col-span-2">
           <a rel="noreferrer noopener" href="/" className="font-bold text-xl flex">
-            <img src={logo} alt="logo" height="100px"></img>
+            <img src={logo} alt="logo" height="100" width="191"></img>
           </a>
         </div>
 

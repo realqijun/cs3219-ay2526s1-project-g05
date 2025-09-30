@@ -8,6 +8,7 @@ import LoginPage from '@/pages/auth/LoginPage.jsx'
 import RegisterPage from '@/pages/auth/RegisterPage.jsx'
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage.jsx';
 import ErrorPage from '@/pages/ErrorPage.jsx';
+import ProfilePage from '@/pages/auth/ProfilePage.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/404" element={<ErrorPage />} />
 
         {/* Catch-all route */}

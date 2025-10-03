@@ -33,17 +33,11 @@ export class MatchingController {
       res.setHeader('X-Accel-Buffering', 'no');
 
       const sessionId = req.params.sessionId;
-
-      const pendingMatch = this.matchService.checkPendingMatch(sessionId); 
-
-      if (pendingMatch) {
-          // Match was found BEFORE the client opened SSE. Notify and close immediately.
-          this.notifyMatchFound(sessionId, pendingMatch, res); 
-          return; // Connection is closed by notifyMatchFound/res.end()
-      }
-
-      if (!this.matchService.sessionInQueue(sessionId)) {
-          return res.status(404).json({ message: "Session ID not found in queue." });
+      
+      const listenerStatus = await this.matchService.addActiveListener(sessionId);
+      if (listenerStatus.notified) {
+          this.notifyMatchFound(sessionId, listenerStatus.data, res); 
+          return;
       }
 
       this.activeConnections[sessionId] = res;
@@ -54,7 +48,7 @@ export class MatchingController {
       req.on('close', () => {
         console.log(`SSE connection closed for session: ${sessionId}`);
         delete this.activeConnections[sessionId];
-        this.matchService.exitQueue(sessionId);
+        this.matchService.clearFromQueue(sessionId);
       });
     } catch (err) {
       next(err);

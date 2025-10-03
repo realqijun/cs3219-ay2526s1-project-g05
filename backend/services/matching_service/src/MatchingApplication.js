@@ -22,6 +22,10 @@ export class MatchingApplication {
         const repository = new MatchingRepository();
         const service = new MatchingService({ repository });
         const controller = new MatchingController(service);
+
+        // set circular dependency
+        await service.setNotifier(controller);
+        
         app.enable('trust proxy');
         app.use(express.json());
         app.use(securityHeaders);

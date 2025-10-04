@@ -23,6 +23,9 @@ export class MatchingApplication {
         const service = new MatchingService({ repository });
         const controller = new MatchingController(service);
 
+        // Initialize repository (which handles Redis connection)
+        await service.initialize();
+
         // set circular dependency
         await service.setNotifier(controller);
         

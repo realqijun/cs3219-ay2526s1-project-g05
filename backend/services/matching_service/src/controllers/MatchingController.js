@@ -35,6 +35,7 @@ export class MatchingController {
       const sessionId = req.params.sessionId;
       
       const listenerStatus = await this.matchService.addActiveListener(sessionId);
+      // listenerStatus.notified is true if active listener is not added because match already found
       if (listenerStatus.notified) {
           this.notifyMatchFound(sessionId, listenerStatus.data, res); 
           return;
@@ -45,22 +46,23 @@ export class MatchingController {
       res.write('event: connected\n');
       res.write(`data: {"message": "Connection established for session ${sessionId}"}\n\n`);
 
+      // user closes the connection
       req.on('close', () => {
         console.log(`SSE connection closed for session: ${sessionId}`);
         delete this.activeConnections[sessionId];
-        this.matchService.clearFromQueue(sessionId);
+        this.matchService.removeActiveListener(sessionId);
       });
     } catch (err) {
       next(err);
     }
   }
 
+  // internal method to send match found event
   notifyMatchFound(sessionId, matchData, resExternal=null) {
     const res = resExternal || this.activeConnections[sessionId];
     if (res) {
       const formattedData = `event: matchFound\ndata: ${JSON.stringify(matchData)}\n\n`;
       res.write(formattedData);
-
       res.end(); // closes connection
       if (this.activeConnections[sessionId]) {
         delete this.activeConnections[sessionId];
@@ -68,29 +70,11 @@ export class MatchingController {
     }
   }
 
-  find = async (req, res, next) => {
-    try {
-      const { user, criteria } = req.body;
-      // TODO: validate user and criteria format
-      // TOTHINK: use username or user_id?
-      const result = await this.matchService.findMatch(user, criteria);
-      
-      if (result) {
-        res.json({ message: "Match found!", match: result });
-        return;
-      }
-
-      // TODO: async handling for no immediate match
-      res.json({ message: "No matches found" });
-    } catch (err) {
-      next(err);
-    }
-  }
-
+  // POST /cancel sessionid in body
   cancel = async (req, res, next) => {
     try {
       const { sessionId } = req.body;
-      await this.matchService.exitQueue(sessionId);
+      await this.matchService.clearFromQueue(sessionId);
       res.json({ message: "Exited queue successfully." });
     } catch (err) {
       next(err);

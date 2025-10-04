@@ -3,10 +3,15 @@ import { RedisClient } from '../database/RedisClient.js';
 export class MatchingRepository {
     constructor() {
         this.redis = null;
+        // stored using sorted set
         this.QUEUE_KEY = 'matching:queue';
+        // stored using hash
         this.SESSION_PREFIX = 'matching:session:';
+        // stored as user string
         this.USER_PREFIX = 'matching:user:';
+        // stored using hash
         this.ACTIVE_LISTENERS_KEY = 'matching:active_listeners';
+        // stored using string
         this.PENDING_MATCHES_KEY = 'matching:pending:';
 
         this.QUEUE_WINDOW = 100; // Number of sessions to consider when matching
@@ -32,7 +37,7 @@ export class MatchingRepository {
             value: sessionId
         });
         
-        // Store session details in hash
+        // Store session details
         multi.hSet(`${this.SESSION_PREFIX}${sessionId}`, queueEntry);
         
         // Store user to session mapping for duplicate prevention
@@ -48,7 +53,8 @@ export class MatchingRepository {
     }
 
     async dequeueAndLockUser(criteria) {
-        // Get a batch of sessions
+        // Get a batch of sessions for performance
+        // TODO: what if queue is very large and match is far down the queue?
         const sessionIds = await this.redis.zRange(this.QUEUE_KEY, 0, this.QUEUE_WINDOW);
         
         for (const sessionId of sessionIds) {
@@ -59,9 +65,8 @@ export class MatchingRepository {
                 continue;
             }
             
-            const criteria = JSON.parse(sessionData.criteria);
-            
-            if (this.meetsCriteria(criteria, criteria)) {
+            const queuedCriteria = JSON.parse(sessionData.criteria);
+            if (this.meetsCriteria(criteria, queuedCriteria)) {
                 const user = JSON.parse(sessionData.user);
                 const userKey = `${this.USER_PREFIX}${user.id}`;
                 
@@ -70,32 +75,27 @@ export class MatchingRepository {
                 
                 const multi = this.redis.multi();
 
-                multi.zScore(this.QUEUE_KEY, sessionId); // check still present
+                multi.zScore(this.QUEUE_KEY, sessionId); // check if still present
 
                 multi.zRem(this.QUEUE_KEY, sessionId);
                 multi.del(`${this.SESSION_PREFIX}${sessionId}`);
                 multi.del(userKey);
                 
-                console.log(`Attempting to lock and remove session ${sessionId} for user ${user.id}`);
                 const result = await multi.exec();
-                console.log(result);
                 if (result === null) {
                     console.warn(`WATCH failed for session ${sessionId}. Retrying match...`);
                     continue;
                 }
                 
-                // Check the result of ZSCORE from the transaction
                 const zScoreResult = result[0];
                 if (zScoreResult === null) {
                     // This means the element was already removed just before our ZSCORE check.
                     continue;
                 }
-                
-                // SUCCESS: Match found and atomically removed
                 return {
                     user: user,
                     sessionId: sessionId,
-                    criteria: criteria
+                    criteria: queuedCriteria
                 };
             }
         }
@@ -105,7 +105,6 @@ export class MatchingRepository {
     }
 
     async removeFromQueue(sessionId) {
-        // Get user info first to clean up user mapping
         const sessionData = await this.redis.hGetAll(`${this.SESSION_PREFIX}${sessionId}`);
         
         const multi = this.redis.multi();
@@ -122,6 +121,21 @@ export class MatchingRepository {
         return true;
     }
 
+    async getStaleSessions(timeoutMs = 300000) {
+        const now = Date.now();
+        const staleSessionIds = [];
+        const sessionIds = await this.redis.zRange(this.QUEUE_KEY, 0, -1); 
+        for (const sessionId of sessionIds) {
+            const sessionTimestamp = await this.redis.hGet(`${this.SESSION_PREFIX}${sessionId}`, 'timestamp');
+            
+            if (sessionTimestamp && (now - parseInt(sessionTimestamp, 10) > timeoutMs)) {
+                console.log(`Found stale session: ${sessionId} stale by ${now - parseInt(sessionTimestamp, 10)} ms`);
+                staleSessionIds.push(sessionId);
+            }
+        }
+        return staleSessionIds;
+    }
+
     async sessionInQueue(sessionId) {
         return (await this.redis.zScore(this.QUEUE_KEY, sessionId)) !== null;
     }
@@ -130,7 +144,6 @@ export class MatchingRepository {
         return (await this.redis.exists(`${this.USER_PREFIX}${user.id}`)) === 1;
     }
 
-    // Active Listener Management
     async addActiveListener(sessionId) {
         await this.redis.hSet(this.ACTIVE_LISTENERS_KEY, sessionId, Date.now().toString());
         return true;
@@ -145,21 +158,17 @@ export class MatchingRepository {
         return (await this.redis.hExists(this.ACTIVE_LISTENERS_KEY, sessionId)) === 1;
     }
 
-    // Pending Match Management
     async storePendingMatch(sessionId, matchData) {
         const key = `${this.PENDING_MATCHES_KEY}${sessionId}`;
-        await this.redis.set(key, JSON.stringify(matchData));
-        
-        // expiration 5 minutes
-        await this.redis.expire(key, 300); 
+        // Set with expiration of 3 minutes
+        await this.redis.set(key, JSON.stringify(matchData), 'EX', 180);
         return true;
     }
 
     async getPendingMatch(sessionId) {
         const key = `${this.PENDING_MATCHES_KEY}${sessionId}`;
-        // Use GETDEL (or a transaction with GET and DEL) to read and consume atomically
+        // read and consume atomically
         const matchData = await this.redis.getDel(key); 
-
         if (matchData) {
             return JSON.parse(matchData);
         }

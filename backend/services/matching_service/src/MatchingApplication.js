@@ -1,5 +1,4 @@
 import express from 'express';
-import { MongoClientInstance } from '../../../common_scripts/mongo.js';
 import { securityHeaders } from './middleware/securityHeaders.js';
 import { errorMiddleware, MatchingController } from './controllers/MatchingController.js';
 import { createMatchingRouter } from './routes/matchingRoutes.js';
@@ -17,17 +16,24 @@ export class MatchingApplication {
             return this.app;
         }
 
-        // await MongoClientInstance.start();
         const app = express();
         const repository = new MatchingRepository();
+        await repository.initialize(); // Initialize Redis connection
+
         const service = new MatchingService({ repository });
         const controller = new MatchingController(service);
 
-        // Initialize repository (which handles Redis connection)
-        await service.initialize();
-
         // set circular dependency
         await service.setNotifier(controller);
+
+        // store object in the class fields to call cleanup interval
+        this.service = service;
+        // periodic cleanup of stale sessions every 3 minutes
+        this.cleanupInterval = setInterval(() => {
+            this.service.cleanupStaleSessions().catch(err => {
+                console.error("Stale cleanup worker failed:", err);
+            });
+        }, 3 * 60 * 1000);
         
         app.enable('trust proxy');
         app.use(express.json());

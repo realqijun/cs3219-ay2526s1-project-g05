@@ -7,52 +7,10 @@ export class MatchingService {
         this.notifier = null;
     }
 
-    async initialize() {
-        await this.repository.initialize();
-    }
-
     async setNotifier(controller) {
         this.notifier = controller;
     }
-
-    async addActiveListener(sessionId) {
-        if (!sessionId) {
-            throw new ApiError(400, "Session ID is required to add active listener.");
-        }
-        
-        // Check for pending match using repository
-        const pendingMatch = await this.repository.getPendingMatch(sessionId);
-        if (pendingMatch) {
-            return { notified: true, data: pendingMatch };
-        }
-
-        if (!(await this.repository.sessionInQueue(sessionId))) {
-            throw new ApiError(404, "Session ID not found in queue.");
-        }
-        
-        // Store active listener in Redis via repository
-        await this.repository.addActiveListener(sessionId);
-        
-        return { notified: false };
-    }
-
-    async removeActiveListener(sessionId) {
-        // Remove from Redis and queue via repository
-        await this.repository.removeActiveListener(sessionId);
-        await this.repository.removeFromQueue(sessionId);
-        return true;
-    }
-
-    async clearFromQueue(sessionId) {
-        if (!sessionId) {
-            throw new ApiError(400, "Session ID is required to clear from the queue.");
-        }
-        
-        // Use repository's complete cleanup method
-        const result = await this.repository.cleanupSession(sessionId);
-        return result;
-    }
-
+    
     async enterQueue(user, criteria) {
         if (!user || !criteria) {
             throw new ApiError(400, "User and criteria are required to enter the queue.");
@@ -60,7 +18,7 @@ export class MatchingService {
         if (await this.repository.userInQueue(user)) {
             throw new ApiError(400, "User is already in the queue.");
         }
-
+        
         const matchedUser = await this.repository.dequeueAndLockUser(criteria);
         const sessionId = this.createSessionId(user);
         
@@ -68,48 +26,76 @@ export class MatchingService {
             await this.repository.enterQueue(user, sessionId, criteria);
             return sessionId;
         }
-
+        
         const matchData = {
             // TODO: query collab service and question service
             criteria: criteria
         };
-
-        // Check if matched user is actively listening via repository
-        const isWaitingActive = await this.repository.isActiveListener(matchedUser.sessionId);
         
-        const waitingPayload = { ...matchData, partner: user, partnerSessionId: sessionId };
+        // Check if matched user called getStatus
+        const isMatchedUserWaitingActive = await this.repository.isActiveListener(matchedUser.sessionId);
+        const matchedUserMatchDetails = { ...matchData, partner: user, partnerSessionId: sessionId };
 
-        if (isWaitingActive) {
-            this.notifier.notifyMatchFound(matchedUser.sessionId, waitingPayload);
+        if (isMatchedUserWaitingActive) {
+            this.notifier.notifyMatchFound(matchedUser.sessionId, matchedUserMatchDetails);
             await this.repository.removeActiveListener(matchedUser.sessionId);
         } else {
-            // Store pending match via repository
-            await this.repository.storePendingMatch(matchedUser.sessionId, waitingPayload);
+            await this.repository.storePendingMatch(matchedUser.sessionId, matchedUserMatchDetails);
         }
 
-        const isNewUserActive = await this.repository.isActiveListener(sessionId);
-        
-        const newUserPayload = { ...matchData, partner: matchedUser.user, partnerSessionId: matchedUser.sessionId };
+        // Check if new user called getStatus even before we return the sessionId (edge case)
+        const isNewUserWaitingActive = await this.repository.isActiveListener(sessionId);
+        const newUserMatchDetails = { ...matchData, partner: matchedUser.user, partnerSessionId: matchedUser.sessionId };
 
-        if (isNewUserActive) {
-            this.notifier.notifyMatchFound(sessionId, newUserPayload);
+        if (isNewUserWaitingActive) {
+            this.notifier.notifyMatchFound(sessionId, newUserMatchDetails);
             await this.repository.removeActiveListener(sessionId);
         } else {
-            // Store pending match via repository
-            await this.repository.storePendingMatch(sessionId, newUserPayload);
+            await this.repository.storePendingMatch(sessionId, newUserMatchDetails);
         }
-
+        
         return sessionId;
     }
 
+    async addActiveListener(sessionId) {
+        if (!sessionId) {
+            throw new ApiError(400, "Session ID is required to add active listener.");
+        }
+        const pendingMatch = await this.repository.getPendingMatch(sessionId);
+        // match found already, dont need to add to active listeners
+        if (pendingMatch) {
+            return { notified: true, data: pendingMatch };
+        }
+        if (!(await this.repository.sessionInQueue(sessionId))) {
+             // either already matched or invalid
+            throw new ApiError(404, "Session ID not found in queue.");
+        }
+        await this.repository.addActiveListener(sessionId);
+        return { notified: false };
+    }
+
+    // use case: User is in queue but no match found yet, getstatus not called and decides to quit
+    async clearFromQueue(sessionId) {
+        if (!sessionId) {
+            throw new ApiError(400, "Session ID is required to clear from the queue.");
+        }
+        // Use repository's complete cleanup method
+        const result = await this.repository.cleanupSession(sessionId);
+        return result;
+    }
+    
     async checkPendingMatch(sessionId) {
         if (!sessionId) {
             throw new ApiError(400, "Session ID is required to check for pending matches.");
         }
-        
         return await this.repository.getPendingMatch(sessionId);
     }
 
+    async removeActiveListener(sessionId) {
+        await this.repository.removeActiveListener(sessionId);
+        return true;
+    }
+    
     async sessionInQueue(sessionId) {
         if (!sessionId) {
             throw new ApiError(400, "Session ID is required to check queue status.");
@@ -117,6 +103,19 @@ export class MatchingService {
         return await this.repository.sessionInQueue(sessionId);
     }
 
+    async cleanupStaleSessions() {
+        const timeoutMs = 5 * 60 * 1000;
+        const staleSessionIds = await this.repository.getStaleSessions(timeoutMs);
+        if (staleSessionIds.length === 0) {
+            return;
+        }
+        for (const sessionId of staleSessionIds) {
+            await this.repository.cleanupSession(sessionId);
+        }        
+        console.log("Stale queue cleanup finished.");
+    }
+    
+    // not used atm
     async removeFromQueue(user) {
         if (!user) {
             throw new ApiError(400, "User is required to remove from the queue.");
@@ -125,16 +124,6 @@ export class MatchingService {
         return result;
     }
 
-    async exitQueue(sessionId) {
-        if (!sessionId) {
-            throw new ApiError(400, "Session ID is required to exit the queue.");
-        }
-        
-        // Use repository's complete cleanup method
-        const result = await this.repository.cleanupSession(sessionId);
-        return result;
-    }
-    
     // TODO: clean up queue after closing
     
     // simple session id generator

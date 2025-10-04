@@ -11,6 +11,7 @@ export class MatchingController {
     try {
       const { user, criteria } = req.body;
       // TODO: validate user and criteria format
+      // TODO: check if user in collab service
 
       const sessionId = await this.matchService.enterQueue(user, criteria);
 
@@ -67,6 +68,17 @@ export class MatchingController {
       if (this.activeConnections[sessionId]) {
         delete this.activeConnections[sessionId];
       }
+    }
+  }
+
+  notifySessionExpired(sessionId) {
+    const res = this.activeConnections[sessionId];
+    if (res) {
+      const formattedData = `event: sessionExpired\ndata: {"message": "Session ${sessionId} has expired."}\n\n`;
+      // TODO: Give user choice to re-enter queue + insert to front of queue
+      res.write(formattedData);
+      res.end(); // closes connection
+      delete this.activeConnections[sessionId];
     }
   }
 

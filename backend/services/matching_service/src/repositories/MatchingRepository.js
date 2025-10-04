@@ -124,7 +124,7 @@ export class MatchingRepository {
     async getStaleSessions(timeoutMs = 300000) {
         const now = Date.now();
         const staleSessionIds = [];
-        const sessionIds = await this.redis.zRange(this.QUEUE_KEY, 0, -1); 
+        const sessionIds = await this.redis.zRange(this.QUEUE_KEY, 0, -1);
         for (const sessionId of sessionIds) {
             const sessionTimestamp = await this.redis.hGet(`${this.SESSION_PREFIX}${sessionId}`, 'timestamp');
             
@@ -161,6 +161,7 @@ export class MatchingRepository {
     async storePendingMatch(sessionId, matchData) {
         const key = `${this.PENDING_MATCHES_KEY}${sessionId}`;
         // Set with expiration of 3 minutes
+        // TODO: notify matched user if this pending match not retrieved in time
         await this.redis.set(key, JSON.stringify(matchData), 'EX', 180);
         return true;
     }

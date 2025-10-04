@@ -110,6 +110,7 @@ export class MatchingService {
             return;
         }
         for (const sessionId of staleSessionIds) {
+            this.notifier.notifySessionExpired(sessionId);
             await this.repository.cleanupSession(sessionId);
         }        
         console.log("Stale queue cleanup finished.");

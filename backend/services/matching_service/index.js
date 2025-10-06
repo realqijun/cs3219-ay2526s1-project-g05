@@ -1,5 +1,4 @@
 import { MatchingApplication } from './src/MatchingApplication.js';
-import { MongoClientInstance } from '../../common_scripts/mongo.js';
 import { RedisClient } from './src/database/RedisClient.js';
 
 const port = process.env.MATCHINGSERVICEPORT || 4003;
@@ -24,7 +23,6 @@ const shutdown = async (signal) => {
         await new Promise((resolve) => service.close(resolve));
     }
     await RedisClient.disconnect();
-    // await MongoClientInstance.close();
     process.exit(0);
 };
 

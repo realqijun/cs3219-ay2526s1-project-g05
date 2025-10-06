@@ -47,9 +47,31 @@ export class MatchingRepository {
         return true;
     }
     
-    // TODO: improve criteria matching logic
-    meetsCriteria(queuedCriteria, criteria) {
-        return JSON.stringify(queuedCriteria) === JSON.stringify(criteria);
+    meetsCriteria(criteria, otherCriteria) {
+        const criteriaTopics = criteria.topics || [];
+        const otherTopics = otherCriteria.topics || [];
+
+        const criteriaDifficulty = criteria.difficulty || null;
+        const otherDifficulty = otherCriteria.difficulty || null;
+
+        if (criteriaDifficulty && otherDifficulty && criteriaDifficulty !== otherDifficulty) {
+            return false;
+        }
+
+        // intersection of A and B
+        return this.topicsMatch(criteriaTopics, otherTopics) && 
+            this.topicsMatch(otherTopics, criteriaTopics);
+    }
+
+    topicsMatch(requiredTopics, availableTopics) {
+        if (requiredTopics.length === 0) {
+            return true;
+        }        
+        if (availableTopics.length === 0) {
+            return false;
+        }
+        const availableSet = new Set(availableTopics);
+        return requiredTopics.some(topic => availableSet.has(topic));
     }
 
     async dequeueAndLockUser(criteria) {

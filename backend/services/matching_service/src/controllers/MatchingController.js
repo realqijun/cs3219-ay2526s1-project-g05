@@ -11,7 +11,7 @@ export class MatchingController {
     try {
       const { user, criteria } = req.body;
       // TODO: validate user and criteria format
-      // TODO: check if user in collab service
+      // TODO: check if user is already in collab service
 
       const sessionId = await this.matchService.enterQueue(user, criteria);
 

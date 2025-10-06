@@ -102,7 +102,7 @@ export const Navbar = () => {
               Log In
             </a>
 
-            {/* <ModeToggle /> */}
+            <ModeToggle />
           </div>
         </NavigationMenuList>
       </NavigationMenu>

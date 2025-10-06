@@ -10,14 +10,14 @@ export class MatchingController {
   queue = async (req, res, next) => {
     try {
       const { user, criteria } = req.body;
-      // TODO: validate user and criteria format
-      // TODO: check if user is already in collab service
+      // TODO: validate user and criteria format (use userservice?)
+      // TODO: check if user is already in collab service (use collabservice?)
 
       const sessionId = await this.matchService.enterQueue(user, criteria);
 
-      res.status(202).json({ 
+      res.status(202).json({
         message: "Match request accepted. Check status for updates.",
-        sessionId: sessionId 
+        sessionId: sessionId
       });
     } catch (err) {
       next(err);
@@ -34,12 +34,12 @@ export class MatchingController {
       res.setHeader('X-Accel-Buffering', 'no');
 
       const sessionId = req.params.sessionId;
-      
+
       const listenerStatus = await this.matchService.addActiveListener(sessionId);
       // listenerStatus.notified is true if active listener is not added because match already found
       if (listenerStatus.notified) {
-          this.notifyMatchFound(sessionId, listenerStatus.data, res); 
-          return;
+        this.notifyMatchFound(sessionId, listenerStatus.data, res);
+        return;
       }
 
       this.activeConnections[sessionId] = res;
@@ -59,12 +59,12 @@ export class MatchingController {
   }
 
   // internal method to send match found event
-  notifyMatchFound(sessionId, matchData, resExternal=null) {
+  notifyMatchFound(sessionId, matchData, resExternal = null) {
     const res = resExternal || this.activeConnections[sessionId];
     if (res) {
       const formattedData = `event: matchFound\ndata: ${JSON.stringify(matchData)}\n\n`;
       res.write(formattedData);
-      res.end(); // closes connection
+      res.end(); // closes connection // keep connection open for matchExpired?
       if (this.activeConnections[sessionId]) {
         delete this.activeConnections[sessionId];
       }

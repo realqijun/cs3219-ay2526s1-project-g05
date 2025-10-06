@@ -26,7 +26,7 @@ curl -X POST http://localhost:4003/api/matching/queue \
   -H "Content-Type: application/json" \
   -d '{
     "user": { "name": "pauline", "id": "1242" },
-    "criteria": "hard"
+    "criteria": { "difficulty": "hard", "topics": ["dp", "tree"] }
   }'
 ```
 

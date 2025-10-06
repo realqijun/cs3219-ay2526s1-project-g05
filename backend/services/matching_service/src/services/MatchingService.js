@@ -18,6 +18,12 @@ export class MatchingService {
         if (await this.repository.userInQueue(user)) {
             throw new ApiError(400, "User is already in the queue.");
         }
+        if (typeof criteria !== 'object') {
+            throw new ApiError(400, "Criteria must be an object.");
+        }
+        if (!criteria.difficulty || !Array.isArray(criteria.topics)) {
+            throw new ApiError(400, "Criteria must include 'difficulty' and 'topics' array.");
+        }
 
         const matchedUser = await this.repository.dequeueAndLockUser(criteria);
         const sessionId = this.createSessionId(user);

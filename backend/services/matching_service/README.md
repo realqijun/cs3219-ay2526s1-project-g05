@@ -62,4 +62,4 @@ cp .env.example .env
    This runs `nodemon index.js`, which boots the service on port `4003` by default. 【F:backend/services/matching_service/package.json】【F:backend/services/matching_service/index.js】
 
 ## Error handling
-Domain failures throw `ApiError` instances that encode status codes and optional details. The controller’s error middleware converts them into JSON responses, while unexpected errors return a generic 500 payload. 【F:backend/services/matching_service/src/controllers/UserController.js】
+Domain failures throw `ApiError` instances that encode status codes and optional details. The controller’s error middleware converts them into JSON responses, while unexpected errors return a generic 500 payload. 【F:backend/services/matching_service/src/controllers/MatchingController.js】

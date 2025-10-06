@@ -9,7 +9,7 @@ The Matching Service is an Express-based microservice that manages user matchmak
 - **Session timeout** - users that timeout from queueing for over 5 minutes will be notified in using SSE as well.【F:backend/services/matching_service/src/MatchingController.js】
 
 ## API surface
-All endpoints are prefixed with `/api/matching` via the service router. 【F:backend/services/matching_service/src/routes/userRoutes.js】
+All endpoints are prefixed with `/api/matching` via the service router. 【F:backend/services/matching_service/src/routes/matchingRoutes.js】
 
 | Method & Path | Description |
 | --- | --- |

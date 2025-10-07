@@ -16,6 +16,7 @@
     "argon2": "^0.43.0",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-jsdoc-swagger": "^1.8.0",
     "mongodb": "^6.20.0",
     "nodemon": "^3.1.10"
   },

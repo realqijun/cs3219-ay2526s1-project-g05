@@ -1,4 +1,5 @@
 import { ApiError } from "../errors/ApiError.js";
+import crypto from "crypto";
 
 export class MatchingService {
     constructor({ repository }) {
@@ -133,9 +134,8 @@ export class MatchingService {
 
     // TODO: clean up queue after closing
 
-    // simple session id generator
-    // TODO: change to be more complex and not guessable and constant size?
     createSessionId(user) {
-        return `session-${user.id}-${Date.now()}`;
+        const uuid = crypto.randomUUID();
+        return `session-${uuid}`;
     }
 }

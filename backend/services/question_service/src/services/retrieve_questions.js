@@ -17,6 +17,7 @@ export const retrieve_question = async (id) => {
 export const retrieve_all_questions = async (
   topic = null,
   difficulty = null,
+  search = null,
 ) => {
   // Make them into arrays if they aren't (i.e we only get 1 topic/difficulty)
   if (topic && !Array.isArray(topic)) {
@@ -43,7 +44,7 @@ export const retrieve_all_questions = async (
     }
   }
 
-  const questions = await get_all_questions(topic, difficulty);
+  const questions = await get_all_questions(topic, difficulty, search);
 
   return { success: true, questions };
 };

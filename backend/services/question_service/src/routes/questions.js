@@ -14,14 +14,14 @@ export const use_question_routes = () => {
    * @summary Gets list of questions, optionally filtered by topic and/or difficulty
    * @param {string[]} topic.query - List of topic names (e.g topic="Hash Table"&topic="String")
    * @param {string[]} difficulty.query - List of difficulties (e.g difficulty="Hard"&difficulty="Medium")
+   * @param {string} search.query - Search the title of questions (e.g search="two sum") [Case insensitive]
    * @return {object[]} 200 - Success
    * @return {object} 400 - Bad Request (e.g invalid topic or difficulty)
    */
   router.get("/", async (req, res) => {
-    const { topic } = req.query;
-    const { difficulty } = req.query;
+    const { topic, difficulty, search } = req.query;
 
-    const result = await retrieve_all_questions(topic, difficulty);
+    const result = await retrieve_all_questions(topic, difficulty, search);
 
     if (!result.success) {
       return res.status(result.code).json({ error: result.error });

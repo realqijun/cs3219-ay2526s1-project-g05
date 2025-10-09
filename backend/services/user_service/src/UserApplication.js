@@ -27,14 +27,13 @@ export class UserApplication {
     const controller = new UserController(userService);
 
     const app = express();
-    app.enable("trust proxy");
     app.use(express.json());
 
     app.get("/status", (_req, res) => {
       res.json({ status: "User service is running" });
     });
 
-    app.use("/api/users", createUserRouter(controller));
+    app.use("/users", createUserRouter(controller));
 
     app.use(errorMiddleware);
 

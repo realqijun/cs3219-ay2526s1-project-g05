@@ -4,6 +4,7 @@ import {
   retrieve_all_questions,
   retrieve_random_question,
 } from "../services/retrieve_questions.js";
+import { authenticate } from "../../../../common_scripts/authentication_middleware.js";
 
 export const use_question_routes = () => {
   const router = Router();
@@ -56,8 +57,9 @@ export const use_question_routes = () => {
    * @param {string} id.path.required - Question ID (QID)
    * @return {object} 200 - Success
    * @return {object} 404 - Question not found
+   * @security bearerAuth
    */
-  router.get("/:id", async (req, res) => {
+  router.get("/:id", [authenticate], async (req, res) => {
     const { id } = req.params;
     const result = await retrieve_question(id);
 

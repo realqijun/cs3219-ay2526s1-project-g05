@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { ApiError } from "../utils/errors/ApiError.js";
 import { UserValidator } from "../utils/validators/UserValidator.js";
 import { LoginSecurityManager } from "../utils/LoginSecurityManager.js";
-
+import { sign_token } from "../../../../common_scripts/authentication_middleware.js";
 export class UserService {
   constructor({ repository, passwordHasher }) {
     this.repository = repository;
@@ -38,6 +38,7 @@ export class UserService {
       normalized.email,
       normalized.username,
     );
+
     if (existing) {
       const conflicts = [];
       if (existing.email === normalized.email) conflicts.push("email");
@@ -88,7 +89,14 @@ export class UserService {
     const updatedUser = await this.repository.updateById(user._id, {
       set: securityReset,
     });
-    return this.sanitizeUser(updatedUser ?? user);
+
+    const sanitizedUser = this.sanitizeUser(updatedUser ?? user);
+
+    // Create a signed token to pass to the frontend to store - will be used for authentication
+    const token = sign_token(sanitizedUser, process.env.AUTHENTICATION_SECRET, {
+      expiresIn: "24h",
+    });
+    return { user: sanitizedUser, token };
   }
 
   async getUserById(id) {

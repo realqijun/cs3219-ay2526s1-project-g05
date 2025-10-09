@@ -16,8 +16,8 @@ export class UserController {
 
   login = async (req, res, next) => {
     try {
-      const user = await this.userService.authenticateUser(req.body ?? {});
-      res.json({ message: "Login successful.", user });
+      const result = await this.userService.authenticateUser(req.body ?? {});
+      res.json({ message: "Login successful.", ...result });
     } catch (error) {
       next(error);
     }

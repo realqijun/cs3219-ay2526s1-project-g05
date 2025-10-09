@@ -15,6 +15,5 @@ export const get_all_questions = async (topic, difficulty) => {
     query.difficulty = { $in: difficulty };
   }
 
-  console.log(query);
   return await collection.find(query, { projection: { _id: 0 } }).toArray();
 };

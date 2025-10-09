@@ -8,7 +8,7 @@ export const retrieve_question = async (id) => {
   const question = await get_question_by_id(parseInt(id));
 
   if (!question) {
-    return { success: false, error: "Question not found" };
+    return { success: false, error: "Question not found", code: 404 };
   }
 
   return { success: true, question };
@@ -30,7 +30,7 @@ export const retrieve_all_questions = async (
   if (topic) {
     topic.forEach(() => {
       if (!(topic in TOPICS)) {
-        return { success: false, error: "Invalid topic" };
+        return { success: false, error: "Invalid topic", code: 400 };
       }
     });
   }
@@ -38,7 +38,7 @@ export const retrieve_all_questions = async (
   if (difficulty) {
     difficulty.forEach(() => {
       if (!(topic in DIFFICULTIES)) {
-        return { success: false, error: "Invalid difficulty" };
+        return { success: false, error: "Invalid difficulty", code: 400 };
       }
     });
   }
@@ -46,4 +46,27 @@ export const retrieve_all_questions = async (
   const questions = await get_all_questions(topic, difficulty);
 
   return { success: true, questions };
+};
+
+export const retrieve_random_question = async (
+  topic = null,
+  difficulty = null,
+) => {
+  const result = await retrieve_all_questions(topic, difficulty);
+
+  if (!result.success) {
+    return result;
+  }
+
+  const questions = result.questions;
+  if (questions.length === 0) {
+    return {
+      success: false,
+      error: "No questions found for these filters",
+      code: 404,
+    };
+  }
+
+  const randomIndex = Math.floor(Math.random() * questions.length);
+  return { success: true, question: questions[randomIndex] };
 };

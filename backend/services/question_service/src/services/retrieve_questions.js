@@ -28,19 +28,19 @@ export const retrieve_all_questions = async (
 
   // Search for invalid topics/difficulties
   if (topic) {
-    topic.forEach(() => {
-      if (!(topic in TOPICS)) {
+    for (const t of topic) {
+      if (!(t in TOPICS)) {
         return { success: false, error: "Invalid topic", code: 400 };
       }
-    });
+    }
   }
 
   if (difficulty) {
-    difficulty.forEach(() => {
-      if (!(topic in DIFFICULTIES)) {
+    for (const d of difficulty) {
+      if (!(d in DIFFICULTIES)) {
         return { success: false, error: "Invalid difficulty", code: 400 };
       }
-    });
+    }
   }
 
   const questions = await get_all_questions(topic, difficulty);

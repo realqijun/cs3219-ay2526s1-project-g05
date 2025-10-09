@@ -93,9 +93,7 @@ export class UserService {
     const sanitizedUser = this.sanitizeUser(updatedUser ?? user);
 
     // Create a signed token to pass to the frontend to store - will be used for authentication
-    const token = sign_token(sanitizedUser, process.env.AUTHENTICATION_SECRET, {
-      expiresIn: "24h",
-    });
+    const token = sign_token(sanitizedUser);
     return { user: sanitizedUser, token };
   }
 

@@ -3,12 +3,14 @@ import { MongoClientInstance } from "./mongo.js";
 import { ObjectId } from "mongodb";
 
 export const authenticate = async (req, res, next) => {
-  const token = req.headers.authorization.replace("Bearer ", "");
+  let token = req.headers.authorization;
   if (!token) {
     return res
       .status(401)
       .json({ error: "Missing or invalid Authorization header." });
   }
+
+  token = token.replace("Bearer ", "");
 
   const decoded = verify_token(token);
   if (!decoded) {
@@ -19,7 +21,7 @@ export const authenticate = async (req, res, next) => {
     .collection("users")
     .findOne({ _id: new ObjectId(decoded.id) });
   if (!user_result) {
-    throw res.status(401).json({ error: "Invalid or expired token." });
+    return res.status(401).json({ error: "Invalid or expired token." });
   }
 
   next();

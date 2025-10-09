@@ -1,6 +1,6 @@
 import express from "express";
 import { MongoClientInstance } from "../../../common_scripts/mongo.js";
-import { PasswordHasher } from "./security/PasswordHasher.js";
+import { PasswordHasher } from "./utils/PasswordHasher.js";
 import { UserRepository } from "./repositories/UserRepository.js";
 import { UserService } from "./services/UserService.js";
 import {

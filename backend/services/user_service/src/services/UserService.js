@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import { ApiError } from "../errors/ApiError.js";
-import { UserValidator } from "../validators/UserValidator.js";
-import { LoginSecurityManager } from "../security/LoginSecurityManager.js";
+import { ApiError } from "../utils/errors/ApiError.js";
+import { UserValidator } from "../utils/validators/UserValidator.js";
+import { LoginSecurityManager } from "../utils/LoginSecurityManager.js";
 
 export class UserService {
   constructor({ repository, passwordHasher }) {
@@ -85,7 +85,9 @@ export class UserService {
     }
 
     const securityReset = LoginSecurityManager.buildSuccessfulLoginUpdate();
-    const updatedUser = await this.repository.updateById(user._id, { set: securityReset });
+    const updatedUser = await this.repository.updateById(user._id, {
+      set: securityReset,
+    });
     return this.sanitizeUser(updatedUser ?? user);
   }
 
@@ -112,7 +114,9 @@ export class UserService {
       sanitizedUpdates.email &&
       sanitizedUpdates.email !== currentUser.email
     ) {
-      const existing = await this.repository.findByEmail(sanitizedUpdates.email);
+      const existing = await this.repository.findByEmail(
+        sanitizedUpdates.email,
+      );
       if (existing && existing._id.toString() !== currentUser._id.toString()) {
         throw new ApiError(409, "Email is already taken.");
       }
@@ -122,7 +126,9 @@ export class UserService {
       sanitizedUpdates.username &&
       sanitizedUpdates.username !== currentUser.username
     ) {
-      const existing = await this.repository.findByUsername(sanitizedUpdates.username);
+      const existing = await this.repository.findByUsername(
+        sanitizedUpdates.username,
+      );
       if (existing && existing._id.toString() !== currentUser._id.toString()) {
         throw new ApiError(409, "Username is already taken.");
       }
@@ -130,11 +136,15 @@ export class UserService {
 
     const updatePayload = { ...sanitizedUpdates };
     if (sanitizedUpdates.password) {
-      updatePayload.passwordHash = await this.passwordHasher.hash(sanitizedUpdates.password);
+      updatePayload.passwordHash = await this.passwordHasher.hash(
+        sanitizedUpdates.password,
+      );
       delete updatePayload.password;
     }
 
-    const updatedUser = await this.repository.updateById(id, { set: updatePayload });
+    const updatedUser = await this.repository.updateById(id, {
+      set: updatePayload,
+    });
     if (!updatedUser) {
       throw new ApiError(404, "User not found.");
     }
@@ -151,7 +161,10 @@ export class UserService {
       throw new ApiError(400, "Password confirmation is required.");
     }
 
-    const passwordMatches = await this.passwordHasher.verify(user.passwordHash, password);
+    const passwordMatches = await this.passwordHasher.verify(
+      user.passwordHash,
+      password,
+    );
     if (!passwordMatches) {
       throw new ApiError(401, "Invalid password.");
     }
@@ -174,7 +187,10 @@ export class UserService {
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await this.repository.updateById(user._id, {
@@ -193,7 +209,10 @@ export class UserService {
     }
 
     if (!UserValidator.isValidPassword(newPassword)) {
-      throw new ApiError(400, "Password does not meet complexity requirements.");
+      throw new ApiError(
+        400,
+        "Password does not meet complexity requirements.",
+      );
     }
 
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");

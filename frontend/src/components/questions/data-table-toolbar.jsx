@@ -27,7 +27,7 @@ export function DataTableToolbar({ table }) {
     { value: "id", label: "Question ID" },
     { value: "title", label: "Title" },
     { value: "difficulty", label: "Difficulty" },
-    { value: "acceptance", label: "Acceptance" },
+    { value: "topics", label: "Topics" },
   ];
 
   const handleSortChange = (field) => {

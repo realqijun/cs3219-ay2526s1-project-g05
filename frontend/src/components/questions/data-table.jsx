@@ -1,4 +1,4 @@
-"use client";;
+"use client";
 import * as React from "react";
 import {
   flexRender,
@@ -23,13 +23,7 @@ import {
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
 
-export function DataTable(
-  {
-    columns,
-    data
-  }
-) {
-  const [rowSelection, setRowSelection] = React.useState({});
+export function DataTable({ columns, data }) {
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState([]);
   const [sorting, setSorting] = React.useState([]);
@@ -40,7 +34,6 @@ export function DataTable(
     state: {
       sorting,
       columnVisibility,
-      rowSelection,
       columnFilters
     },
     initialState: {
@@ -48,8 +41,8 @@ export function DataTable(
         pageSize: 10
       }
     },
-    enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
+    // Removed all row selection logic
+    enableRowSelection: false,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -69,24 +62,29 @@ export function DataTable(
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id} colSpan={header.colSpan} style={{ width: header.column.columnDef.meta?.width }}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    colSpan={header.colSpan}
+                    style={{ width: header.column.columnDef.meta?.width }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} style={{ width: cell.column.columnDef.meta?.width }}>
+                    <TableCell
+                      key={cell.id}
+                      style={{ width: cell.column.columnDef.meta?.width }}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

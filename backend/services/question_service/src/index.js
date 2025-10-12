@@ -17,7 +17,6 @@ const start = async () => {
 
   startSwaggerDocs(app, "Question Service API", PORT);
 
-  console.log(process.env.NODE_ENV);
   if (process.env.NODE_ENV === "development") {
     app.use(cors());
     console.log("CORS enabled for development");

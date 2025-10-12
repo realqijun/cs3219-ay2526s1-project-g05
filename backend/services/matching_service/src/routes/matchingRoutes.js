@@ -6,6 +6,7 @@ export const createMatchingRouter = (controller) => {
     router.post("/queue", controller.queue);
     router.get("/status/:sessionId", controller.getStatus);
     router.post("/cancel", controller.cancel);
+    router.post("/confirm", controller.confirmMatch);
 
     return router;
 };

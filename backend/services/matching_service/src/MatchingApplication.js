@@ -4,6 +4,7 @@ import { errorMiddleware, MatchingController } from './controllers/MatchingContr
 import { createMatchingRouter } from './routes/matchingRoutes.js';
 import { MatchingService } from './services/MatchingService.js';
 import { MatchingRepository } from './repositories/MatchingRepository.js';
+import { RedisSubscriber } from './redis/RedisSubscriber.js';
 
 export class MatchingApplication {
     constructor({ port = process.env.MATCHINGSERVICEPORT || 4003 } = {}) {
@@ -28,6 +29,11 @@ export class MatchingApplication {
 
         // store object in the class fields to call cleanup interval
         this.service = service;
+        
+        const redisSubscriber = new RedisSubscriber(service);
+        await redisSubscriber.start();
+        this.redisSubscriber = redisSubscriber;
+
         // periodic cleanup of stale sessions every 3 minutes
         this.cleanupInterval = setInterval(() => {
             this.service.cleanupStaleSessions().catch(err => {

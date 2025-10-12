@@ -57,4 +57,28 @@ export class RedisClient {
         }
         return RedisClient.client;
     }
+
+    static createSubscriberClient() {
+        const subscriber = createClient({
+            socket: {
+                host: process.env.REDIS_HOST || 'localhost',
+                port: process.env.REDIS_PORT || 6379,
+            },
+            // password: process.env.REDIS_PASSWORD,
+        });
+
+        subscriber.on('error', (err) => {
+            console.error('Redis Subscriber Error:', err);
+        });
+
+        subscriber.on('connect', () => {
+            console.info('Redis Subscriber connected');
+        });
+
+        subscriber.on('disconnect', () => {
+            console.info('Redis Subscriber disconnected');
+        });
+
+        return subscriber;
+    }
 }

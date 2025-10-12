@@ -16,7 +16,7 @@ services:
       - "127.0.0.1:6379:6379" # bind to localhost of the host only - prevents external access
     volumes:
       - redis_data:/data # Use a named volume for Redis data persistence
-    command: redis-server --appendonly yes # Enable AOF persistence for data durability
+    command: redis-server --appendonly yes --notify-keyspace-events KEA 
 
 volumes:
   mongo_data:

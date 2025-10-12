@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import { CollaborationApplication } from "./src/CollaborationApplication.js";
 
-const port = process.env.COLLABORATIONSERVICEPORT || 4002;
+const port = process.env.COLLABORATIONSERVICEPORT || 4004;
 const application = new CollaborationApplication({ port });
 
 let server;

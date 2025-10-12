@@ -10,6 +10,7 @@ import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage.jsx';
 import ErrorPage from '@/pages/ErrorPage.jsx';
 import QuestionPage from '@/pages/QuestionPage.jsx';
 import ProfilePage from '@/pages/auth/ProfilePage.jsx';
+import MatchmakingPage from '@/pages/MatchmakingPage.jsx';
 import { ThemeProvider } from './components/theme-provider.jsx';
 
 createRoot(document.getElementById('root')).render(
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/problemset" element={<QuestionPage />} />
+          <Route path="/matchmaking" element={<MatchmakingPage />} />
           <Route path="/404" element={<ErrorPage />} />
 
           {/* Catch-all route */}

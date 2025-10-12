@@ -25,14 +25,32 @@ The service listens on port `4003` by default. 【F:backend/services/matching_se
 curl -X POST http://localhost:4003/api/matching/queue \
   -H "Content-Type: application/json" \
   -d '{
-    "user": { "name": "pauline", "id": "1242" },
+    "user": { "name": "pauline", "id": "1" },
     "criteria": { "difficulty": "hard", "topics": ["dp", "tree"] }
   }'
 ```
 
 ### Get match status for queued user
 ```bash
-curl http://localhost:4003/api/status/session-1242-1759572817638
+curl http://localhost:4003/api/matching/status/session-1-c7932e53-2e21-47ac-8c94-7fa78a118a41
+```
+
+### Confirm match for a matched user
+```bash
+curl -X POST http://localhost:4003/api/matching/confirm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "session-1-c7932e53-2e21-47ac-8c94-7fa78a118a41"
+  }'
+```
+
+### Cancel match for a queued user
+```bash
+curl -X POST http://localhost:4003/api/matching/cancel \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "session-1-c7932e53-2e21-47ac-8c94-7fa78a118a41"
+  }'
 ```
 
 ## Architecture

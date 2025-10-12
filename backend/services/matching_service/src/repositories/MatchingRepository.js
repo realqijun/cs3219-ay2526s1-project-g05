@@ -9,8 +9,9 @@ export class MatchingRepository {
 
         this.ACTIVE_LISTENERS_KEY = 'matching:active_listeners';
 
+        this.PERSISTENT_MATCH_DATA_KEY = 'matching:persistent_match:';
         this.MATCH_DATA_KEY = 'matching:match_data:';
-        this.PENDING_MATCH_SESSION_KEY = 'matching:match_map:'; 
+        this.PENDING_MATCH_SESSION_KEY = 'matching:match_map:';
 
         this.QUEUE_WINDOW = 100; // Number of sessions to consider when matching
     }
@@ -142,6 +143,7 @@ export class MatchingRepository {
     }
 
     async storeMatchState(matchId, matchState) {
+        await this.redis.set(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState));
         await this.redis.set(`${this.MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState), { EX: 180 });
         return true;
     }
@@ -194,9 +196,15 @@ export class MatchingRepository {
         return data ? JSON.parse(data) : null;
     }
 
+    async getPersistentMatchState(matchId) {
+        const data = await this.redis.get(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`);
+        return data ? JSON.parse(data) : null;
+    }
+
     async updateMatchState(matchId, matchState) {
         // overwrites existing
         await this.redis.set(`${this.MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState), { KEEPTTL: true });
+        await this.redis.set(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState));
         return true;
     }
 
@@ -204,7 +212,7 @@ export class MatchingRepository {
         const multi = this.redis.multi();
         
         multi.del(`${this.MATCH_DATA_KEY}${matchId}`);
-        
+        multi.del(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`);
         // Delete signal keys if they haven't expired
         multi.del(`${this.PENDING_MATCH_SESSION_KEY}${sessionAId}`);
         multi.del(`${this.PENDING_MATCH_SESSION_KEY}${sessionBId}`);

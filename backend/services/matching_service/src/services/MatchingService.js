@@ -51,7 +51,6 @@ export class MatchingService {
         };
 
         const matchId = this.createMatchId();
-        console.log(`Match found! ${userA.sessionId} with ${userB.sessionId} as ${matchId}`); // debug
         
         const initialMatchState = {
             matchId: matchId,
@@ -208,20 +207,13 @@ export class MatchingService {
     }
 
     // called by redis subscriber upon pendingmatch key expiration
-    async handleMatchTimeout(expiredSessionId) {
-        const matchId = await this.repository.getMatchIdFromSession(expiredSessionId);
-        if (!matchId) {
-            console.error(`No match ID found for expired session ${expiredSessionId}`); //debug
-            return; 
-        }
-
-        const matchState = await this.repository.getMatchState(matchId);
+    async handleMatchTimeout(expiredMatchId) {
+        const matchState = await this.repository.getPersistentMatchState(expiredMatchId);
         if (!matchState) {
-            console.error(`No match state found for match ID ${matchId}`); //debug
             return;
         }
 
-        const userAId = expiredSessionId;
+        const userAId = matchState.users[Object.keys(matchState.users)[0]].matchDetails.partnerSessionId;
         const userBId = matchState.users[userAId].matchDetails.partnerSessionId;
 
         const userAConfirmed = matchState.users[userAId].confirmed;
@@ -240,10 +232,10 @@ export class MatchingService {
             sessionData = await this.repository.getSessionData(requeueSessionId);
         }
 
-        await this.repository.deleteMatch(matchId);
-        await this.repository.deleteSession(expiredSessionId);
+        await this.repository.deleteMatch(expiredMatchId);
 
         if (sessionData) {
+            console.log(`Re-queuing session ${requeueSessionId} due to partner timeout.`); // debug
             const requeueUser = JSON.parse(sessionData.user);
             const requeueCriteria = JSON.parse(sessionData.criteria);
             const newSessionId = await this.rejoinQueueWithPriority(requeueSessionId, requeueUser, requeueCriteria);

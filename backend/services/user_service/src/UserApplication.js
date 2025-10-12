@@ -8,6 +8,7 @@ import {
   errorMiddleware,
 } from "./controllers/UserController.js";
 import { createUserRouter } from "./routes/userRoutes.js";
+import cors from "cors";
 
 export class UserApplication {
   constructor({ port = process.env.USERSERVICEPORT || 4001 } = {}) {
@@ -28,6 +29,7 @@ export class UserApplication {
 
     const app = express();
     app.use(express.json());
+    app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 
     app.get("/status", (_req, res) => {
       res.json({ status: "User service is running" });

@@ -10,7 +10,7 @@ import {
 import { createUserRouter } from "./routes/userRoutes.js";
 import cors from "cors";
 
-export class UserApplication {
+export class UserServiceApplication {
   constructor({ port = process.env.USERSERVICEPORT || 4001 } = {}) {
     this.port = port;
     this.app = null;

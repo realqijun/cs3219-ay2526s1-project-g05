@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 export const Hero = () => {
   return (
-    <section class="container mx-auto px-4 md:px-8 lg:px-16 py-20 grid lg:grid-cols-2 place-items-center gap-10">
+    <section className="container mx-auto px-4 md:px-8 lg:px-16 py-20 grid lg:grid-cols-2 place-items-center gap-10">
       <div className="text-center lg:text-start space-y-6">
         <main className="text-5xl md:text-6xl font-bold">
           <h1 className="inline">
@@ -27,7 +27,7 @@ export const Hero = () => {
 
         <div className="space-y-4 md:space-y-0 md:space-x-4">
           <Link to="/login">
-            <Button variant="default" className="w-full md:w-1/3">
+            <Button variant="default" className="dark:bg-white dark:text-black w-full md:w-1/3">
               Get Started
             </Button>
           </Link>

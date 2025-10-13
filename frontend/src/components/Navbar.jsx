@@ -19,7 +19,7 @@ import logo from "@/assets/logo.png";
 
 const routeList = [
   { href: "#explore", label: "Explore" },
-  { href: "#problems", label: "Problems" },
+  { href: "/problemset", label: "Problems" },
   { href: "#discuss", label: "Discuss" },
 ];
 
@@ -102,7 +102,7 @@ export const Navbar = () => {
               Log In
             </a>
 
-            {/* <ModeToggle /> */}
+            <ModeToggle />
           </div>
         </NavigationMenuList>
       </NavigationMenu>

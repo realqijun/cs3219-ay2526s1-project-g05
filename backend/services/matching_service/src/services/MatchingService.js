@@ -4,7 +4,6 @@ import crypto from "crypto";
 export class MatchingService {
     constructor({ repository }) {
         this.repository = repository;
-        // circular dependency on controller for notifying matches
         this.notifier = null;
     }
 
@@ -34,35 +33,36 @@ export class MatchingService {
             throw new ApiError(400, "Criteria must include 'difficulty' and 'topics' array.");
         }
 
-        const matchedUser = await this.repository.findMatch(criteria); 
+        // immediately look for a match in the queue
+        const matchedUser = await this.repository.findMatch(criteria);
         const sessionId = this.createSessionId(user);
         await this.repository.enterQueue(user, sessionId, criteria);
 
         if (!matchedUser) {
             return sessionId;
         }
-        
+
         const userA = { user: matchedUser.user, sessionId: matchedUser.sessionId };
         const userB = { user: user, sessionId: sessionId };
-        
+
         const commonMatchData = {
             criteria: criteria
             // TODO: get question and remove criteria
         };
 
         const matchId = this.createMatchId();
-        
+
         const initialMatchState = {
             matchId: matchId,
             status: 'pending', // for debugging
             users: {
-                [userA.sessionId]: { 
-                    confirmed: false, 
+                [userA.sessionId]: {
+                    confirmed: false,
                     user: userA.user,
                     matchDetails: { ...commonMatchData, partner: userB.user, partnerSessionId: userB.sessionId }
                 },
-                [userB.sessionId]: { 
-                    confirmed: false, 
+                [userB.sessionId]: {
+                    confirmed: false,
                     user: userB.user,
                     matchDetails: { ...commonMatchData, partner: userA.user, partnerSessionId: userA.sessionId }
                 }
@@ -72,7 +72,7 @@ export class MatchingService {
         await this.repository.storeMatchState(matchId, initialMatchState);
         await this.repository.storePendingMatch(userA.sessionId, matchId);
         await this.repository.storePendingMatch(userB.sessionId, matchId);
-        
+
         const isUserAActive = await this.repository.isActiveListener(userA.sessionId);
         if (isUserAActive) {
             this.notifier.notifyMatchFound(userA.sessionId, initialMatchState.users[userA.sessionId].matchDetails);
@@ -86,7 +86,7 @@ export class MatchingService {
             await this.repository.removeActiveListener(userB.sessionId);
         }
 
-        return sessionId; 
+        return sessionId;
     }
 
     async addActiveListener(sessionId) {
@@ -114,21 +114,23 @@ export class MatchingService {
         }
         return await this.repository.getPendingMatch(sessionId);
     }
-    
+
     async confirmMatch(sessionId) {
         const matchId = await this.repository.getMatchIdFromSession(sessionId);
         if (!matchId) {
-            throw new ApiError(404, "Pending match not found or already timed out/completed.");
+            throw new ApiError(404, "Pending match not found.");
         }
 
         let matchState = await this.repository.getMatchState(matchId);
         if (!matchState) {
-            throw new ApiError(404, "Match data expired or already cleaned up.");
+            throw new ApiError(404, "Match expired or finalized.");
         }
-
-        const partnerSessionId = matchState.users[sessionId].matchDetails.partnerSessionId;
-
+        if (matchState.users[sessionId].confirmed) {
+            throw new ApiError(400, "Match already confirmed.");
+        }
+        
         matchState.users[sessionId].confirmed = true;
+        const partnerSessionId = matchState.users[sessionId].matchDetails.partnerSessionId;
         const partnerConfirmed = matchState.users[partnerSessionId].confirmed;
 
         if (partnerConfirmed) {
@@ -139,45 +141,39 @@ export class MatchingService {
 
             // TODO: query collab service
             const collabId = `collab-${matchId}`;
+
             this.notifier.notifyMatchFinalized(partnerSessionId, { token: collabId });
             this.notifier.notifyMatchFinalized(sessionId, { token: collabId });
-            return { status: 'completed', data: { token: collabId } };
+            return { status: 'completed' };
         }
 
         await this.repository.updateMatchState(matchId, matchState);
         return { status: 'waiting' };
     }
-    
+
     async cleanupStaleSessions() {
         const timeoutMs = 5 * 60 * 1000;
         const staleSessionIds = await this.repository.getStaleSessions(timeoutMs);
         if (staleSessionIds.length === 0) {
             return;
         }
-        console.log(`Cleaning up ${staleSessionIds.length} stale sessions:`, staleSessionIds);
         for (const sessionId of staleSessionIds) {
             this.notifier.notifySessionExpired(sessionId);
-            await this.repository.deleteSession(sessionId);
+            await this.clearMatchAndSession(sessionId);
+            // TODO: give user option to requeue or cancel
         }
-    }
-
-    async sessionExists(sessionId) {
-        if (!sessionId) {
-            throw new ApiError(400, "Session ID is required to check if session exists.");
-        }
-        return await this.repository.sessionExists(sessionId);
     }
 
     async rejoinQueueWithPriority(oldSessionId, user, criteria) {
         if (!oldSessionId || !user || !criteria) {
             throw new ApiError(400, "Old Session ID, User, and Criteria are required.");
-        }        
+        }
         await this.repository.deleteSession(oldSessionId);
         const newSessionId = this.createSessionId(user);
 
         const PRIORITY_OFFSET = 10 * 60 * 1000;
         const priorityScore = Date.now() - PRIORITY_OFFSET;
-        
+
         await this.repository.enterQueue(user, newSessionId, criteria, priorityScore);
         return newSessionId;
     }
@@ -192,14 +188,8 @@ export class MatchingService {
             const matchState = await this.repository.getMatchState(matchId);
             if (matchState) {
                 await this.repository.deleteMatch(matchId);
-                const requeueSessionId = matchState.users[sessionId].matchDetails.partnerSessionId;
-                const sessionData = await this.repository.getSessionData(requeueSessionId);
-                const requeueUser = JSON.parse(sessionData.user);
-                const requeueCriteria = JSON.parse(sessionData.criteria);
-
-                // notify and requeue partner
-                const newSessionId = await this.rejoinQueueWithPriority(requeueSessionId, requeueUser, requeueCriteria);
-                this.notifier.notifyMatchCancelled(requeueSessionId, { message: `Partner cancelled match request. You have been re-queued with priority: ${newSessionId}.` });
+                const partnerSessionId = matchState.users[sessionId].matchDetails.partnerSessionId;
+                this.notifier.notifyMatchCancelled(partnerSessionId, { message: `Partner cancelled match request. You have been re-queued with priority.` });
             }
         }
         await this.repository.deleteSession(sessionId);
@@ -213,20 +203,20 @@ export class MatchingService {
             return;
         }
 
-        const userAId = matchState.users[Object.keys(matchState.users)[0]].matchDetails.partnerSessionId;
-        const userBId = matchState.users[userAId].matchDetails.partnerSessionId;
+        const userASessionId = matchState.users[Object.keys(matchState.users)[0]].matchDetails.partnerSessionId;
+        const userBSessionId = matchState.users[userASessionId].matchDetails.partnerSessionId;
 
-        const userAConfirmed = matchState.users[userAId].confirmed;
-        const userBConfirmed = matchState.users[userBId].confirmed;
-        
+        const userAConfirmed = matchState.users[userASessionId].confirmed;
+        const userBConfirmed = matchState.users[userBSessionId].confirmed;
+
         let requeueSessionId = null;
 
         if (userAConfirmed && !userBConfirmed) {
-            requeueSessionId = userAId;
+            requeueSessionId = userASessionId;
         } else if (userBConfirmed && !userAConfirmed) {
-            requeueSessionId = userBId;
+            requeueSessionId = userBSessionId;
         }
-        
+
         let sessionData = null;
         if (requeueSessionId) {
             sessionData = await this.repository.getSessionData(requeueSessionId);
@@ -235,11 +225,10 @@ export class MatchingService {
         await this.repository.deleteMatch(expiredMatchId);
 
         if (sessionData) {
-            console.log(`Re-queuing session ${requeueSessionId} due to partner timeout.`); // debug
             const requeueUser = JSON.parse(sessionData.user);
             const requeueCriteria = JSON.parse(sessionData.criteria);
             const newSessionId = await this.rejoinQueueWithPriority(requeueSessionId, requeueUser, requeueCriteria);
-            this.notifier.notifyMatchCancelled(requeueSessionId, { message: `Partner timed out. You have been re-queued with priority: ${newSessionId}.` });
+            this.notifier.notifyMatchCancelled(requeueSessionId, { message: `Partner timed out. You have been re-queued with priority, use newSessionId:${newSessionId}.` });
         }
     }
 }

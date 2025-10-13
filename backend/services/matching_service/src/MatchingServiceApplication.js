@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { securityHeaders } from './middleware/securityHeaders.js';
 import { errorMiddleware, MatchingController } from './controllers/MatchingController.js';
 import { createMatchingRouter } from './routes/matchingRoutes.js';
@@ -6,7 +7,7 @@ import { MatchingService } from './services/MatchingService.js';
 import { MatchingRepository } from './repositories/MatchingRepository.js';
 import { RedisSubscriber } from './redis/RedisSubscriber.js';
 
-export class MatchingApplication {
+export class MatchingServiceApplication {
     constructor({ port = process.env.MATCHINGSERVICEPORT || 4003 } = {}) {
         this.port = port;
         this.app = null;
@@ -29,10 +30,6 @@ export class MatchingApplication {
 
         // store object in the class fields to call cleanup interval
         this.service = service;
-        
-        const redisSubscriber = new RedisSubscriber(service);
-        await redisSubscriber.start();
-        this.redisSubscriber = redisSubscriber;
 
         // periodic cleanup of stale sessions every 3 minutes
         this.cleanupInterval = setInterval(() => {
@@ -40,10 +37,18 @@ export class MatchingApplication {
                 console.error("Stale cleanup worker failed:", err);
             });
         }, 3 * 60 * 1000);
-        
+
+        const redisSubscriber = new RedisSubscriber(service);
+        await redisSubscriber.start();
+        this.redisSubscriber = redisSubscriber;
+
         app.enable('trust proxy');
         app.use(express.json());
         app.use(securityHeaders);
+
+        if (process.env.NODE_ENV === 'development') {
+            app.use(cors());
+        }
 
         app.get('/status', (_req, res) => {
             res.json({ status: 'Matching service is running' });

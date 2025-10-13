@@ -1,8 +1,8 @@
-import { MatchingApplication } from './src/MatchingApplication.js';
+import { MatchingServiceApplication } from './src/MatchingServiceApplication.js';
 import { RedisClient } from './src/redis/RedisClient.js';
 
 const port = process.env.MATCHINGSERVICEPORT || 4003;
-const matchingApp = new MatchingApplication({ port });
+const matchingApp = new MatchingServiceApplication({ port });
 
 let service;
 

@@ -40,27 +40,22 @@ export class MatchingController {
 
       await this.matchService.addActiveListener(sessionId);
       this.activeConnections[sessionId] = res;
-      res.write('event: connected\n');
-      res.write(`data: {"message": "Connection established for session ${sessionId}"}\n\n`);
+      res.write(`event: connected\ndata: {"message": "Connection established for session ${sessionId}"}\n\n`);
 
       const pendingMatch = await this.matchService.getPendingMatch(sessionId);
       if (pendingMatch) {
         this.notifyMatchFound(sessionId, pendingMatch, res);
       }
 
-      // user closes the connection
       req.on('close', () => {
-        console.log(`SSE connection closed manually for session: ${sessionId}`);
         delete this.activeConnections[sessionId];
         this.matchService.removeActiveListener(sessionId);
-        // user can still reconnect later to wait for match because only active listener is removed
       });
     } catch (err) {
       next(err);
     }
   }
 
-  // internal method to send match found event
   notifyMatchFound(sessionId, matchData, resExternal = null) {
     const res = resExternal || this.activeConnections[sessionId];
     if (res) {
@@ -69,22 +64,14 @@ export class MatchingController {
     }
   }
 
-  notify(sessionId, message) {
+  notifySessionExpired(sessionId) {
     const res = this.activeConnections[sessionId];
     if (res) {
-      const formattedData = `event: notification\ndata: ${JSON.stringify(message)}\n\n`;
+      const formattedData = `event: sessionExpired\ndata: {"message": "Session ${sessionId} has expired. You may cancel your participation in the queue, or rejoin with priority."}\n\n`;
       res.write(formattedData);
     }
   }
 
-  notifySessionExpired(sessionId) {
-    const res = this.activeConnections[sessionId];
-    if (res) {
-      const formattedData = `event: sessionExpired\ndata: {"message": "Session ${sessionId} has expired."}\n\n`;
-      res.write(formattedData);
-    }
-  }
-  
   notifyMatchCancelled(sessionId, info) {
     const res = this.activeConnections[sessionId];
     if (res) {
@@ -92,38 +79,25 @@ export class MatchingController {
       res.write(formattedData);
     }
   }
-  
-  notifySessionCancelled(sessionId) {
-    const res = this.activeConnections[sessionId];
-    if (res) {
-      const formattedData = `event: sessionCancelled\ndata: {"message": "Session ${sessionId} has been cancelled."}\n\n`;
-      res.write(formattedData);
-    }
-  }
-  
+
   // POST /confirm sessionid in body
   confirmMatch = async (req, res, next) => {
     try {
       const { sessionId } = req.body;
-      
+
       const matchResult = await this.matchService.confirmMatch(sessionId);
-      
+
       if (matchResult.status === 'completed') {
-        // Connection is closed in the notifyMatchFinalized method below
-        res.status(200).json({
-          message: "Match confirmed and complete.",
-          matchDetails: matchResult.data
-        });
+        // Connection is closed in the notifyMatchFinalized
+        res.status(200).json({ message: "Match confirmed and complete." });
         return;
       }
-      res.status(200).json({
-        message: "Confirmation received. Waiting for partner.",
-      });
+      res.status(200).json({ message: "Confirmation received. Waiting for partner." });
     } catch (err) {
       next(err);
     }
   }
-  
+
   // internal method to send match finalized event and close connection
   notifyMatchFinalized(sessionId, matchData) {
     const res = this.activeConnections[sessionId];
@@ -134,33 +108,23 @@ export class MatchingController {
       res.end();
     }
   }
-  
+
   // POST /cancel sessionid in body
   cancel = async (req, res, next) => {
     try {
       const { sessionId } = req.body;
       await this.matchService.clearMatchAndSession(sessionId);
       // Close SSE connection from array if exists
-      if (this.activeConnections[sessionId]) {
-        this.notifySessionCancelled(sessionId);
-        const res = this.activeConnections[sessionId];
+      const resListener = this.activeConnections[sessionId];
+      if (resListener) {
         delete this.activeConnections[sessionId];
-        res.end();
+        const formattedData = `event: cancelled\ndata: {"message": "You have exited the queue and cancelled any pending matches."}\n\n`;
+        resListener.write(formattedData);
+        resListener.end();
       }
+
       res.json({ message: "Exited queue successfully." });
     } catch (err) {
-      next(err);
-    }
-  }
-
-  // GET /session/:sessionId for dev
-  sessionExists = async (req, res, next) => {
-    try {
-      const { sessionId } = req.params;
-      const exists = await this.matchService.sessionExists(sessionId);
-      res.status(200).json({ exists });
-    }
-    catch (err) {
       next(err);
     }
   }

@@ -53,29 +53,27 @@ export class MatchingRepository {
             user: JSON.stringify(user),
             criteria: JSON.stringify(criteria),
             timestamp: Date.now().toString()
-        };    
+        };
 
         const multi = this.redis.multi();
 
-        // Add to sorted set prefix z (queue) with timestamp as score for FIFO ordering
         multi.zAdd(this.QUEUE_KEY, {
             score: score || Date.now(),
             value: sessionId
-        });    
+        });
 
-        // Store session details
         multi.hSet(`${this.SESSION_PREFIX}${sessionId}`, sessionData);
-        
+
         // Store user to session mapping for duplicate prevention
         multi.set(`${this.USER_PREFIX}${user.id}`, sessionId);
-        
+
         await multi.exec();
         return true;
-    }    
-    
+    }
+
     async findMatch(criteria) {
         // Get a batch of sessions rather than the entire list for performance
-        // TODO: what if queue is very large and match is far down the queue?
+        // TODO: handle for what if match is after the first 100
         const sessionIds = await this.redis.zRange(this.QUEUE_KEY, 0, this.QUEUE_WINDOW);
 
         for (const sessionId of sessionIds) {
@@ -83,11 +81,6 @@ export class MatchingRepository {
                 continue;
             }
             const sessionData = await this.redis.hGetAll(`${this.SESSION_PREFIX}${sessionId}`);
-            
-            if (!sessionData.criteria) {
-                await this.deleteSession(sessionId); // corrupt sesh
-                continue;
-            }
 
             const queuedCriteria = JSON.parse(sessionData.criteria);
             if (this.meetsCriteria(criteria, queuedCriteria)) {
@@ -115,19 +108,6 @@ export class MatchingRepository {
         return staleSessionIds;
     }
 
-    async sessionExists(sessionId) {
-        const sessionData = await this.getSessionData(sessionId);
-        return Object.keys(sessionData).length > 0;
-    }
-
-    async getSessionData(sessionId) {
-        return await this.redis.hGetAll(`${this.SESSION_PREFIX}${sessionId}`);
-    }
-
-    async userInQueue(user) {
-        return (await this.redis.exists(`${this.USER_PREFIX}${user.id}`)) === 1;
-    }
-
     async addActiveListener(sessionId) {
         await this.redis.hSet(this.ACTIVE_LISTENERS_KEY, sessionId, Date.now().toString());
         return true;
@@ -142,15 +122,24 @@ export class MatchingRepository {
         return (await this.redis.hExists(this.ACTIVE_LISTENERS_KEY, sessionId)) === 1;
     }
 
-    async storeMatchState(matchId, matchState) {
-        await this.redis.set(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState));
-        await this.redis.set(`${this.MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState), { EX: 180 });
-        return true;
+    async getMatchIdFromSession(sessionId) {
+        return await this.redis.get(`${this.PENDING_MATCH_SESSION_KEY}${sessionId}`);
     }
 
-    async storePendingMatch(sessionId, matchId) {
-        const matchMapKey = `${this.PENDING_MATCH_SESSION_KEY}${sessionId}`;
-        await this.redis.set(matchMapKey, matchId);
+    async getMatchState(matchId) {
+        const data = await this.redis.get(`${this.MATCH_DATA_KEY}${matchId}`);
+        return data ? JSON.parse(data) : null;
+    }
+
+    async getPersistentMatchState(matchId) {
+        const data = await this.redis.get(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`);
+        return data ? JSON.parse(data) : null;
+    }
+
+    async updateMatchState(matchId, matchState) {
+        // overwrites existing
+        await this.redis.set(`${this.MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState), { KEEPTTL: true });
+        await this.redis.set(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState));
         return true;
     }
 
@@ -164,6 +153,31 @@ export class MatchingRepository {
             return null;
         }
         return matchState.users[sessionId].matchDetails;
+    }
+
+    async sessionExists(sessionId) {
+        const sessionData = await this.getSessionData(sessionId);
+        return Object.keys(sessionData).length > 0;
+    }
+
+    async getSessionData(sessionId) {
+        return await this.redis.hGetAll(`${this.SESSION_PREFIX}${sessionId}`);
+    }
+
+    async userInQueue(user) {
+        return (await this.redis.exists(`${this.USER_PREFIX}${user.id}`)) === 1;
+    }
+
+    async storeMatchState(matchId, matchState) {
+        await this.redis.set(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState));
+        await this.redis.set(`${this.MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState), { EX: 180 });
+        return true;
+    }
+
+    async storePendingMatch(sessionId, matchId) {
+        const matchSessionKey = `${this.PENDING_MATCH_SESSION_KEY}${sessionId}`;
+        await this.redis.set(matchSessionKey, matchId);
+        return true;
     }
 
     // Complete cleanup for a session
@@ -186,31 +200,9 @@ export class MatchingRepository {
         return true;
     }
 
-    async getMatchIdFromSession(sessionId) {
-        return await this.redis.get(`${this.PENDING_MATCH_SESSION_KEY}${sessionId}`);
-    }
-
-    // Get match state by matchId
-    async getMatchState(matchId) {
-        const data = await this.redis.get(`${this.MATCH_DATA_KEY}${matchId}`);
-        return data ? JSON.parse(data) : null;
-    }
-
-    async getPersistentMatchState(matchId) {
-        const data = await this.redis.get(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`);
-        return data ? JSON.parse(data) : null;
-    }
-
-    async updateMatchState(matchId, matchState) {
-        // overwrites existing
-        await this.redis.set(`${this.MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState), { KEEPTTL: true });
-        await this.redis.set(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`, JSON.stringify(matchState));
-        return true;
-    }
-
     async deleteMatch(matchId, sessionAId, sessionBId) {
         const multi = this.redis.multi();
-        
+
         multi.del(`${this.MATCH_DATA_KEY}${matchId}`);
         multi.del(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`);
         // Delete signal keys if they haven't expired

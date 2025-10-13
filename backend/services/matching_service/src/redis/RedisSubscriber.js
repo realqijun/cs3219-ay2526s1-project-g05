@@ -18,9 +18,8 @@ export class RedisSubscriber {
         });
         this.subscriber = client;
     }
-    
+
     _handleExpiration(key) {
-        console.log(`🔔 Key expired: ${key}`);
         if (key.startsWith(this.service.repository.MATCH_DATA_KEY)) {
             const sessionId = key.replace(this.service.repository.MATCH_DATA_KEY, '');
             try {

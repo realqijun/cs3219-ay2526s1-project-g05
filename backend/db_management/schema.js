@@ -19,7 +19,7 @@ const run = async () => {
         collMod: collectionName,
         validator: schema.validator,
       });
-      console.info(`Updadted existing "${collectionName}" with new schema.`);
+      console.info(`Updated existing "${collectionName}" with new schema.`);
     } else {
       await db.createCollection(collectionName, schema);
       console.info(`Collection "${collectionName}" created with schema.`);

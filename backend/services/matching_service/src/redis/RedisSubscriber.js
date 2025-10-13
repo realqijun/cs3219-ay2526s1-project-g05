@@ -21,11 +21,11 @@ export class RedisSubscriber {
 
     _handleExpiration(key) {
         if (key.startsWith(this.service.repository.MATCH_DATA_KEY)) {
-            const sessionId = key.replace(this.service.repository.MATCH_DATA_KEY, '');
+            const matchId = key.replace(this.service.repository.MATCH_DATA_KEY, '');
             try {
-                this.service.handleMatchTimeout(sessionId);
+                this.service.handleMatchTimeout(matchId);
             } catch (error) {
-                console.error(`❌ Error handling timeout for session ${sessionId}:`, error);
+                console.error(`❌ Error handling timeout for match ${matchId}:`, error);
             }
         }
     }

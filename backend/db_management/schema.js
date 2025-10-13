@@ -16,10 +16,10 @@ const run = async () => {
       .toArray();
     if (collections.length > 0) {
       await db.command({
-        collMod: "users",
+        collMod: collectionName,
         validator: schema.validator,
       });
-      console.info(`Updadted existing "${collectionName}" with new schema.`);
+      console.info(`Updated existing "${collectionName}" with new schema.`);
     } else {
       await db.createCollection(collectionName, schema);
       console.info(`Collection "${collectionName}" created with schema.`);

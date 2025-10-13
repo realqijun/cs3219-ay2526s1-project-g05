@@ -19,6 +19,7 @@ const start = async () => {
 
   if (process.env.NODE_ENV === "development") {
     app.use(cors());
+    console.log("CORS enabled for development");
   }
 
   /**
@@ -33,7 +34,7 @@ const start = async () => {
   app.use("/questions", use_question_routes());
 
   app.listen(PORT, () => {
-    console.log(`Question service listening on port ${PORT}`);
+    console.log(`Question service running on 127.0.0.1:${PORT}`);
   });
 };
 start();

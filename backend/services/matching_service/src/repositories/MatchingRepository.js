@@ -195,19 +195,15 @@ export class MatchingRepository {
         multi.del(`${this.SESSION_PREFIX}${sessionId}`);
         multi.hDel(this.ACTIVE_LISTENERS_KEY, sessionId);
         multi.del(`${this.PENDING_MATCH_SESSION_KEY}${sessionId}`);
-
         await multi.exec();
         return true;
     }
 
-    async deleteMatch(matchId, sessionAId, sessionBId) {
+    async deleteMatch(matchId) {
         const multi = this.redis.multi();
 
         multi.del(`${this.MATCH_DATA_KEY}${matchId}`);
         multi.del(`${this.PERSISTENT_MATCH_DATA_KEY}${matchId}`);
-        // Delete signal keys if they haven't expired
-        multi.del(`${this.PENDING_MATCH_SESSION_KEY}${sessionAId}`);
-        multi.del(`${this.PENDING_MATCH_SESSION_KEY}${sessionBId}`);
 
         await multi.exec();
         return true;

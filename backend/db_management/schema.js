@@ -16,7 +16,7 @@ const run = async () => {
       .toArray();
     if (collections.length > 0) {
       await db.command({
-        collMod: "users",
+        collMod: collectionName,
         validator: schema.validator,
       });
       console.info(`Updadted existing "${collectionName}" with new schema.`);

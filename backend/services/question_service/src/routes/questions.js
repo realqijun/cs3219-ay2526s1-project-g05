@@ -18,7 +18,7 @@ export const use_question_routes = () => {
    * @return {object[]} 200 - Success
    * @return {object} 400 - Bad Request (e.g invalid topic or difficulty)
    */
-  router.get("/", async (req, res) => {
+  router.get("/", [authenticate], async (req, res) => {
     const { topic, difficulty, search } = req.query;
 
     const result = await retrieve_all_questions(topic, difficulty, search);
@@ -38,7 +38,7 @@ export const use_question_routes = () => {
    * @return {object} 200 - Success
    * @return {object} 400 - Bad Request (e.g invalid topic or difficulty)
    */
-  router.get("/random", async (req, res) => {
+  router.get("/random", [authenticate], async (req, res) => {
     const { topic } = req.query;
     const { difficulty } = req.query;
 

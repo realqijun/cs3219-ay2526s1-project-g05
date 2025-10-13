@@ -32,13 +32,37 @@ export default function ProfilePage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Edit profile states
+  const [editFormData, setEditFormData] = useState({
+    username: "",
+    email: "",
+    currentPassword: "",
+    newPassword: "",
+  });
+  const [editFieldErrors, setEditFieldErrors] = useState({
+    username: "",
+    email: "",
+    currentPassword: "",
+    newPassword: "",
+    general: "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     // Load user data from localStorage
     const userData = localStorage.getItem("user");
     if (userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        // Initialize edit form with current user data
+        setEditFormData({
+          username: parsedUser.username,
+          email: parsedUser.email,
+          currentPassword: "",
+          newPassword: "",
+        });
       } catch (error) {
         console.error("Error parsing user data:", error);
         navigate("/login");
@@ -99,6 +123,166 @@ export default function ProfilePage() {
     setDeletePassword("");
     setDeleteError("");
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleEditInputChange = (e) => {
+    const { id, value } = e.target;
+    setEditFormData((prev) => ({ ...prev, [id]: value }));
+    // Clear error for this field when user starts typing
+    setEditFieldErrors((prev) => ({ ...prev, [id]: "", general: "" }));
+  };
+
+  const parseEditErrors = (errors) => {
+    const fieldErrs = {
+      username: "",
+      email: "",
+      currentPassword: "",
+      newPassword: "",
+      general: "",
+    };
+
+    if (Array.isArray(errors)) {
+      errors.forEach((error) => {
+        const errorLower = error.toLowerCase();
+        if (errorLower.includes("username")) {
+          fieldErrs.username = error;
+        } else if (errorLower.includes("email")) {
+          fieldErrs.email = error;
+        } else if (errorLower.includes("password")) {
+          if (errorLower.includes("current")) {
+            fieldErrs.currentPassword = error;
+          } else {
+            fieldErrs.newPassword = error;
+          }
+        } else {
+          fieldErrs.general = error;
+        }
+      });
+    } else if (typeof errors === "string") {
+      fieldErrs.general = errors;
+    }
+
+    return fieldErrs;
+  };
+
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    setEditFieldErrors({
+      username: "",
+      email: "",
+      currentPassword: "",
+      newPassword: "",
+      general: "",
+    });
+
+    try {
+      // Build update payload with only changed fields
+      const updates = {};
+      
+      if (editFormData.username !== user.username) {
+        updates.username = editFormData.username;
+      }
+      
+      if (editFormData.email !== user.email) {
+        updates.email = editFormData.email;
+      }
+      
+      if (editFormData.newPassword) {
+        if (!editFormData.currentPassword) {
+          setEditFieldErrors((prev) => ({
+            ...prev,
+            currentPassword: "Current password is required to set a new password.",
+          }));
+          setIsSaving(false);
+          return;
+        }
+        
+        // Verify current password by attempting login (or you could add a verify endpoint)
+        try {
+          await userApi.login({
+            email: user.email,
+            password: editFormData.currentPassword,
+          });
+        } catch (error) {
+          setEditFieldErrors((prev) => ({
+            ...prev,
+            currentPassword: "Current password is incorrect.",
+          }));
+          setIsSaving(false);
+          return;
+        }
+        
+        updates.password = editFormData.newPassword;
+      }
+
+      // Check if there are any updates
+      if (Object.keys(updates).length === 0) {
+        setEditFieldErrors({
+          username: "",
+          email: "",
+          currentPassword: "",
+          newPassword: "",
+          general: "No changes detected.",
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      // Call update API
+      const response = await userApi.update(user.id, updates);
+
+      // Update localStorage with new user data
+      const updatedUser = { ...user, ...response.user };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+
+      // Reset form
+      setEditFormData({
+        username: updatedUser.username,
+        email: updatedUser.email,
+        currentPassword: "",
+        newPassword: "",
+      });
+      
+      setIsEditingProfile(false);
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      console.error("Update profile error:", error);
+      
+      if (error.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+        setEditFieldErrors(parseEditErrors(error.errors));
+      } else if (error.message) {
+        setEditFieldErrors(parseEditErrors([error.message]));
+      } else {
+        setEditFieldErrors({
+          username: "",
+          email: "",
+          currentPassword: "",
+          newPassword: "",
+          general: "Unable to update profile. Please try again later.",
+        });
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form to current user data
+    setEditFormData({
+      username: user.username,
+      email: user.email,
+      currentPassword: "",
+      newPassword: "",
+    });
+    setEditFieldErrors({
+      username: "",
+      email: "",
+      currentPassword: "",
+      newPassword: "",
+      general: "",
+    });
+    setIsEditingProfile(false);
   };
 
   if (!user) {
@@ -175,37 +359,108 @@ export default function ProfilePage() {
             <CardDescription>Update your username, email, or password.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {editFieldErrors.general && (
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                {editFieldErrors.general}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
-                  defaultValue={user.username}
-                  readOnly={!isEditingProfile}
+                  value={editFormData.username}
+                  onChange={handleEditInputChange}
+                  disabled={!isEditingProfile || isSaving}
+                  className={editFieldErrors.username ? "border-destructive" : ""}
                 />
+                {editFieldErrors.username && (
+                  <p className="text-xs text-destructive">{editFieldErrors.username}</p>
+                )}
+                {!editFieldErrors.username && isEditingProfile && (
+                  <p className="text-xs text-muted-foreground">
+                    3-30 characters, letters, numbers, and underscores only
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  defaultValue={user.email}
-                  readOnly={!isEditingProfile}
+                  value={editFormData.email}
+                  onChange={handleEditInputChange}
+                  disabled={!isEditingProfile || isSaving}
+                  className={editFieldErrors.email ? "border-destructive" : ""}
                 />
+                {editFieldErrors.email && (
+                  <p className="text-xs text-destructive">{editFieldErrors.email}</p>
+                )}
               </div>
             </div>
 
             {isEditingProfile && (
-              <div className="space-y-4">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" />
+              <div className="space-y-6 border-t pt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    placeholder="Enter current password"
+                    value={editFormData.currentPassword}
+                    onChange={handleEditInputChange}
+                    disabled={isSaving}
+                    className={editFieldErrors.currentPassword ? "border-destructive" : ""}
+                  />
+                  {editFieldErrors.currentPassword && (
+                    <p className="text-xs text-destructive">{editFieldErrors.currentPassword}</p>
+                  )}
+                  {!editFieldErrors.currentPassword && (
+                    <p className="text-xs text-muted-foreground">
+                      Required only if changing password
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password (optional)</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="Enter new password"
+                    value={editFormData.newPassword}
+                    onChange={handleEditInputChange}
+                    disabled={isSaving}
+                    className={editFieldErrors.newPassword ? "border-destructive" : ""}
+                  />
+                  {editFieldErrors.newPassword && (
+                    <p className="text-xs text-destructive">{editFieldErrors.newPassword}</p>
+                  )}
+                  {!editFieldErrors.newPassword && (
+                    <p className="text-xs text-muted-foreground">
+                      At least 8 characters with 1 uppercase, 1 number, and 1 special character
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
             {isEditingProfile && (
-              <div className="flex justify-end mt-6">
-                <Button variant="default" onClick={() => setIsEditingProfile(false)}>
-                  Save Changes
+              <div className="flex justify-end gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleSaveChanges}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             )}

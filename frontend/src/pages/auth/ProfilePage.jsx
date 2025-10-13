@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Trash2, Camera, Mail, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Trash2, Camera, Mail, Calendar, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,10 +12,49 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
 import MainLayout from "@/layout/MainLayout";
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Load user data from localStorage
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        navigate("/login");
+      }
+    } else {
+      // Redirect to login if not logged in
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    // Clear user data from localStorage
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    
+    // Dispatch custom event to notify navbar of logout
+    window.dispatchEvent(new Event("userLoggedOut"));
+    
+    toast.success("Logged out successfully!");
+    navigate("/");
+  };
+
+  if (!user) {
+    return null; // or a loading spinner
+  }
+
+  const userInitials = user.username
+    ? user.username.substring(0, 2).toUpperCase()
+    : "U";
 
   return (
     <MainLayout>
@@ -29,7 +69,7 @@ export default function ProfilePage() {
                     src="https://bundui-images.netlify.app/avatars/08.png"
                     alt="Profile"
                   />
-                  <AvatarFallback className="text-2xl">JD</AvatarFallback>
+                  <AvatarFallback className="text-2xl">{userInitials}</AvatarFallback>
                 </Avatar>
                 <Button
                   size="icon"
@@ -41,27 +81,36 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex-1 space-y-2 md:pl-6">
-                <h1 className="text-2xl font-bold">John Doe</h1>
+                <h1 className="text-2xl font-bold">{user.username}</h1>
                 <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
                   <div className="flex items-center gap-1">
                     <Mail className="size-4" />
-                    john.doe@example.com
+                    {user.email}
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="size-4" />
-                    Joined March 2023
+                    Joined {new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </div>
                 </div>
               </div>
 
-              {!isEditingProfile && (
+              <div className="flex gap-2">
+                {!isEditingProfile && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditingProfile(true)}
+                  >
+                    Edit Profile
+                  </Button>
+                )}
                 <Button
                   variant="outline"
-                  onClick={() => setIsEditingProfile(true)}
+                  onClick={handleLogout}
                 >
-                  Edit Profile
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
                 </Button>
-              )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -78,7 +127,7 @@ export default function ProfilePage() {
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
-                  defaultValue="JohnDoe"
+                  defaultValue={user.username}
                   readOnly={!isEditingProfile}
                 />
               </div>
@@ -87,7 +136,7 @@ export default function ProfilePage() {
                 <Input
                   id="email"
                   type="email"
-                  defaultValue="john.doe@example.com"
+                  defaultValue={user.email}
                   readOnly={!isEditingProfile}
                 />
               </div>

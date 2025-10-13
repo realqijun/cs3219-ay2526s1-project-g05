@@ -1,7 +1,7 @@
 # Matching Service
 
 ## Overview
-The Matching Service is an Express-based microservice that manages user matchmaking for PeerPrep. It boots through `MatchingApplication`, which configures security middleware, exposes a `/status` health check, and mounts the REST API under `/api/matching`. 【F:backend/services/matching_service/src/MatchingApplication.js】
+The Matching Service is an Express-based microservice that manages user matchmaking for PeerPrep. It boots through `MatchingServiceApplication`, which configures security middleware, exposes a `/status` health check, and mounts the REST API under `/api/matching`. 【F:backend/services/matching_service/src/MatchingServiceApplication.js】
 
 ## Key capabilities
 - **User queueing** - user joins the queue by providing the user JSON object, and the criteria string object. A unique `sessionId` based on the user's id field in the JSON object is given to the user upon successful enqueueing. 【F:backend/services/matching_service/src/MatchingController.js】

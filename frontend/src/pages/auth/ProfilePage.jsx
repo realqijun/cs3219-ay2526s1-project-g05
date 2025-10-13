@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Camera, Mail, Calendar, LogOut } from "lucide-react";
+import { Trash2, Camera, Mail, Calendar, LogOut, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,16 +9,29 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { userApi } from "@/lib/api";
 import MainLayout from "@/layout/MainLayout";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [user, setUser] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     // Load user data from localStorage
@@ -46,6 +59,46 @@ export default function ProfilePage() {
     
     toast.success("Logged out successfully!");
     navigate("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError("Password is required to delete your account.");
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError("");
+
+    try {
+      await userApi.delete(user.id, deletePassword);
+
+      // Clear user data from localStorage
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+
+      // Dispatch custom event to notify navbar of logout
+      window.dispatchEvent(new Event("userLoggedOut"));
+
+      toast.success("Account deleted successfully.");
+      navigate("/");
+    } catch (error) {
+      console.error("Delete account error:", error);
+      
+      if (error.message) {
+        setDeleteError(error.message);
+      } else {
+        setDeleteError("Unable to delete account. Please try again later.");
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openDeleteDialog = () => {
+    setDeletePassword("");
+    setDeleteError("");
+    setIsDeleteDialogOpen(true);
   };
 
   if (!user) {
@@ -173,7 +226,7 @@ export default function ProfilePage() {
                   Permanently delete your account and all data
                 </p>
               </div>
-              <Button variant="destructive">
+              <Button variant="destructive" onClick={openDeleteDialog}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Account
               </Button>
@@ -181,6 +234,70 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Account
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-password">Confirm your password</Label>
+              <Input
+                id="delete-password"
+                type="password"
+                placeholder="Enter your password"
+                value={deletePassword}
+                onChange={(e) => {
+                  setDeletePassword(e.target.value);
+                  setDeleteError("");
+                }}
+                disabled={isDeleting}
+                className={deleteError ? "border-destructive" : ""}
+              />
+              {deleteError && (
+                <p className="text-xs text-destructive">{deleteError}</p>
+              )}
+            </div>
+
+            <div className="rounded-lg bg-destructive/10 p-3">
+              <p className="text-sm text-destructive font-medium">
+                Warning: You are about to delete your account
+              </p>
+              <ul className="mt-2 text-xs text-destructive/80 list-disc list-inside space-y-1">
+                <li>All your personal information will be removed</li>
+                <li>Your progress and history will be lost</li>
+                <li>This action cannot be reversed</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Account"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }

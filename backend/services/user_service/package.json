@@ -14,6 +14,7 @@
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "argon2": "^0.43.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "express-jsdoc-swagger": "^1.8.0",

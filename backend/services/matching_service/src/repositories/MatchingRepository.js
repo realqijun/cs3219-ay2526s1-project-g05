@@ -194,7 +194,7 @@ export class MatchingRepository {
         multi.zRem(this.QUEUE_KEY, sessionId);
         multi.del(`${this.SESSION_PREFIX}${sessionId}`);
         multi.hDel(this.ACTIVE_LISTENERS_KEY, sessionId);
-        multi.del(`${this.MATCH_DATA_KEY}${sessionId}`);
+        multi.del(`${this.PENDING_MATCH_SESSION_KEY}${sessionId}`);
 
         await multi.exec();
         return true;

@@ -4,7 +4,10 @@ import { ObjectId } from "mongodb";
 
 export const authenticate = async (req, res, next) => {
   // Whitelist addresses from other services (to allow other services to call without needing user auth)
-  if (req.ip === "::1" || req.ip === "127.0.0.1") {
+  if (
+    req.socket.remoteAddress === "::1" ||
+    req.socket.remoteAddress === "127.0.0.1"
+  ) {
     return next();
   }
 

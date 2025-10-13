@@ -1,8 +1,8 @@
-import { UserApplication } from "./src/UserApplication.js";
+import { UserServiceApplication } from "./src/UserServiceApplication.js";
 import { MongoClientInstance } from "../../common_scripts/mongo.js";
 
 const port = process.env.USERSERVICEPORT || 4001;
-const application = new UserApplication({ port });
+const application = new UserServiceApplication({ port });
 
 let server;
 

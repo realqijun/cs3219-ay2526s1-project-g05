@@ -29,7 +29,11 @@ export class UserServiceApplication {
 
     const app = express();
     app.use(express.json());
-    app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+    
+    if (process.env.NODE_ENV === "development") {
+        app.use(cors());
+        console.log("CORS enabled for development");
+    }
 
     app.get("/status", (_req, res) => {
       res.json({ status: "User service is running" });

@@ -35,10 +35,10 @@ export class CollaborationApplication {
     const app = express();
     app.enable("trust proxy");
     app.use(express.json());
-    app.use(cors({ 
-      origin: "http://localhost:5173",
-      credentials: true
-    }));
+    if (process.env.NODE_ENV === "development") {
+      app.use(cors());
+      console.log("CORS enabled for development");
+    }
     
     startSwaggerDocs(app, "Collaboration Service API", this.port);
 

@@ -91,8 +91,8 @@ export class UserValidator {
       }
     }
 
-    if (Object.keys(sanitizedUpdates).length === 0) {
-      errors.push("At least one updatable field (email, username, password) must be provided.");
+    if (Object.keys(sanitizedUpdates).length === 0 && Object.keys(updates).length > 0) {
+      errors.push("No changes detected.");
     }
 
     return { errors, sanitizedUpdates };

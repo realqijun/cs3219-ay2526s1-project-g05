@@ -1,13 +1,29 @@
-import express from "express";
+import { config } from "dotenv";
+import { CollaborationApplication } from "./src/CollaborationApplication.js";
 
 const port = process.env.COLLABORATIONSERVICEPORT || 4004;
+const application = new CollaborationApplication({ port });
 
-const app = express();
+let server;
 
-app.get("/status", (req, res) => {
-  res.send("Collaboration service is up and running!");
-});
+const start = async () => {
+  try {
+    server = await application.start();
+  } catch (error) {
+    console.error("Failed to start collaboration service", error);
+    process.exit(1);
+  }
+}
 
-app.listen(port, () => {
-  console.log(`Collaboration service is running on port ${port}`);
-});
+start();
+
+const shutdown = async (signal) => {
+  console.log(`Received ${signal}. Shutting down gracefully...`);
+  if (server) {
+    await new Promise((resolve) => server.close(resolve));
+  }
+  process.exit(0);
+};
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

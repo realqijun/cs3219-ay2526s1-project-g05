@@ -77,7 +77,7 @@ export class UserRepository {
       update,
       { returnDocument: "after" },
     );
-    return result.value;
+    return result;
   }
 
   async updateOne(filter, { set = {}, unset = {} }) {
@@ -91,7 +91,7 @@ export class UserRepository {
     const result = await this.collection.findOneAndUpdate(filter, update, {
       returnDocument: "after",
     });
-    return result.value;
+    return result;
   }
 
   async deleteById(id) {

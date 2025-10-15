@@ -17,8 +17,9 @@ export const use_question_routes = () => {
    * @param {string} search.query - Search the title of questions (e.g search="two sum") [Case insensitive]
    * @return {object[]} 200 - Success
    * @return {object} 400 - Bad Request (e.g invalid topic or difficulty)
+   * @security bearerAuth
    */
-  router.get("/", async (req, res) => {
+  router.get("/", [authenticate], async (req, res) => {
     const { topic, difficulty, search } = req.query;
 
     const result = await retrieve_all_questions(topic, difficulty, search);
@@ -37,8 +38,9 @@ export const use_question_routes = () => {
    * @param {string[]} difficulty.query - List of difficulties (e.g difficulty="Hard"&difficulty="Medium")
    * @return {object} 200 - Success
    * @return {object} 400 - Bad Request (e.g invalid topic or difficulty)
+   * @security bearerAuth
    */
-  router.get("/random", async (req, res) => {
+  router.get("/random", [authenticate], async (req, res) => {
     const { topic } = req.query;
     const { difficulty } = req.query;
 

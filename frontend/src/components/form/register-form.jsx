@@ -52,17 +52,17 @@ export function RegisterForm({ className, ...props }) {
               <div className="grid gap-6">
                 <div className="grid gap-3">
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" type="text" required />
+                  <Input id="username" type="text" placeholder="Enter your username" required />
                 </div>
                 <div className="grid gap-3">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required />
+                  <Input id="email" type="email" placeholder="Enter your email" required />
                 </div>
                 <div className="grid gap-3">
                   <div className="flex items-center">
                     <Label htmlFor="password">Password</Label>
                   </div>
-                  <Input id="password" type="password" required />
+                  <Input id="password" type="password" placeholder="Enter your password" required />
                 </div>
                 <Button type="submit" className="w-full">
                   Sign Up
@@ -81,7 +81,7 @@ export function RegisterForm({ className, ...props }) {
       </Card>
 
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
+        By signing up, you agree to our <a href="#">Terms of Service</a>{" "}
         and <a href="#">Privacy Policy</a>.
       </div>
     </div>

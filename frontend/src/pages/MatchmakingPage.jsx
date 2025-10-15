@@ -1,23 +1,17 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import MainLayout from "@/layout/MainLayout";
+import { ArrowLeft, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import MainLayout from "@/layout/MainLayout";
+import topics from "@/data/topics.json";
 
 const difficulties = [
   { id: "easy", label: "Easy", color: "from-green-500 to-emerald-500" },
   { id: "medium", label: "Medium", color: "from-yellow-500 to-orange-500" },
   { id: "hard", label: "Hard", color: "from-red-500 to-pink-500" },
-];
-
-const topics = [
-  "Arrays", "Strings", "Hash Tables", "Linked Lists",
-  "Stacks", "Queues", "Trees", "Graphs",
-  "Dynamic Programming", "Greedy", "Sorting", "Searching",
-  "Backtracking", "Bit Manipulation", "Math", "Recursion",
 ];
 
 export default function MatchmakingPage() {

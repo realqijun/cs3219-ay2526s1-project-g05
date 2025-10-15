@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sheet";
 
 import { buttonVariants } from "./ui/button";
-import { Menu } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import logo from "@/assets/logo.png";
 
@@ -25,6 +25,38 @@ const routeList = [
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const checkUser = () => {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        try {
+          setUser(JSON.parse(userData));
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+          localStorage.removeItem("user");
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    checkUser();
+
+    // Listen for login/logout events
+    const handleUserLogin = () => checkUser();
+    const handleUserLogout = () => setUser(null);
+
+    window.addEventListener("userLoggedIn", handleUserLogin);
+    window.addEventListener("userLoggedOut", handleUserLogout);
+
+    return () => {
+      window.removeEventListener("userLoggedIn", handleUserLogin);
+      window.removeEventListener("userLoggedOut", handleUserLogout);
+    };
+  }, []);
 
   return (
     <header className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-slate-700 dark:bg-background">
@@ -67,13 +99,24 @@ export const Navbar = () => {
                       {label}
                     </a>
                   ))}
-                  <a
-                    rel="noreferrer noopener"
-                    href="/login"
-                    className={`w-[110px] border ${buttonVariants({ variant: "secondary" })}`}
-                  >
-                    Log In
-                  </a>
+                  {user ? (
+                    <a
+                      rel="noreferrer noopener"
+                      href="/profile"
+                      className={`w-[110px] border ${buttonVariants({ variant: "secondary" })}`}
+                    >
+                      <User className="mr-2 h-4 w-4 inline" />
+                      Profile
+                    </a>
+                  ) : (
+                    <a
+                      rel="noreferrer noopener"
+                      href="/login"
+                      className={`w-[110px] border ${buttonVariants({ variant: "secondary" })}`}
+                    >
+                      Log In
+                    </a>
+                  )}
                 </nav>
               </SheetContent>
             </Sheet>
@@ -94,13 +137,24 @@ export const Navbar = () => {
           </nav>
 
           <div className="hidden md:flex gap-2">
-            <a
-              rel="noreferrer noopener"
-              href="/login"
-              className={`border ${buttonVariants({ variant: "secondary" })}`}
-            >
-              Log In
-            </a>
+            {user ? (
+              <a
+                rel="noreferrer noopener"
+                href="/profile"
+                className={`border ${buttonVariants({ variant: "secondary" })}`}
+              >
+                <User className="mr-2 h-4 w-4 inline" />
+                Profile
+              </a>
+            ) : (
+              <a
+                rel="noreferrer noopener"
+                href="/login"
+                className={`border ${buttonVariants({ variant: "secondary" })}`}
+              >
+                Log In
+              </a>
+            )}
 
             <ModeToggle />
           </div>

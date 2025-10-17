@@ -3,14 +3,15 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import App from "@/App";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
-import ProfilePage from "@/pages/auth/ProfilePage";
+import ProfilePage from "@/pages/profile/ProfilePage";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import ErrorPage from "@/pages/ErrorPage";
 import MatchedPage from "@/pages/match/MatchedPage";
 import MatchingPage from "@/pages/match/MatchingPage";
 import MatchmakingPage from "@/pages/match/MatchmakingPage";
-import QuestionPage from "@/pages/QuestionPage";
+import QuestionPage from "@/pages/questions/QuestionPage";
 import MatchTimeoutPage from "@/pages/match/MatchTimeoutPage";
+import CollaborativePage from "@/pages/collab/CollaborativePage";
 
 export default function AppRoutes() {
   return (
@@ -27,6 +28,9 @@ export default function AppRoutes() {
       <Route path="/matching" element={<MatchingPage />} />
       <Route path="/matched" element={<MatchedPage />} />
       <Route path="/match-timeout" element={<MatchTimeoutPage />} />
+
+      {/* Session */}
+      <Route path="/session" element={<CollaborativePage />} />
 
       {/* Error + Catch-all */}
       <Route path="/404" element={<ErrorPage />} />

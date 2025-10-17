@@ -19,32 +19,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import MainLayout from "@/layout/MainLayout";
-import { useUserContext } from "@/context/UserContext";
+import { useProfile } from "@/hooks/useProfile";
 
 export default function ProfilePage() {
+  const profile = useProfile();
+  if (!profile.user) return null;
+
   const {
     user,
+    userInitials,
     isEditingProfile,
-    setIsEditingProfile,
     editFormData,
     editFieldErrors,
     isSaving,
-    handleEditInputChange,
-    saveChanges,
-    cancelEdit,
     isDeleteDialogOpen,
-    setIsDeleteDialogOpen,
     deletePassword,
-    setDeletePassword,
     deleteError,
     isDeleting,
+
+    setIsEditingProfile,
+    handleEditInputChange,
+    handleSaveChanges: saveChanges,
+    handleCancelEdit: cancelEdit,
     openDeleteDialog,
-    deleteAccount,
-  } = useUserContext();
-
-  if (!user) return null;
-
-  const userInitials = user.username?.substring(0, 2).toUpperCase() || "U";
+    handleDeleteAccount: deleteAccount,
+    setDeletePassword,
+    setIsDeleteDialogOpen,
+  } = profile;
 
   return (
     <MainLayout>

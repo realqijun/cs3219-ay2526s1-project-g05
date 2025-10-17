@@ -5,10 +5,12 @@ import { ThemeProvider } from "@/components/theme-provider";
 import AppRoutes from "@/routes/AppRoutes";
 import { UserProvider } from "@/context/UserContext";
 import "@/App.css";
+import { Toaster } from "sonner";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ThemeProvider>
+        <Toaster />
         <BrowserRouter>
           <UserProvider>
               <AppRoutes />

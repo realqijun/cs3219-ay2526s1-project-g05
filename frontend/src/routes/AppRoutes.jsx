@@ -12,6 +12,8 @@ import MatchmakingPage from "@/pages/match/MatchmakingPage";
 import QuestionPage from "@/pages/questions/QuestionPage";
 import MatchTimeoutPage from "@/pages/match/MatchTimeoutPage";
 import CollaborativePage from "@/pages/collab/CollaborativePage";
+import PastSessionsPage from "@/pages/profile/PastSessionsPage";
+import QuestionDetailPage from "@/pages/questions/QuestionDetailPage";
 
 export default function AppRoutes() {
   return (
@@ -20,7 +22,6 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
       <Route path="/problemset" element={<QuestionPage />} />
 
       {/* Matching Flow */}
@@ -28,6 +29,13 @@ export default function AppRoutes() {
       <Route path="/matching" element={<MatchingPage />} />
       <Route path="/matched" element={<MatchedPage />} />
       <Route path="/match-timeout" element={<MatchTimeoutPage />} />
+
+      {/* Profile */}
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/session-history" element={<PastSessionsPage />} />
+
+      {/* Questions */}
+      <Route path="/question/:id" element={<QuestionDetailPage />} />
 
       {/* Session */}
       <Route path="/session" element={<CollaborativePage />} />

@@ -26,9 +26,9 @@ import { useUserContext } from "@/context/UserContext";
 import logo from "@/assets/logo.png";
 
 const routeList = [
-  { href: "#explore", label: "Explore" },
   { href: "/problemset", label: "Problems" },
-  { href: "#discuss", label: "Discuss" },
+  { href: "/matchmaking", label: "Match" },
+  { href: "/session-history", label: "Sessions" },
 ];
 
 export const Navbar = () => {
@@ -135,7 +135,10 @@ export const Navbar = () => {
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuLabel>Account</DropdownMenuLabel>
                   <DropdownMenuItem asChild>
-                    <a href="/profile">View Profile</a>
+                    <a href="/profile">Profile</a>
+                  </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                    <a href="/session-history">Past Sessions</a>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

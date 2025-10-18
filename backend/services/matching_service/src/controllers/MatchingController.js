@@ -13,11 +13,12 @@ export class MatchingController {
       const { user, criteria } = req.body;
       // TODO: validate user and criteria format (use userservice?)
       // TODO: check if user is already in collab service (use collabservice?)
-      const sessionId = await this.matchService.enterQueue(user, criteria);
+      // uses user.id
+      const userSessionId = await this.matchService.enterQueue(user, criteria);
 
       res.status(202).json({
         message: "Match request accepted. Check status for updates.",
-        sessionId: sessionId
+        sessionId: userSessionId
       });
     } catch (err) {
       next(err);

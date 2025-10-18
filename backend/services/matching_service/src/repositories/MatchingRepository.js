@@ -3,8 +3,9 @@ import { RedisClient } from '../redis/RedisClient.js';
 export class MatchingRepository {
     constructor() {
         this.redis = null;
+        this.userQueue = {};
+
         this.QUEUE_KEY = 'matching:queue';
-        this.SESSION_PREFIX = 'matching:session:';
         this.USER_PREFIX = 'matching:user:';
 
         this.ACTIVE_LISTENERS_KEY = 'matching:active_listeners';
@@ -50,18 +51,14 @@ export class MatchingRepository {
             this.topicsMatch(otherTopics, criteriaTopics);
     }
 
-    // --- Session/User State ---
+    // --- User State ---
 
-    async sessionExists(sessionId) {
-        return (await this.redis.exists(`${this.SESSION_PREFIX}${sessionId}`)) === 1;
-    }
-
-    async getSessionData(sessionId) {
-        const sessionData = await this.redis.hGetAll(`${this.SESSION_PREFIX}${sessionId}`);
-        if (Object.keys(sessionData).length === 0) {
+    async getUserData(userId) {
+        const userData = await this.redis.hGetAll(`${this.USER_PREFIX}${userId}`);
+        if (Object.keys(userData).length === 0) {
             return null;
         }
-        return sessionData;
+        return userData;
     }
 
     async userInQueue(user) {
@@ -70,46 +67,34 @@ export class MatchingRepository {
 
     // --- Queue Management ---
 
-    async enterQueue(user, sessionId, criteria, score = null) {
+    async enterQueue(user, criteria, score = null) {
+        const userId = user.id; 
+
         const sessionData = {
             user: JSON.stringify(user),
             criteria: JSON.stringify(criteria),
             timestamp: Date.now().toString()
         };
 
-        const multi = this.redis.multi();
+        this.userQueue[userId] = sessionData;
 
-        multi.zAdd(this.QUEUE_KEY, {
-            score: score || Date.now(),
-            value: sessionId
-        });
-
-        multi.hSet(`${this.SESSION_PREFIX}${sessionId}`, sessionData);
-
-        // Store user to session mapping for duplicate prevention
-        multi.set(`${this.USER_PREFIX}${user.id}`, sessionId);
-
-        await multi.exec();
-        return true;
+        return userId;
     }
 
     async findMatch(criteria) {
-        // Get a batch of sessions rather than the entire list for performance
-        // TODO: handle for what if match is after the first 100
-        const sessionIds = await this.redis.zRange(this.QUEUE_KEY, 0, this.QUEUE_WINDOW);
-
-        for (const sessionId of sessionIds) {
-            if (await this.getMatchIdFromSession(sessionId)) {
+        for (const userId in this.userQueue) {
+            if (!Object.prototype.hasOwnProperty.call(this.userQueue, userId)) {
                 continue;
             }
-            const sessionData = await this.redis.hGetAll(`${this.SESSION_PREFIX}${sessionId}`);
-
+            const sessionData = this.userQueue[userId];
             const queuedCriteria = JSON.parse(sessionData.criteria);
             if (this.meetsCriteria(criteria, queuedCriteria)) {
+                delete this.userQueue[userId];
                 const user = JSON.parse(sessionData.user);
+
                 return {
                     user: user,
-                    sessionId: sessionId,
+                    userId: userId,
                     criteria: queuedCriteria
                 };
             }

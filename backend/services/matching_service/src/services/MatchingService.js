@@ -11,10 +11,6 @@ export class MatchingService {
         this.notifier = controller;
     }
 
-    createSessionId(user) {
-        const uuid = crypto.randomUUID();
-        return `session-${user.id}-${uuid}`;
-    }
     createMatchId() {
         return `match-${crypto.randomUUID()}`;
     }
@@ -34,16 +30,15 @@ export class MatchingService {
             throw new ApiError(400, "User is already in the matching queue.");
         }
 
-        const matchedUser = await this.repository.findMatch(criteria);
-        const sessionId = this.createSessionId(user);
-        await this.repository.enterQueue(user, sessionId, criteria);
+        const matchedUserInfo = await this.repository.findMatch(criteria);
+        const userId = await this.repository.enterQueue(user, criteria);
 
-        if (!matchedUser) {
-            return sessionId;
+        if (!matchedUserInfo) {
+            return userId;
         }
 
-        const userA = { user: matchedUser.user, sessionId: matchedUser.sessionId };
-        const userB = { user: user, sessionId: sessionId };
+        const userA = { user: matchedUserInfo.user, userId: matchedUserInfo.userId };
+        const userB = { user: user, userId: userId };
 
         const questionResp = await fetch(
             `http://localhost:${process.env.QUESTIONSERVICEPORT || 4002}/questions/random?difficulty=${criteria.difficulty}&${criteria.topics.map(t => `topics=${t}`).join('&')}`
@@ -60,34 +55,32 @@ export class MatchingService {
             matchId: matchId,
             status: 'pending', // for debugging
             users: {
-                [userA.sessionId]: {
+                [userA.userId]: {
                     confirmed: false,
                     user: userA.user,
-                    matchDetails: { ...commonMatchData, partner: userB.user, partnerSessionId: userB.sessionId }
+                    matchDetails: { ...commonMatchData, partner: userB.user, partnerSessionId: userB.userId }
                 },
-                [userB.sessionId]: {
+                [userB.userId]: {
                     confirmed: false,
                     user: userB.user,
-                    matchDetails: { ...commonMatchData, partner: userA.user, partnerSessionId: userA.sessionId }
+                    matchDetails: { ...commonMatchData, partner: userA.user, partnerSessionId: userA.userId }
                 }
             }
         };
 
         await this.repository.storeMatchState(matchId, initialMatchState);
-        await this.repository.storePendingMatch(userA.sessionId, matchId);
-        await this.repository.storePendingMatch(userB.sessionId, matchId);
 
-        const isUserAActive = await this.repository.isActiveListener(userA.sessionId);
+        const isUserAActive = await this.repository.isActiveListener(userA.userId);
         if (isUserAActive) {
-            this.notifier.notifyMatchFound(userA.sessionId, initialMatchState.users[userA.sessionId].matchDetails);
+            this.notifier.notifyMatchFound(userA.userId, initialMatchState.users[userA.userId].matchDetails);
         }
         // just in case
-        const isUserBActive = await this.repository.isActiveListener(userB.sessionId);
+        const isUserBActive = await this.repository.isActiveListener(userB.userId);
         if (isUserBActive) {
-            this.notifier.notifyMatchFound(userB.sessionId, initialMatchState.users[userB.sessionId].matchDetails);
+            this.notifier.notifyMatchFound(userB.userId, initialMatchState.users[userB.userId].matchDetails);
         }
 
-        return sessionId;
+        return userId;
     }
 
     async addActiveListener(sessionId) {

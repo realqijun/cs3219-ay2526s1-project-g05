@@ -46,7 +46,7 @@ export default function QuestionDetail() {
                 <p className="text-muted-foreground mb-4">
                 The question you're looking for doesn't exist.
                 </p>
-                <Button onClick={() => navigate("/past-sessions")}>
+                <Button onClick={() => navigate("/session-history")}>
                 Back to Sessions
                 </Button>
             </CardContent>

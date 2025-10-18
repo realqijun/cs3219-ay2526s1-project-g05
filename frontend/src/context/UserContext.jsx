@@ -9,23 +9,27 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
+    const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
   }, []);
 
-  const setUserAndStorage = useCallback((newUser, token) => {
+  const setUserAndStorage = useCallback((newUser, token, rememberMe = false) => {
+    const storage = rememberMe ? localStorage : sessionStorage;
+
     if (newUser) {
-      localStorage.setItem("user", JSON.stringify(newUser));
-      if (token) localStorage.setItem("token", token);
+      storage.setItem("user", JSON.stringify(newUser));
+      if (token) storage.setItem("token", token);
     } else {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("token");
     }
     setUser(newUser);
   }, []);
 
-  const loginUser = useCallback((userData, token) => {
-    setUserAndStorage(userData, token);
+  const loginUser = useCallback((userData, token, rememberMe = false) => {
+    setUserAndStorage(userData, token, rememberMe);
     toast.success("Logged in successfully!");
   }, [setUserAndStorage]);
 

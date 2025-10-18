@@ -14,12 +14,12 @@ import { useAuth } from "@/hooks/useAuth";
 
 export function LoginForm({ className, ...props }) {
   const { login, isLoading } = useAuth();
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({ email: "", password: "", rememberMe: false });
   const [fieldErrors, setFieldErrors] = useState({ email: "", password: "", general: "" });
 
   const handleInputChange = (e) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    const { id, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [id]: type === "checkbox" ? checked : value }));
     setFieldErrors(prev => ({ ...prev, [id]: "", general: "" }));
   };
 
@@ -105,6 +105,24 @@ export function LoginForm({ className, ...props }) {
                   {fieldErrors.password && (
                     <p className="text-xs text-destructive">{fieldErrors.password}</p>
                   )}
+                </div>
+
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    id="rememberMe"
+                    type="checkbox"
+                    checked={formData.rememberMe}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-0"
+                    disabled={isLoading}
+                  />
+                  <Label
+                    htmlFor="rememberMe"
+                    className="text-sm text-muted-foreground select-none"
+                  >
+                    Remember me
+                  </Label>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>

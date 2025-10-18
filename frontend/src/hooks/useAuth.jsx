@@ -15,7 +15,7 @@ export function useAuth() {
     try {
       const response = await userApi.register(data);
       loginUser(response.user, response.token);
-      navigate("/");
+      navigate("/login");
     } catch (error) {
       // handle field-level errors
       if (error.response?.data?.errors) {
@@ -41,8 +41,17 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const response = await userApi.login(data);
-      loginUser(response.user, response.token);
-      navigate("/");
+      const { user, token } = response;
+
+      // Store token depending on rememberMe
+      if (data.rememberMe) {
+        localStorage.setItem("authToken", token);
+      } else {
+        sessionStorage.setItem("authToken", token);
+      }
+
+      loginUser(user, token);
+      navigate("/matchmaking");
     } catch (error) {
       if (error.response?.data?.errors) {
         setFieldErrors(prev => ({

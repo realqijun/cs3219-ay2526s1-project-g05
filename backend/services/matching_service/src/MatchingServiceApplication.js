@@ -54,7 +54,7 @@ export class MatchingServiceApplication {
             res.json({ status: 'Matching service is running' });
         });
 
-        app.use("/api/matching", createMatchingRouter(controller));
+        app.use("/matching", createMatchingRouter(controller));
 
         app.use(errorMiddleware);
 

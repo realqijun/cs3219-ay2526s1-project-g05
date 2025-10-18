@@ -19,21 +19,21 @@ export class MatchingService {
         return `match-${crypto.randomUUID()}`;
     }
 
-    async enterQueue(user, criteria) {
+    _validateEntryRequest(user, criteria) {
         if (!user || !criteria) {
             throw new ApiError(400, "User and criteria are required to enter the queue.");
         }
-        if (await this.repository.userInQueue(user)) {
-            throw new ApiError(400, "User is already in the queue.");
-        }
-        if (typeof criteria !== 'object') {
-            throw new ApiError(400, "Criteria must be an object.");
-        }
-        if (!criteria.difficulty || !Array.isArray(criteria.topics)) {
+        if (typeof criteria !== 'object' || !criteria.difficulty || !Array.isArray(criteria.topics)) {
             throw new ApiError(400, "Criteria must include 'difficulty' and 'topics' array.");
         }
+    }
 
-        // immediately look for a match in the queue
+    async enterQueue(user, criteria) {
+        this._validateEntryRequest(user, criteria);
+        if (await this.repository.userInQueue(user)) {
+            throw new ApiError(400, "User is already in the matching queue.");
+        }
+
         const matchedUser = await this.repository.findMatch(criteria);
         const sessionId = this.createSessionId(user);
         await this.repository.enterQueue(user, sessionId, criteria);
@@ -45,9 +45,13 @@ export class MatchingService {
         const userA = { user: matchedUser.user, sessionId: matchedUser.sessionId };
         const userB = { user: user, sessionId: sessionId };
 
+        const questionResp = await fetch(
+            `http://localhost:${process.env.QUESTIONSERVICEPORT || 4002}/questions/random?difficulty=${criteria.difficulty}&${criteria.topics.map(t => `topics=${t}`).join('&')}`
+        );
+        const question = await questionResp.json();
         const commonMatchData = {
-            criteria: criteria
-            // TODO: get question and remove criteria
+            criteria: criteria,
+            question: question
         };
 
         const matchId = this.createMatchId();
@@ -76,14 +80,11 @@ export class MatchingService {
         const isUserAActive = await this.repository.isActiveListener(userA.sessionId);
         if (isUserAActive) {
             this.notifier.notifyMatchFound(userA.sessionId, initialMatchState.users[userA.sessionId].matchDetails);
-            await this.repository.removeActiveListener(userA.sessionId);
         }
-
         // just in case
         const isUserBActive = await this.repository.isActiveListener(userB.sessionId);
         if (isUserBActive) {
             this.notifier.notifyMatchFound(userB.sessionId, initialMatchState.users[userB.sessionId].matchDetails);
-            await this.repository.removeActiveListener(userB.sessionId);
         }
 
         return sessionId;
@@ -118,12 +119,12 @@ export class MatchingService {
     async confirmMatch(sessionId) {
         const matchId = await this.repository.getMatchIdFromSession(sessionId);
         if (!matchId) {
-            throw new ApiError(404, "Pending match not found.");
+            throw new ApiError(404, "No pending match found for this session.");
         }
 
         let matchState = await this.repository.getMatchState(matchId);
-        if (!matchState) {
-            throw new ApiError(404, "Match expired or finalized.");
+        if (!matchState || !matchState.users[sessionId]) {
+            throw new ApiError(404, "Match data is invalid or expired.");
         }
         if (matchState.users[sessionId].confirmed) {
             throw new ApiError(400, "Match already confirmed.");
@@ -131,7 +132,7 @@ export class MatchingService {
         
         matchState.users[sessionId].confirmed = true;
         const partnerSessionId = matchState.users[sessionId].matchDetails.partnerSessionId;
-        const partnerConfirmed = matchState.users[partnerSessionId].confirmed;
+        const partnerConfirmed = matchState.users[partnerSessionId]?.confirmed;
 
         if (partnerConfirmed) {
             // 2nd user to confirm handles cleanup
@@ -139,21 +140,28 @@ export class MatchingService {
             await this.repository.deleteSession(sessionId);
             await this.repository.deleteSession(partnerSessionId);
 
-            // TODO: query collab service
-            const collabId = `collab-${matchId}`;
+            const collabResponse = await fetch(
+                `http://localhost:${process.env.COLLABORATIONSERVICEPORT || 4004}/api/collaboration/sessions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hostUserId: matchState.users[sessionId].user.id }),
+            });
+            const data = await collabResponse.json();
+            const collabId = data.session;
 
             this.notifier.notifyMatchFinalized(partnerSessionId, { token: collabId });
             this.notifier.notifyMatchFinalized(sessionId, { token: collabId });
-            return { status: 'completed' };
+            return { status: 'finalized', partnerSessionId: partnerSessionId };
+        } else {
+            await this.repository.updateMatchState(matchId, matchState);
+            return { status: 'waiting', partnerSessionId: partnerSessionId};
         }
-
-        await this.repository.updateMatchState(matchId, matchState);
-        return { status: 'waiting' };
     }
 
     async cleanupStaleSessions() {
         const timeoutMs = 5 * 60 * 1000;
         const staleSessionIds = await this.repository.getStaleSessions(timeoutMs);
+        console.log(`Cleaning up ${staleSessionIds.length} stale sessions.`);
         if (staleSessionIds.length === 0) {
             return;
         }
@@ -189,6 +197,7 @@ export class MatchingService {
             if (matchState) {
                 await this.repository.deleteMatch(matchId);
                 const partnerSessionId = matchState.users[sessionId].matchDetails.partnerSessionId;
+                await this.repository.deletePendingMatch(partnerSessionId);
                 this.notifier.notifyMatchCancelled(partnerSessionId, { message: `Partner cancelled match request. You have been re-queued with priority.` });
             }
         }

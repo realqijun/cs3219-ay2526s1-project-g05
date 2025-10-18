@@ -1,4 +1,12 @@
-import { useEffect, useState } from "react";
+import logo from "@/assets/logo.png";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -11,19 +19,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useUserContext } from "@/context/UserContext";
 import { Menu, User } from "lucide-react";
+import { useState } from "react";
 import { ModeToggle } from "./mode-toggle";
 import { buttonVariants } from "./ui/button";
-import { useUserContext } from "@/context/UserContext";
-import logo from "@/assets/logo.png";
 
 const routeList = [
   { href: "/problemset", label: "Problems" },

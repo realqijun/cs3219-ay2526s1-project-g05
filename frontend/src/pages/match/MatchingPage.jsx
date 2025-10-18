@@ -7,31 +7,6 @@ export default function MatchingPage() {
   const navigate = useNavigate();
   const [dots, setDots] = useState("");
 
-//   useEffect(() => {
-//     // Animate dots
-//     const dotsInterval = setInterval(() => {
-//       setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
-//     }, 500);
-
-//     // Simulate matchmaking (replace with actual backend logic)
-//     const matchTimeout = setTimeout(() => {
-//       navigate("/matched", {
-//         state: {
-//           partner: {
-//             name: "Alex Chen",
-//             difficulty: "Medium",
-//             topics: ["Arrays", "Hash Tables"],
-//           },
-//         },
-//       });
-//     }, 3000);
-
-//     return () => {
-//       clearInterval(dotsInterval);
-//       clearTimeout(matchTimeout);
-//     };
-//   }, [navigate]);
-
   return (
     <MainLayout>
         <div className="min-h-screen bg-background flex items-center justify-center p-4">

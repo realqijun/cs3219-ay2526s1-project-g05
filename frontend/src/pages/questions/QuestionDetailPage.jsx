@@ -64,7 +64,7 @@ export default function QuestionDetail() {
                 <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate("/past-sessions")}
+                onClick={() => navigate("/session-history")}
                 className="shrink-0"
                 >
                 <ArrowLeft className="w-5 h-5" />

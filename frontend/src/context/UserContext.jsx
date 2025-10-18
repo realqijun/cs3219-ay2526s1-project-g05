@@ -33,7 +33,7 @@ export const UserProvider = ({ children }) => {
     setUserAndStorage(null);
     toast.success("Logged out successfully!");
     navigate("/");
-  }, [setUserAndStorage]);
+  }, [setUserAndStorage, navigate]);
 
   return (
     <UserContext.Provider

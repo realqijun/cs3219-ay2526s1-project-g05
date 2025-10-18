@@ -64,8 +64,8 @@ export default function PastSessions() {
             {pastSessions.map((session) => (
                 <Card
                 key={session.id}
-                className="hover:shadow-lg transition-shadow cursor-pointer border-2"
-                onClick={() => navigate(`/session/${session.id}`)}
+                className="hover:shadow-lg transition-shadow -pointer border-2"
+                onClick={() => navigate(`/session`)}
                 >
                 <CardHeader>
                     <div className="flex items-start justify-between gap-4">
@@ -129,7 +129,7 @@ export default function PastSessions() {
                 <p className="text-muted-foreground mb-4">
                 Start your first coding session to see it here
                 </p>
-                <Button onClick={() => navigate("/preferences")}>
+                <Button onClick={() => navigate("/matchmaking")}>
                 Find a Partner
                 </Button>
             </Card>

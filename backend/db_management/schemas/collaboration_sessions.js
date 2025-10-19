@@ -97,6 +97,7 @@ export const collaboration_sessions_schema = {
 export const collaboration_sessions_indexes = [
   { key: { language: 1 }, options: { name: "language_index" } },
   { key: { status: 1 }, options: { name: "status_index" } },
+  { key: { roomId: 1 }, options: { unique: true, name: "uniq_roomId_index" } },
   {
     key: { "participants.userId": 1 },
     options: { name: "participants.userId_index" },

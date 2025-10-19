@@ -46,7 +46,7 @@ export class CollaborationSessionService {
       id: session._id?.toString?.() ?? session._id,
       roomId: session.roomId,
       questionId: session.questionId ?? null,
-      code: session.code ?? "",
+      code: session.code ?? session.codeSnapshot ?? "",
       language: session.language ?? DEFAULT_LANGUAGE,
       version: session.version ?? 0,
       status: session.status ?? "active",
@@ -310,6 +310,11 @@ export class CollaborationSessionService {
 
     const conflict = normalized.version !== (session.version ?? 0);
     const newVersion = (session.version ?? 0) + 1;
+    const currentCode = session.code ?? session.codeSnapshot ?? "";
+    const nextCode =
+      normalized.type === "cursor" || normalized.type === "selection"
+        ? currentCode
+        : normalized.content ?? currentCode;
 
     const updatedParticipants = (session.participants ?? []).map((item) =>
       item.userId === normalized.userId
@@ -335,10 +340,7 @@ export class CollaborationSessionService {
 
     const updatedSession = await this.repository.updateById(sessionId, {
       set: {
-        codeSnapshot:
-          normalized.type === "cursor" || normalized.type === "selection"
-            ? session.codeSnapshot
-            : normalized.content ?? session.codeSnapshot,
+        code: nextCode,
         version: newVersion,
         participants: updatedParticipants,
         cursorPositions,
@@ -351,6 +353,7 @@ export class CollaborationSessionService {
         },
         lastConflictAt: conflict ? now : session.lastConflictAt ?? null,
       },
+      unset: { codeSnapshot: "" },
     });
 
     this.releaseLock(sessionId, normalized.userId, normalized.range);
@@ -598,9 +601,10 @@ export class CollaborationSessionService {
         set: {
           pendingQuestionChange: null,
           questionId: pending.questionId,
-          codeSnapshot: "",
+          code: "",
           version: 0,
         },
+        unset: { codeSnapshot: "" },
       });
       return this.sanitizeSession(updatedSession);
     }

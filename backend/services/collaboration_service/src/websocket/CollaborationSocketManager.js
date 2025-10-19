@@ -45,8 +45,7 @@ export class CollaborationSocketManager {
         socket.data.roomId = session.roomId;
 
         socket.join(session.roomId);
-        socket.join(this.roomName(session.id));
-        
+
         this.emitSessionState(session);
         return session;
       });
@@ -62,13 +61,10 @@ export class CollaborationSocketManager {
           userId,
         });
 
-        this.io
-          ?.to(this.roomName(result.session.id))
-          .to(result.session.roomId)
-          .emit("session:operation", {
-            session: result.session,
-            conflict: result.conflict,
-          });
+        this.io?.to(result.session.roomId).emit("session:operation", {
+          session: result.session,
+          conflict: result.conflict,
+        });
 
         return result;
       });
@@ -87,7 +83,6 @@ export class CollaborationSocketManager {
 
         socket.data.hasLeft = true;
         socket.leave(session.roomId);
-        socket.leave(this.roomName(session.id));
 
         this.emitSessionState(session);
         return { session };
@@ -131,10 +126,10 @@ export class CollaborationSocketManager {
     });
 
     socket.on("disconnect", async () => {
-      const { sessionId, user, hasLeft } = socket.data ?? {};
-      if (!sessionId || hasLeft) return;
+      const { sessionId, user, hasLeft, roomId } = socket.data ?? {};
+      if (!sessionId || !roomId || hasLeft) return;
 
-      if (this.hasActiveSocketForUser(sessionId, user?.id, socket.id)) return;
+      if (this.hasActiveSocketForUser(roomId, user?.id, socket.id)) return;
 
       try {
         const session = await this.collaborationService.leaveSession(
@@ -187,26 +182,22 @@ export class CollaborationSocketManager {
     }
   }
 
-  roomName(sessionId) {
-    return `session:${sessionId}`;
-  }
-
   emitSessionState(session) {
     if (!this.io || !session?.id) return;
 
     this.io.to(session.roomId).emit("session:state", { session });
     
     if (session.status === "ended") {
-      this.kickAllFromSession(session.id);
+      this.kickAllFromSession(session.roomId);
     }
   }
 
-  hasActiveSocketForUser(sessionId, userId, excludeSocketId) {
+  hasActiveSocketForUser(roomId, userId, excludeSocketId) {
     if (!this.io) {
       return false;
     }
 
-    const room = this.io.sockets.adapter.rooms.get(this.roomName(sessionId));
+    const room = this.io.sockets.adapter.rooms.get(roomId);
     if (!room) {
       return false;
     }
@@ -222,13 +213,12 @@ export class CollaborationSocketManager {
     return false;
   }
 
-  kickAllFromSession(sessionId, excludeSocketId) {
+  kickAllFromSession(roomId, excludeSocketId) {
     if (!this.io) {
       return;
     }
 
-    const roomName = this.roomName(sessionId);
-    const room = this.io.sockets.adapter.rooms.get(roomName);
+    const room = this.io.sockets.adapter.rooms.get(roomId);
     
     if (!room) {
       return;
@@ -245,10 +235,7 @@ export class CollaborationSocketManager {
         continue;
       }
       peer.data.hasLeft = true;
-      if (peer.data?.roomId) {
-        peer.leave(peer.data.roomId);
-      }
-      peer.leave(roomName);
+      peer.leave(roomId);
       peer.disconnect(true);
     }
   }

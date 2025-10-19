@@ -15,6 +15,18 @@ export class MatchingService {
         return `match-${crypto.randomUUID()}`;
     }
 
+    async _fetch_pro_max(uri, options) {
+        try {
+            const response = await fetch(uri, options);
+            if (!response.ok) {
+                throw new ApiError(response.status, `Failed to fetch: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (error) {
+            throw new ApiError(500, "Internal Server Error");
+        }
+    }
+
     _validateEntryRequest(user, criteria) {
         if (!user || !criteria) {
             throw new ApiError(400, "User and criteria are required to enter the queue.");
@@ -30,9 +42,9 @@ export class MatchingService {
             throw new ApiError(400, "User is already in the matching queue.");
         }
 
-        const matchedUserInfo = await this.repository.findMatch(criteria);
         const userId = await this.repository.enterQueue(user, criteria);
-
+        
+        const matchedUserInfo = await this.repository.findMatch(criteria);
         if (!matchedUserInfo) {
             return userId;
         }
@@ -40,35 +52,36 @@ export class MatchingService {
         const userA = { user: matchedUserInfo.user, userId: matchedUserInfo.userId };
         const userB = { user: user, userId: userId };
 
-        const questionResp = await fetch(
+        const question = await this._fetch_pro_max(
             `http://localhost:${process.env.QUESTIONSERVICEPORT || 4002}/questions/random?difficulty=${criteria.difficulty}&${criteria.topics.map(t => `topics=${t}`).join('&')}`
         );
-        const question = await questionResp.json();
-        const commonMatchData = {
-            criteria: criteria,
-            question: question
-        };
 
         const matchId = this.createMatchId();
 
-        const initialMatchState = {
+        const commonMatchData = {
             matchId: matchId,
+            criteria: criteria,
+            question: question
+        };
+        const initialMatchState = {
             status: 'pending', // for debugging
             users: {
                 [userA.userId]: {
                     confirmed: false,
                     user: userA.user,
-                    matchDetails: { ...commonMatchData, partner: userB.user, partnerSessionId: userB.userId }
+                    matchDetails: { ...commonMatchData, partner: userB.user, partnerId: userB.userId }
                 },
                 [userB.userId]: {
                     confirmed: false,
                     user: userB.user,
-                    matchDetails: { ...commonMatchData, partner: userA.user, partnerSessionId: userA.userId }
+                    matchDetails: { ...commonMatchData, partner: userA.user, partnerId: userA.userId }
                 }
             }
         };
 
         await this.repository.storeMatchState(matchId, initialMatchState);
+        await this.repository.storePendingMatch(userA.userId, matchId);
+        await this.repository.storePendingMatch(userB.userId, matchId);
 
         const isUserAActive = await this.repository.isActiveListener(userA.userId);
         if (isUserAActive) {
@@ -83,84 +96,84 @@ export class MatchingService {
         return userId;
     }
 
-    async addActiveListener(sessionId) {
-        if (!sessionId) {
-            throw new ApiError(400, "Session ID is required to add active listener.");
+    async addActiveListener(userId) {
+        if (!userId) {
+            throw new ApiError(400, "User ID is required to add active listener.");
         }
-        if (await this.repository.sessionExists(sessionId) === false) {
-            throw new ApiError(404, "Session ID not found.");
+        if (!await this.repository.userInQueue(userId)) {
+            throw new ApiError(404, "User not found in queue.");
         }
-        await this.repository.addActiveListener(sessionId);
+        await this.repository.addActiveListener(userId);
         return true;
     }
 
-    async removeActiveListener(sessionId) {
-        if (!sessionId) {
-            throw new ApiError(400, "Session ID is required to remove active listener.");
+    async removeActiveListener(userId) {
+        if (!userId) {
+            throw new ApiError(400, "User ID is required to remove active listener.");
         }
-        await this.repository.removeActiveListener(sessionId);
+        await this.repository.removeActiveListener(userId);
         return true;
     }
 
-    async getPendingMatch(sessionId) {
+    async getPendingMatch(userId) {
         if (!sessionId) {
-            throw new ApiError(400, "Session ID is required to check the pending queue.");
+            throw new ApiError(400, "User ID is required to check the pending queue.");
         }
-        return await this.repository.getPendingMatch(sessionId);
+        return await this.repository.getPendingMatch(userId);
     }
 
-    async confirmMatch(sessionId) {
-        const matchId = await this.repository.getMatchIdFromSession(sessionId);
+    async confirmMatch(userId) {
+        const matchId = await this.repository.getMatchId(userId);
         if (!matchId) {
-            throw new ApiError(404, "No pending match found for this session.");
+            throw new ApiError(404, "No pending match found for this user.");
         }
 
         let matchState = await this.repository.getMatchState(matchId);
-        if (!matchState || !matchState.users[sessionId]) {
+        if (!matchState) {
             throw new ApiError(404, "Match data is invalid or expired.");
         }
-        if (matchState.users[sessionId].confirmed) {
+        if (matchState.users[userId].confirmed) {
             throw new ApiError(400, "Match already confirmed.");
         }
-        
-        matchState.users[sessionId].confirmed = true;
-        const partnerSessionId = matchState.users[sessionId].matchDetails.partnerSessionId;
-        const partnerConfirmed = matchState.users[partnerSessionId]?.confirmed;
+
+        matchState.users[userId].confirmed = true;
+        const partnerId = matchState.users[userId].matchDetails.partnerId;
+        const partnerConfirmed = matchState.users[partnerId].confirmed;
 
         if (partnerConfirmed) {
             // 2nd user to confirm handles cleanup
             await this.repository.deleteMatch(matchId);
-            await this.repository.deleteSession(sessionId);
-            await this.repository.deleteSession(partnerSessionId);
+            await this.repository.deleteUser(userId);
+            await this.repository.deleteUser(partnerId);
 
-            const collabResponse = await fetch(
-                `http://localhost:${process.env.COLLABORATIONSERVICEPORT || 4004}/api/collaboration/sessions`, {
+            const collab = await this._fetch_pro_max(
+                `http://localhost:${process.env.COLLABORATIONSERVICEPORT || 4004}/collaboration/sessions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ hostUserId: matchState.users[sessionId].user.id }),
             });
-            const data = await collabResponse.json();
-            const collabId = data.session;
 
-            this.notifier.notifyMatchFinalized(partnerSessionId, { token: collabId });
-            this.notifier.notifyMatchFinalized(sessionId, { token: collabId });
+            const collabId = collab.session;
+
+            this.notifier.notifyMatchFinalized(partnerId, { token: collabId });
+            this.notifier.notifyMatchFinalized(userId, { token: collabId });
             return { status: 'finalized', partnerSessionId: partnerSessionId };
         } else {
             await this.repository.updateMatchState(matchId, matchState);
-            return { status: 'waiting', partnerSessionId: partnerSessionId};
+            return { status: 'waiting', partnerSessionId: partnerSessionId };
         }
     }
 
     async cleanupStaleSessions() {
         const timeoutMs = 5 * 60 * 1000;
-        const staleSessionIds = await this.repository.getStaleSessions(timeoutMs);
+        const staleIds = await this.repository.getStaleSessions(timeoutMs);
         console.log(`Cleaning up ${staleSessionIds.length} stale sessions.`);
-        if (staleSessionIds.length === 0) {
+        if (staleIds.length === 0) {
             return;
         }
-        for (const sessionId of staleSessionIds) {
-            this.notifier.notifySessionExpired(sessionId);
-            await this.clearMatchAndSession(sessionId);
+        for (const userId of staleIds) {
+            this.notifier.notifySessionExpired(userId);
+            await this.clearMatchAndSession(userId);
             // TODO: give user option to requeue or cancel
         }
     }

@@ -29,35 +29,36 @@ export class MatchingController {
   getStatus = async (req, res, next) => {
     try {
       // SSE setup
-      const sessionId = req.params.sessionId;
+      const userId = req.params.userId;
       
-      if (this.activeConnections[sessionId]) {
+      if (this.activeConnections[userId]) {
         throw new ApiError(400, "An active connection already exists for this session.");
       }
+      
       const session = await createSession(req, res);
 
-      await this.matchService.addActiveListener(sessionId);
-      this.activeConnections[sessionId] = session;
+      await this.matchService.addActiveListener(userId);
+      this.activeConnections[userId] = session;
       
-      const pendingMatch = await this.matchService.getPendingMatch(sessionId);
+      const pendingMatch = await this.matchService.getPendingMatch(userId);
       if (pendingMatch) {
-        this.notifyMatchFound(sessionId, pendingMatch, session);
+        this.notifyMatchFound(userId, pendingMatch);
       }
-      
-      req.on('close', () => {
-        delete this.activeConnections[sessionId];
-        this.matchService.removeActiveListener(sessionId);
+
+      session.on('close', () => {
+        delete this.activeConnections[userId];
+        this.matchService.removeActiveListener(userId);
       });
 
-      session.push(`event: connected\ndata: {"message": "Connection established for session ${sessionId}"}\n\n`);
+      session.push(`event: connected\ndata: {"message": "Connection established for session ${userId}"}\n\n`);
     } catch (err) {
       next(err);
     }
   }
 
-  notifyMatchFound(sessionId, matchData, sessionExternal = null) {
-    const session = sessionExternal || this.activeConnections[sessionId];
-    if (res) {
+  notifyMatchFound(sessionId, matchData) {
+    const session = this.activeConnections[sessionId];
+    if (session) {
       const formattedData = `event: matchFound\ndata: ${JSON.stringify(matchData)}\n\n`;
       session.push(formattedData);
     }

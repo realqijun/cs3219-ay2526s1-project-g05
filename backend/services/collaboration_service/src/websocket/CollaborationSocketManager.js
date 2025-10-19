@@ -40,9 +40,13 @@ export class CollaborationSocketManager {
         );
 
         socket.data.sessionId = session.id;
+        socket.data.userId = socket.data.user.id;
         socket.data.hasLeft = false;
         socket.data.roomId = session.roomId;
+
         socket.join(session.roomId);
+        socket.join(this.roomName(session.id));
+        
         this.emitSessionState(session);
         return session;
       });
@@ -51,33 +55,40 @@ export class CollaborationSocketManager {
     socket.on("session:operation", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
         const sessionId = payload.sessionId ?? socket.data.sessionId;
-        const userId = payload.userId ?? socket.data.userId;
-        const result = await this.collaborationService.recordOperation(
-          sessionId,
-          {
-            ...payload,
-            userId,
-          },
-        );
+        const userId = payload.userId ?? socket.data.user?.id; 
+
+        const result = await this.collaborationService.recordOperation(sessionId, {
+          ...payload,
+          userId,
+        });
+
         this.io
           ?.to(this.roomName(result.session.id))
+          .to(result.session.roomId)
           .emit("session:operation", {
             session: result.session,
             conflict: result.conflict,
           });
+
         return result;
       });
     });
 
     socket.on("session:leave", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
-        const session = await this.collaborationService.leaveSession({
-          userId: socket.data.user.id,
-          sessionId: socket.data.sessionId,
-          reason: "leave",
-        });
+        const session = await this.collaborationService.leaveSession(
+          socket.data.sessionId, 
+          {
+            userId: socket.data.user.id,
+            terminateForAll: !!payload.terminateForAll,
+            reason: "leave",
+          },
+        );
+
         socket.data.hasLeft = true;
         socket.leave(session.roomId);
+        socket.leave(this.roomName(session.id));
+
         this.emitSessionState(session);
         return { session };
       });
@@ -121,25 +132,25 @@ export class CollaborationSocketManager {
 
     socket.on("disconnect", async () => {
       const { sessionId, user, hasLeft } = socket.data ?? {};
-      if (!sessionId || hasLeft) {
-        return;
-      }
-      if (this.hasActiveSocketForUser(sessionId, user.id, socket.id)) {
-        return;
-      }
+      if (!sessionId || hasLeft) return;
+
+      if (this.hasActiveSocketForUser(sessionId, user?.id, socket.id)) return;
+
       try {
-        const session = await this.collaborationService.leaveSession({
-          userId: user.id,
-          sessionId: socket.data.sessionId,
-          reason: "disconnect",
-        });
+        const session = await this.collaborationService.leaveSession(
+          socket.data.sessionId,
+          {
+            userId: user.id,
+            reason: "disconnect",
+          },
+        );
         this.emitSessionState(session);
       } catch (error) {
         if (error instanceof ApiError) {
           this.logger.warn?.("Failed to mark disconnection", {
             socketId: socket.id,
             sessionId,
-            userId,
+            userId: user?.id,
             status: error.status,
             message: error.message,
           });
@@ -184,23 +195,61 @@ export class CollaborationSocketManager {
     if (!this.io || !session?.id) return;
 
     this.io.to(session.roomId).emit("session:state", { session });
+    
+    if (session.status === "ended") {
+      this.kickAllFromSession(session.id);
+    }
   }
 
   hasActiveSocketForUser(sessionId, userId, excludeSocketId) {
     if (!this.io) {
       return false;
     }
+
     const room = this.io.sockets.adapter.rooms.get(this.roomName(sessionId));
     if (!room) {
       return false;
     }
+
     for (const socketId of room) {
       if (socketId === excludeSocketId) continue;
       const peer = this.io.sockets.sockets.get(socketId);
-      if (peer?.data?.userId === userId && !peer.data?.hasLeft) {
+      
+      if (peer?.data?.user?.id === userId && !peer.data?.hasLeft) {
         return true;
       }
     }
     return false;
+  }
+
+  kickAllFromSession(sessionId, excludeSocketId) {
+    if (!this.io) {
+      return;
+    }
+
+    const roomName = this.roomName(sessionId);
+    const room = this.io.sockets.adapter.rooms.get(roomName);
+    
+    if (!room) {
+      return;
+    }
+
+    for (const socketId of room) {
+      if (socketId === excludeSocketId) {
+        continue;
+      }
+
+      const peer = this.io.sockets.sockets.get(socketId);
+      
+      if (!peer) {
+        continue;
+      }
+      peer.data.hasLeft = true;
+      if (peer.data?.roomId) {
+        peer.leave(peer.data.roomId);
+      }
+      peer.leave(roomName);
+      peer.disconnect(true);
+    }
   }
 }

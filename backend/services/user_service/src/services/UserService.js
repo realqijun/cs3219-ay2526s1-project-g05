@@ -20,6 +20,8 @@ export class UserService {
       failedLoginWindowStart,
       accountLocked,
       accountLockedAt,
+      pastCollaborationSessions,
+      collaborationSessionId,
       ...rest
     } = user;
     return {

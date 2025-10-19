@@ -42,9 +42,8 @@ export class CollaborationSocketManager {
         socket.data.sessionId = session.id;
         socket.data.userId = socket.data.user.id;
         socket.data.hasLeft = false;
-        socket.data.roomId = session.roomId;
 
-        socket.join(session.roomId);
+        socket.join(session.id);
 
         this.emitSessionState(session);
         return session;
@@ -54,14 +53,17 @@ export class CollaborationSocketManager {
     socket.on("session:operation", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
         const sessionId = payload.sessionId ?? socket.data.sessionId;
-        const userId = payload.userId ?? socket.data.user?.id; 
+        const userId = payload.userId ?? socket.data.user?.id;
 
-        const result = await this.collaborationService.recordOperation(sessionId, {
-          ...payload,
-          userId,
-        });
+        const result = await this.collaborationService.recordOperation(
+          sessionId,
+          {
+            ...payload,
+            userId,
+          },
+        );
 
-        this.io?.to(result.session.roomId).emit("session:operation", {
+        this.io?.to(result.id).emit("session:operation", {
           session: result.session,
           conflict: result.conflict,
         });
@@ -73,16 +75,15 @@ export class CollaborationSocketManager {
     socket.on("session:leave", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
         const session = await this.collaborationService.leaveSession(
-          socket.data.sessionId, 
+          socket.data.sessionId,
           {
             userId: socket.data.user.id,
-            terminateForAll: !!payload.terminateForAll,
             reason: "leave",
           },
         );
 
         socket.data.hasLeft = true;
-        socket.leave(session.roomId);
+        socket.leave(session.id);
 
         this.emitSessionState(session);
         return { session };
@@ -126,10 +127,10 @@ export class CollaborationSocketManager {
     });
 
     socket.on("disconnect", async () => {
-      const { sessionId, user, hasLeft, roomId } = socket.data ?? {};
-      if (!sessionId || !roomId || hasLeft) return;
+      const { sessionId, user, hasLeft } = socket.data ?? {};
+      if (!sessionId || hasLeft) return;
 
-      if (this.hasActiveSocketForUser(roomId, user?.id, socket.id)) return;
+      if (this.hasActiveSocketForUser(sessionId, user?.id, socket.id)) return;
 
       try {
         const session = await this.collaborationService.leaveSession(
@@ -185,19 +186,19 @@ export class CollaborationSocketManager {
   emitSessionState(session) {
     if (!this.io || !session?.id) return;
 
-    this.io.to(session.roomId).emit("session:state", { session });
-    
+    this.io.to(session.sessionId).emit("session:state", { session });
+
     if (session.status === "ended") {
-      this.kickAllFromSession(session.roomId);
+      this.kickAllFromSession(session.sessionId);
     }
   }
 
-  hasActiveSocketForUser(roomId, userId, excludeSocketId) {
+  hasActiveSocketForUser(sessionId, userId, excludeSocketId) {
     if (!this.io) {
       return false;
     }
 
-    const room = this.io.sockets.adapter.rooms.get(roomId);
+    const room = this.io.sockets.adapter.rooms.get(sessionId);
     if (!room) {
       return false;
     }
@@ -205,7 +206,7 @@ export class CollaborationSocketManager {
     for (const socketId of room) {
       if (socketId === excludeSocketId) continue;
       const peer = this.io.sockets.sockets.get(socketId);
-      
+
       if (peer?.data?.user?.id === userId && !peer.data?.hasLeft) {
         return true;
       }
@@ -213,13 +214,13 @@ export class CollaborationSocketManager {
     return false;
   }
 
-  kickAllFromSession(roomId, excludeSocketId) {
+  kickAllFromSession(sessionId, excludeSocketId) {
     if (!this.io) {
       return;
     }
 
-    const room = this.io.sockets.adapter.rooms.get(roomId);
-    
+    const room = this.io.sockets.adapter.rooms.get(sessionId);
+
     if (!room) {
       return;
     }
@@ -230,12 +231,12 @@ export class CollaborationSocketManager {
       }
 
       const peer = this.io.sockets.sockets.get(socketId);
-      
+
       if (!peer) {
         continue;
       }
       peer.data.hasLeft = true;
-      peer.leave(roomId);
+      peer.leave(sessionId);
       peer.disconnect(true);
     }
   }

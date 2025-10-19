@@ -3,7 +3,6 @@ export const collaboration_sessions_schema = {
     $jsonSchema: {
       bsonType: "object",
       required: [
-        "roomId",
         "language",
         "questionId",
         "code",
@@ -21,8 +20,6 @@ export const collaboration_sessions_schema = {
       additionalProperties: false,
       properties: {
         _id: { bsonType: "objectId" },
-
-        roomId: { bsonType: "string", minLength: 1 },
 
         language: {
           bsonType: "string",
@@ -97,7 +94,6 @@ export const collaboration_sessions_schema = {
 export const collaboration_sessions_indexes = [
   { key: { language: 1 }, options: { name: "language_index" } },
   { key: { status: 1 }, options: { name: "status_index" } },
-  { key: { roomId: 1 }, options: { unique: true, name: "uniq_roomId_index" } },
   {
     key: { "participants.userId": 1 },
     options: { name: "participants.userId_index" },

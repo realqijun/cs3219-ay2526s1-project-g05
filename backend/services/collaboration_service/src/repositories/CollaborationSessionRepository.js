@@ -52,10 +52,6 @@ export class CollaborationSessionRepository {
     return this.collection.findOne({ _id: new ObjectId(id) });
   }
 
-  async findByRoomId(roomId) {
-    return this.collection.findOne({ roomId });
-  }
-
   async updateById(id, operations, options = {}) {
     if (!ObjectId.isValid(id)) {
       return null;
@@ -92,5 +88,14 @@ export class CollaborationSessionRepository {
       updatedAt: { $lt: expiryDate },
     });
     return result.deletedCount;
+  }
+
+  async getParticipantActiveSessions(userId) {
+    return await this.collection
+      .find({
+        status: "active",
+        "participants.userId": userId,
+      })
+      .toArray();
   }
 }

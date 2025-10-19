@@ -3,7 +3,6 @@ import { seed_user } from "./seed_users.js";
 
 const COLLABORATION_SESSION_DOCUMENTS = [
   {
-    roomId: "9dcffa",
     language: "Python",
     questionId: 1,
     code: "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        ",
@@ -32,7 +31,6 @@ export const seed_collaboration_sessions = async () => {
   ]);
 
   const mapped_sessions = COLLABORATION_SESSION_DOCUMENTS.map((session) => ({
-    roomId: session.roomId,
     language: session.language,
     questionId: session.questionId,
     code: session.code,

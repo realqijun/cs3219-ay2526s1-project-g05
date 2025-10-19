@@ -44,9 +44,8 @@ export class CollaborationSessionService {
 
     return {
       id: session._id?.toString?.() ?? session._id,
-      roomId: session.roomId,
       questionId: session.questionId ?? null,
-      code: session.code ?? session.codeSnapshot ?? "",
+      code: session.code ?? "",
       language: session.language ?? DEFAULT_LANGUAGE,
       version: session.version ?? 0,
       status: session.status ?? "active",
@@ -58,16 +57,6 @@ export class CollaborationSessionService {
       createdAt: session.createdAt?.toISOString?.() ?? session.createdAt,
       updatedAt: session.updatedAt?.toISOString?.() ?? session.updatedAt,
     };
-  }
-
-  async generateUniqueRoomId() {
-    while (true) {
-      const candidate = await this.crypto.randomBytes(3).toString("hex");
-      const existing = await this.repository.findByRoomId(candidate);
-      if (!existing) {
-        return candidate;
-      }
-    }
   }
 
   buildParticipant({ userId, displayName, connected }) {
@@ -160,12 +149,16 @@ export class CollaborationSessionService {
       );
     }
 
-    const roomId = normalized.roomId
-      ? await this.ensureRoomIdAvailability(normalized.roomId)
-      : await this.generateUniqueRoomId();
-
     const particiants_built = await Promise.all(
       normalized.participants.map(async (id) => {
+        const participantInActiveSession =
+          await this.repository.getParticipantActiveSessions(id);
+        if (participantInActiveSession.length > 0) {
+          throw new ApiError(
+            409,
+            "User is already in an active collaboration session.",
+          );
+        }
         // Get user from user_service to fetch display name
         const user = await fetchUser(id);
         const participantObj = this.buildParticipant({
@@ -180,7 +173,6 @@ export class CollaborationSessionService {
 
     const now = this.now();
     const session = await this.repository.create({
-      roomId,
       language: normalized.language ?? DEFAULT_LANGUAGE,
       questionId: normalized.questionId,
       code: question.code, // Set code to the starter code
@@ -196,24 +188,6 @@ export class CollaborationSessionService {
       updatedAt: now,
     });
 
-    return this.sanitizeSession(session);
-  }
-
-  async ensureRoomIdAvailability(roomId) {
-    const existing = await this.repository.findByRoomId(roomId);
-    if (existing) {
-      throw new ApiError(
-        409,
-        "Room id is already in use. Please choose another id.",
-      );
-    }
-    return roomId;
-  }
-
-  async getSessionByRoomId(roomId) {
-    let session = await this.repository.findByRoomId(roomId);
-    session = await this.checkExpiredSession(session);
-    this.ensureActive(session);
     return this.sanitizeSession(session);
   }
 
@@ -310,7 +284,7 @@ export class CollaborationSessionService {
 
     const conflict = normalized.version !== (session.version ?? 0);
     const newVersion = (session.version ?? 0) + 1;
-    const currentCode = session.code ?? session.codeSnapshot ?? "";
+    const currentCode = session.code ?? "";
     const nextCode =
       normalized.type === "cursor" || normalized.type === "selection"
         ? currentCode
@@ -353,7 +327,6 @@ export class CollaborationSessionService {
         },
         lastConflictAt: conflict ? now : session.lastConflictAt ?? null,
       },
-      unset: { codeSnapshot: "" },
     });
 
     this.releaseLock(sessionId, normalized.userId, normalized.range);
@@ -604,7 +577,6 @@ export class CollaborationSessionService {
           code: "",
           version: 0,
         },
-        unset: { codeSnapshot: "" },
       });
       return this.sanitizeSession(updatedSession);
     }

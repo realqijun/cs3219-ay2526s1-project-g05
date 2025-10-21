@@ -40,13 +40,13 @@ export class MatchingController {
       this.activeConnections[userId] = {session, res};
 
       session.push({ message: `Connection established for user ${userId}` }, 'connected');
+
       const pendingMatch = await this.matchService.getPendingMatch(userId);
       if (pendingMatch) {
         this.notifyMatchFound(userId, pendingMatch);
       }
 
       req.on('close', () => {
-        console.log(`[SSE] Client ${userId} disconnected. Cleaning up.`);
         delete this.activeConnections[userId];
         this.matchService.removeActiveListener(userId);
       });
@@ -58,7 +58,7 @@ export class MatchingController {
   notifyMatchFound(userId, matchData) {
     const listenerData = this.activeConnections[userId];
     if (listenerData && listenerData.session) {
-      listenerData.session.push(`message: ${JSON.stringify(matchData)}`, 'matchFound');
+      listenerData.session.push({ message: matchData }, 'matchFound');
     }
   }
 
@@ -72,8 +72,7 @@ export class MatchingController {
   notifyMatchCancelled(sessionId, data) {
     const listenerData = this.activeConnections[sessionId];
     if (listenerData && listenerData.session) {
-      const formattedData = `message: ${JSON.stringify(data)}`;
-      listenerData.session.push(formattedData, 'matchCancelled');
+      listenerData.session.push({ message: data }, 'matchCancelled');
     }
   }
 
@@ -99,9 +98,8 @@ export class MatchingController {
   notifyMatchFinalized(userId, matchData) {
     const listenerData = this.activeConnections[userId];
     if (listenerData && listenerData.session) {
-      const formattedData = `message: ${JSON.stringify(matchData)}`;
       delete this.activeConnections[userId];
-      listenerData.session.push(formattedData, 'matchFinalized');
+      listenerData.session.push({ message: matchData }, 'matchFinalized');
       listenerData.res.end();
     }
   }
@@ -115,7 +113,7 @@ export class MatchingController {
       const listenerData = this.activeConnections[userId];
       if (listenerData && listenerData.session) {
         delete this.activeConnections[userId];
-        listenerData.session.push(`message: You have exited the queue and cancelled any pending matches.`, 'cancelled');
+        listenerData.session.push({ message: "You have exited the queue and cancelled any pending matches." }, 'cancelled');
         listenerData.res.end();
       }
 

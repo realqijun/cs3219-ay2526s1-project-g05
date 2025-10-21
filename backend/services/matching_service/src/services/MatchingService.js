@@ -163,38 +163,9 @@ export class MatchingService {
         }
     }
 
-    async cleanupStaleSessions() {
-        const timeoutMs = 5 * 60 * 1000;
-        const staleIds = await this.repository.getStaleSessions(timeoutMs);
-        console.log(`Cleaning up ${staleIds.length} stale sessions.`);
-        if (staleIds.length === 0) {
-            return;
-        }
-        for (const userId of staleIds) {
-            this.notifier.notifySessionExpired(userId);
-            await this.clearMatchAndSession(userId);
-            // TODO: give user option to requeue or cancel
-        }
-    }
-
-    async rejoinQueueWithPriority(oldSessionId, user, criteria) {
-        if (!oldSessionId || !user || !criteria) {
-            throw new ApiError(400, "Old Session ID, User, and Criteria are required.");
-        }
-        await this.repository.deleteSession(oldSessionId);
-        const newSessionId = this.createSessionId(user);
-
-        const PRIORITY_OFFSET = 10 * 60 * 1000;
-        const priorityScore = Date.now() - PRIORITY_OFFSET;
-
-        await this.repository.enterQueue(user, newSessionId, criteria, priorityScore);
-        return newSessionId;
-    }
-
-    // Deletes the pending match if present, and deletes the session data, plus notifies partner if matched
-    async clearMatchAndSession(userId) {
+    async _handleUserDeletion(userId) {
         if (!userId) {
-            throw new ApiError(400, "Session ID is required to clear from queue and pending match.");
+            throw new ApiError(400, "User ID is required to clear from queue and pending match.");
         }
         const matchId = await this.repository.getMatchId(userId);
         if (matchId) {
@@ -206,43 +177,65 @@ export class MatchingService {
                 this.notifier.notifyMatchCancelled(partnerId, { message: `Partner cancelled match request. You have been re-queued with priority.` });
             }
         }
-        await this.repository.deleteSession(userId);
+        await this.repository.deleteUser(userId);
         return true;
     }
+    
+    async cleanupStaleSessions() {
+        const timeoutMs = 5 * 60 * 1000;
+        const staleIds = await this.repository.getStaleSessions(timeoutMs);
+        console.log(`Cleaning up ${staleIds.length} stale sessions.`);
+        if (staleIds.length === 0) {
+            return;
+        }
+        for (const userId of staleIds) {
+            this.notifier.notifySessionExpired(userId);
+            await this._handleUserDeletion(userId);
+            // TODO: give user option to requeue or cancel
+        }
+    }
 
-    // called by redis subscriber upon pendingmatch key expiration
-    async handleMatchTimeout(expiredMatchId) {
-        const matchState = await this.repository.getPersistentMatchState(expiredMatchId);
-        if (!matchState) {
+    async rejoinQueueWithPriority(user, criteria) {
+        if (!user || !criteria) {
+            throw new ApiError(400, "User and Criteria are required.");
+        }
+        // sanity check - delete existing session data
+        await this.repository.deleteUser(user.id);
+
+        const PRIORITY_OFFSET = 10 * 60 * 1000;
+        const priorityScore = Date.now() - PRIORITY_OFFSET;
+
+        const userId = await this.repository.enterQueue(user, criteria, priorityScore);
+        return userId;
+    }
+
+    async cleanupStaleMatches() {
+        const matchStates = await this.repository.getStaleMatches();
+        if (matchStates.length === 0) {
             return;
         }
 
-        const userASessionId = matchState.users[Object.keys(matchState.users)[0]].matchDetails.partnerSessionId;
-        const userBSessionId = matchState.users[userASessionId].matchDetails.partnerSessionId;
+        for (const matchState of matchStates) {
+            const userAId = matchState.users[Object.keys(matchState.users)[0]].matchDetails.partnerId;
+            const userBId = matchState.users[userAId].matchDetails.partnerId;
 
-        const userAConfirmed = matchState.users[userASessionId].confirmed;
-        const userBConfirmed = matchState.users[userBSessionId].confirmed;
+            const userAConfirmed = matchState.users[userAId].confirmed;
+            const userBConfirmed = matchState.users[userBId].confirmed;
 
-        let requeueSessionId = null;
+            let requeueId = null;
 
-        if (userAConfirmed && !userBConfirmed) {
-            requeueSessionId = userASessionId;
-        } else if (userBConfirmed && !userAConfirmed) {
-            requeueSessionId = userBSessionId;
-        }
+            if (userAConfirmed && !userBConfirmed) {
+                requeueId = userAId;
+            } else if (userBConfirmed && !userAConfirmed) {
+                requeueId = userBId;
+            }
 
-        let sessionData = null;
-        if (requeueSessionId) {
-            sessionData = await this.repository.getSessionData(requeueSessionId);
-        }
-
-        await this.repository.deleteMatch(expiredMatchId);
-
-        if (sessionData) {
-            const requeueUser = JSON.parse(sessionData.user);
-            const requeueCriteria = JSON.parse(sessionData.criteria);
-            const newSessionId = await this.rejoinQueueWithPriority(requeueSessionId, requeueUser, requeueCriteria);
-            this.notifier.notifyMatchCancelled(requeueSessionId, { message: `Partner timed out. You have been re-queued with priority, use newSessionId:${newSessionId}.` });
+            if (requeueId) {
+                const userData = await this.repository.getUserData(requeueId);
+                await this._handleUserDeletion(requeueId);
+                const newSessionId = await this.rejoinQueueWithPriority(requeueSessionId, requeueUser, requeueCriteria);
+                this.notifier.notifyMatchCancelled(requeueSessionId, { message: `Partner timed out. You have been re-queued with priority, use newSessionId:${newSessionId}.` });
+            }
         }
     }
 }

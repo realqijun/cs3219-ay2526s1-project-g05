@@ -59,7 +59,7 @@ export class MatchingRepository {
         const sessionData = {
             user: user,
             criteria: criteria,
-            timestamp: Date.now()
+            timestamp: score || Date.now()
         };
         this.userQueue[userId] = sessionData;
         return userId;
@@ -167,5 +167,17 @@ export class MatchingRepository {
             }
         }
         return staleSessionIds;
+    }
+
+    async getStaleMatches(timeoutMs = 300000) {
+        const now = Date.now();
+        const staleMatchIds = [];
+        for (const matchId in this.matchStates) {
+            const matchState = this.matchStates[matchId];
+            if (matchState.timestamp && (now - parseInt(matchState.timestamp, 10) > timeoutMs)) {
+                staleMatchIds.push(matchId);
+            }
+        }
+        return staleMatchIds;
     }
 };

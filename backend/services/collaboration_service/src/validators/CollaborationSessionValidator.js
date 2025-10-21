@@ -54,13 +54,6 @@ export class CollaborationSessionValidator {
     const errors = [];
     const normalized = {};
 
-    const userId = this.normalizeString(payload.userId);
-    if (!userId) {
-      errors.push({ field: "userId", message: "userId is required." });
-    } else {
-      normalized.userId = userId;
-    }
-
     const version = Number(payload.version);
     if (!Number.isInteger(version) || version < 0) {
       errors.push({
@@ -159,13 +152,6 @@ export class CollaborationSessionValidator {
     const errors = [];
     const normalized = {};
 
-    const userId = this.normalizeString(payload.userId);
-    if (!userId) {
-      errors.push({ field: "userId", message: "userId is required." });
-    } else {
-      normalized.userId = userId;
-    }
-
     const sessionId = this.normalizeString(payload.sessionId);
     if (!sessionId) {
       errors.push({ field: "sessionId", message: "sessionId is required." });
@@ -190,13 +176,6 @@ export class CollaborationSessionValidator {
     const errors = [];
     const normalized = {};
 
-    const userId = this.normalizeString(payload.userId);
-    if (!userId) {
-      errors.push({ field: "userId", message: "userId is required." });
-    } else {
-      normalized.userId = userId;
-    }
-
     const questionId = this.normalizeString(payload.questionId);
     if (!questionId) {
       errors.push({ field: "questionId", message: "questionId is required." });
@@ -216,13 +195,6 @@ export class CollaborationSessionValidator {
     const errors = [];
     const normalized = {};
 
-    const userId = this.normalizeString(payload.userId);
-    if (!userId) {
-      errors.push({ field: "userId", message: "userId is required." });
-    } else {
-      normalized.userId = userId;
-    }
-
     if (typeof payload.accept !== "boolean") {
       errors.push({ field: "accept", message: "accept must be a boolean." });
     } else {
@@ -235,13 +207,6 @@ export class CollaborationSessionValidator {
   static validateEndSessionRequest(payload = {}) {
     const errors = [];
     const normalized = {};
-
-    const userId = this.normalizeString(payload.userId);
-    if (!userId) {
-      errors.push({ field: "userId", message: "userId is required." });
-    } else {
-      normalized.userId = userId;
-    }
 
     if (typeof payload.confirm !== "boolean") {
       errors.push({ field: "confirm", message: "confirm must be a boolean." });

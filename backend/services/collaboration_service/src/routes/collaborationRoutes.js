@@ -18,9 +18,9 @@ export const createCollaborationRouter = (controller) => {
 
   /**
    * POST /sessions/:sessionId/terminate
-   * @summary Administrative termination of a collaboration session
+   * @summary [Unused for now] Administrative termination of a collaboration session
    */
-  router.post("/sessions/:sessionId/terminate", controller.terminateSession);
+  // router.post("/sessions/:sessionId/terminate", controller.terminateSession);
 
   return router;
 };

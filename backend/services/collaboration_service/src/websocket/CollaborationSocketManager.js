@@ -40,7 +40,6 @@ export class CollaborationSocketManager {
         );
 
         socket.data.sessionId = session.id;
-        socket.data.userId = socket.data.user.id;
         socket.data.hasLeft = false;
 
         socket.join(session.id);
@@ -52,15 +51,10 @@ export class CollaborationSocketManager {
 
     socket.on("session:operation", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
-        const sessionId = payload.sessionId ?? socket.data.sessionId;
-        const userId = payload.userId ?? socket.data.user?.id;
-
         const result = await this.collaborationService.recordOperation(
-          sessionId,
-          {
-            ...payload,
-            userId,
-          },
+          socket.data.sessionId,
+          socket.data.user.id,
+          payload,
         );
 
         this.io?.to(result.id).emit("session:operation", {
@@ -76,8 +70,8 @@ export class CollaborationSocketManager {
       await this.handleAction(socket, payload, callback, async () => {
         const session = await this.collaborationService.leaveSession(
           socket.data.sessionId,
+          socket.data.user.id,
           {
-            userId: socket.data.user.id,
             reason: "leave",
           },
         );
@@ -92,9 +86,9 @@ export class CollaborationSocketManager {
 
     socket.on("session:question:propose", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
-        const sessionId = payload.sessionId ?? socket.data.sessionId;
         const session = await this.collaborationService.proposeQuestionChange(
-          sessionId,
+          socket.data.sessionId,
+          socket.data.user.id,
           payload,
         );
         this.emitSessionState(session);
@@ -104,9 +98,9 @@ export class CollaborationSocketManager {
 
     socket.on("session:question:respond", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
-        const sessionId = payload.sessionId ?? socket.data.sessionId;
         const session = await this.collaborationService.respondToQuestionChange(
-          sessionId,
+          socket.data.sessionId,
+          socket.data.user.id,
           payload,
         );
         this.emitSessionState(session);
@@ -116,9 +110,9 @@ export class CollaborationSocketManager {
 
     socket.on("session:end", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
-        const sessionId = payload.sessionId ?? socket.data.sessionId;
         const session = await this.collaborationService.requestSessionEnd(
-          sessionId,
+          socket.data.sessionId,
+          socket.data.user.id,
           payload,
         );
         this.emitSessionState(session);
@@ -135,8 +129,8 @@ export class CollaborationSocketManager {
       try {
         const session = await this.collaborationService.leaveSession(
           socket.data.sessionId,
+          user.id,
           {
-            userId: user.id,
             reason: "disconnect",
           },
         );

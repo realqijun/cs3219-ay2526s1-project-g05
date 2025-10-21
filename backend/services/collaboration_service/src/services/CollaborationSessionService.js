@@ -247,7 +247,7 @@ export class CollaborationSessionService {
     return updatedSession ?? session;
   }
 
-  async recordOperation(sessionId, payload) {
+  async recordOperation(sessionId, userId, payload) {
     const { errors, normalized } =
       CollaborationSessionValidator.validateOperation(payload);
     if (errors.length > 0) {
@@ -258,7 +258,7 @@ export class CollaborationSessionService {
     session = await this.checkExpiredSession(session);
     this.ensureActive(session);
 
-    const participant = this.getParticipant(session, normalized.userId);
+    const participant = this.getParticipant(session, userId);
     if (!participant) {
       throw new ApiError(
         403,
@@ -269,7 +269,7 @@ export class CollaborationSessionService {
     const now = this.now();
     const lockResult = this.acquireLock(
       sessionId,
-      normalized.userId,
+      userId,
       normalized.range,
       now,
     );
@@ -291,7 +291,7 @@ export class CollaborationSessionService {
         : normalized.content ?? currentCode;
 
     const updatedParticipants = (session.participants ?? []).map((item) =>
-      item.userId === normalized.userId
+      item.userId === userId
         ? {
             ...item,
             lastSeenAt: now,
@@ -306,7 +306,7 @@ export class CollaborationSessionService {
       ...(session.cursorPositions ?? {}),
     };
     if (normalized.cursor) {
-      cursorPositions[normalized.userId] = {
+      cursorPositions[userId] = {
         ...normalized.cursor,
         updatedAt: now,
       };
@@ -319,7 +319,7 @@ export class CollaborationSessionService {
         participants: updatedParticipants,
         cursorPositions,
         lastOperation: {
-          userId: normalized.userId,
+          userId: userId,
           type: normalized.type,
           version: newVersion,
           timestamp: now,
@@ -329,7 +329,7 @@ export class CollaborationSessionService {
       },
     });
 
-    this.releaseLock(sessionId, normalized.userId, normalized.range);
+    this.releaseLock(sessionId, userId, normalized.range);
 
     return {
       session: this.sanitizeSession(updatedSession),
@@ -387,7 +387,7 @@ export class CollaborationSessionService {
     return a.start <= b.end && b.start <= a.end;
   }
 
-  async leaveSession(sessionId, payload) {
+  async leaveSession(sessionId, userId, payload) {
     const { errors, normalized } =
       CollaborationSessionValidator.validateLeaveSession(payload);
     if (errors.length > 0) {
@@ -398,7 +398,7 @@ export class CollaborationSessionService {
     session = await this.checkExpiredSession(session);
     this.ensureActive(session);
 
-    const participant = this.getParticipant(session, normalized.userId);
+    const participant = this.getParticipant(session, userId);
     if (!participant) {
       throw new ApiError(
         403,
@@ -413,13 +413,13 @@ export class CollaborationSessionService {
     if (normalized.terminateForAll) {
       updatedStatus = "ended";
       updatedParticipants = updatedParticipants.map((item) =>
-        item.userId === normalized.userId
+        item.userId === userId
           ? { ...item, connected: false, lastSeenAt: now, disconnectedAt: now }
           : item,
       );
     } else {
       updatedParticipants = updatedParticipants.map((item) =>
-        item.userId === normalized.userId
+        item.userId === userId
           ? {
               ...item,
               connected: false,
@@ -445,7 +445,7 @@ export class CollaborationSessionService {
       },
     });
 
-    this.releaseAllLocksForUser(sessionId, normalized.userId);
+    this.releaseAllLocksForUser(sessionId, userId);
 
     return this.sanitizeSession(updatedSession);
   }
@@ -485,7 +485,7 @@ export class CollaborationSessionService {
     return null;
   }
 
-  async proposeQuestionChange(sessionId, payload) {
+  async proposeQuestionChange(sessionId, userId, payload) {
     const { errors, normalized } =
       CollaborationSessionValidator.validateQuestionProposal(payload);
     if (errors.length > 0) {
@@ -496,7 +496,7 @@ export class CollaborationSessionService {
     session = await this.checkExpiredSession(session);
     this.ensureActive(session);
 
-    const participant = this.getParticipant(session, normalized.userId);
+    const participant = this.getParticipant(session, userId);
     if (!participant) {
       throw new ApiError(
         403,
@@ -514,9 +514,9 @@ export class CollaborationSessionService {
     const now = this.now();
     const pendingQuestionChange = {
       questionId: normalized.questionId,
-      proposedBy: normalized.userId,
+      proposedBy: userId,
       rationale: normalized.rationale ?? null,
-      approvals: [normalized.userId],
+      approvals: [userId],
       createdAt: now,
     };
 
@@ -529,7 +529,7 @@ export class CollaborationSessionService {
     return this.sanitizeSession(updatedSession);
   }
 
-  async respondToQuestionChange(sessionId, payload) {
+  async respondToQuestionChange(sessionId, userId, payload) {
     const { errors, normalized } =
       CollaborationSessionValidator.validateQuestionResponse(payload);
     if (errors.length > 0) {
@@ -544,7 +544,7 @@ export class CollaborationSessionService {
       throw new ApiError(404, "There is no pending question change request.");
     }
 
-    const participant = this.getParticipant(session, normalized.userId);
+    const participant = this.getParticipant(session, userId);
     if (!participant) {
       throw new ApiError(
         403,
@@ -562,7 +562,7 @@ export class CollaborationSessionService {
     }
 
     const approvals = new Set(pending.approvals ?? []);
-    approvals.add(normalized.userId);
+    approvals.add(userId);
 
     const participants = session.participants ?? [];
     const everyoneApproved = participants
@@ -593,7 +593,7 @@ export class CollaborationSessionService {
     return this.sanitizeSession(updatedSession);
   }
 
-  async requestSessionEnd(sessionId, payload) {
+  async requestSessionEnd(sessionId, userId, payload) {
     const { errors, normalized } =
       CollaborationSessionValidator.validateEndSessionRequest(payload);
     if (errors.length > 0) {
@@ -603,7 +603,7 @@ export class CollaborationSessionService {
     const session = await this.repository.findById(sessionId);
     this.ensureActive(session);
 
-    const participant = this.getParticipant(session, normalized.userId);
+    const participant = this.getParticipant(session, userId);
     if (!participant) {
       throw new ApiError(
         403,
@@ -613,9 +613,9 @@ export class CollaborationSessionService {
 
     const approvals = new Set(session.endRequests ?? []);
     if (normalized.confirm) {
-      approvals.add(normalized.userId);
+      approvals.add(userId);
     } else {
-      approvals.delete(normalized.userId);
+      approvals.delete(userId);
     }
 
     const participants = session.participants ?? [];

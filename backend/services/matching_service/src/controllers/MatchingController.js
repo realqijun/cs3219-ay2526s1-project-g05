@@ -37,16 +37,16 @@ export class MatchingController {
       const session = await createSession(req, res);
 
       await this.matchService.addActiveListener(userId);
-      this.activeConnections[userId] = session;
+      this.activeConnections[userId] = {session, res};
 
-      session.push(`message: Connection established for user ${userId}`, 'connected');
-
+      session.push({ message: `Connection established for user ${userId}` }, 'connected');
       const pendingMatch = await this.matchService.getPendingMatch(userId);
       if (pendingMatch) {
         this.notifyMatchFound(userId, pendingMatch);
       }
 
-      session.on('close', () => {
+      req.on('close', () => {
+        console.log(`[SSE] Client ${userId} disconnected. Cleaning up.`);
         delete this.activeConnections[userId];
         this.matchService.removeActiveListener(userId);
       });
@@ -56,25 +56,24 @@ export class MatchingController {
   }
 
   notifyMatchFound(userId, matchData) {
-    const session = this.activeConnections[userId];
-    if (session) {
-      session.push(`message: ${JSON.stringify(matchData)}`, 'matchFound');
+    const listenerData = this.activeConnections[userId];
+    if (listenerData && listenerData.session) {
+      listenerData.session.push(`message: ${JSON.stringify(matchData)}`, 'matchFound');
     }
   }
 
   notifySessionExpired(userId) {
-    const session = this.activeConnections[userId];
-    if (session) {
-      const formattedData = `message: Session ${userId} has expired. You may cancel your participation in the queue, or rejoin with priority.`;
-      session.push(formattedData, 'sessionExpired');
+    const listenerData = this.activeConnections[userId];
+    if (listenerData && listenerData.session) {
+      listenerData.session.push({ message: `Session ${userId} has expired. You may cancel your participation in the queue, or rejoin with priority.` }, 'sessionExpired');
     }
   }
 
   notifyMatchCancelled(sessionId, data) {
-    const session = this.activeConnections[sessionId];
-    if (session) {
+    const listenerData = this.activeConnections[sessionId];
+    if (listenerData && listenerData.session) {
       const formattedData = `message: ${JSON.stringify(data)}`;
-      session.push(formattedData, 'matchCancelled');
+      listenerData.session.push(formattedData, 'matchCancelled');
     }
   }
 
@@ -98,12 +97,12 @@ export class MatchingController {
 
   // internal method to send match finalized event and close connection
   notifyMatchFinalized(userId, matchData) {
-    const session = this.activeConnections[userId];
-    if (session) {
+    const listenerData = this.activeConnections[userId];
+    if (listenerData && listenerData.session) {
       const formattedData = `message: ${JSON.stringify(matchData)}`;
       delete this.activeConnections[userId];
-      session.push(formattedData, 'matchFinalized');
-      session.push(null, "disconnect");
+      listenerData.session.push(formattedData, 'matchFinalized');
+      listenerData.res.end();
     }
   }
 
@@ -113,11 +112,11 @@ export class MatchingController {
       const { userId } = req.body;
       await this.matchService.clearMatchAndSession(userId);
       // Close SSE connection from array if exists
-      const session = this.activeConnections[userId];
-      if (session) {
+      const listenerData = this.activeConnections[userId];
+      if (listenerData && listenerData.session) {
         delete this.activeConnections[userId];
-        session.push(`message: You have exited the queue and cancelled any pending matches.`, 'cancelled');
-        session.push(null, "disconnect");
+        listenerData.session.push(`message: You have exited the queue and cancelled any pending matches.`, 'cancelled');
+        listenerData.res.end();
       }
 
       res.json({ message: "Exited queue successfully." });

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authenticate } from "../../../../common_scripts/authentication_middleware.js";
 
 export const createCollaborationRouter = (controller) => {
   const router = Router();
@@ -7,49 +8,13 @@ export const createCollaborationRouter = (controller) => {
    * POST /sessions
    * @summary Create a new collaboration session
    */
-  router.post("/sessions", controller.createSession);
+  router.post("/sessions", [authenticate], controller.createSession);
 
   /**
    * GET /sessions/:sessionId
    * @summary Fetch a collaboration session by its identifier
    */
-  router.get("/sessions/:sessionId", controller.getSession);
-
-  /**
-   * GET /rooms/:roomId
-   * @summary Fetch an active collaboration session using the public room id
-   */
-  router.get("/rooms/:roomId", controller.getSessionByRoomId);
-
-  /**
-   * POST /sessions/:sessionId/leave
-   * @summary Leave the collaboration session or request termination
-   */
-  router.post("/sessions/:sessionId/leave", controller.leaveSession);
-
-  /**
-   * POST /sessions/:sessionId/question/propose
-   * @summary Propose a new question for the collaboration session
-   */
-  router.post(
-    "/sessions/:sessionId/question/propose",
-    controller.proposeQuestionChange,
-  );
-
-  /**
-   * POST /sessions/:sessionId/question/respond
-   * @summary Respond to a pending question change proposal
-   */
-  router.post(
-    "/sessions/:sessionId/question/respond",
-    controller.respondToQuestionChange,
-  );
-
-  /**
-   * POST /sessions/:sessionId/end
-   * @summary Request to end the collaboration session (requires both participants)
-   */
-  router.post("/sessions/:sessionId/end", controller.requestSessionEnd);
+  router.get("/sessions/:sessionId", [authenticate], controller.getSession);
 
   /**
    * POST /sessions/:sessionId/terminate

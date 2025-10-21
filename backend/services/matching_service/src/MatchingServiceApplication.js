@@ -30,13 +30,16 @@ export class MatchingServiceApplication {
         // store object in the class fields to call cleanup interval
         this.service = service;
         
-        // periodic cleanup of stale sessions every 3 minutes
+        // periodic cleanup of stale sessions every 2 minutes
         this.cleanupInterval = setInterval(() => {
             this.service.cleanupStaleSessions().catch(err => {
                 console.error("Stale cleanup worker failed:", err);
             });
-        }, 3 * 60 * 1000);
-                
+            this.service.cleanupStaleMatches().catch(err => {
+                console.error("Stale match cleanup worker failed:", err);
+            });
+        }, 2 * 60 * 1000);
+
         app.enable('trust proxy');
         app.use(express.json());
         startSwaggerDocs(app, "Matching Service API", this.port);

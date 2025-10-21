@@ -43,7 +43,7 @@ export class MatchingController {
 
       const pendingMatch = await this.matchService.getPendingMatch(userId);
       if (pendingMatch) {
-        this.notifyMatchFound(userId, pendingMatch);
+        this.notifyUser(userId, { matchDetails: pendingMatch }, 'matchFound');
       }
 
       req.on('close', () => {
@@ -55,24 +55,10 @@ export class MatchingController {
     }
   }
 
-  notifyMatchFound(userId, matchData) {
+  notifyUser(userId, data, event) {
     const listenerData = this.activeConnections[userId];
     if (listenerData && listenerData.session) {
-      listenerData.session.push({ message: matchData }, 'matchFound');
-    }
-  }
-
-  notifySessionExpired(userId) {
-    const listenerData = this.activeConnections[userId];
-    if (listenerData && listenerData.session) {
-      listenerData.session.push({ message: `Session ${userId} has expired. You may cancel your participation in the queue, or rejoin with priority.` }, 'sessionExpired');
-    }
-  }
-
-  notifyMatchCancelled(sessionId, data) {
-    const listenerData = this.activeConnections[sessionId];
-    if (listenerData && listenerData.session) {
-      listenerData.session.push({ message: data }, 'matchCancelled');
+      listenerData.session.push(data, event);
     }
   }
 
@@ -99,7 +85,7 @@ export class MatchingController {
     const listenerData = this.activeConnections[userId];
     if (listenerData && listenerData.session) {
       delete this.activeConnections[userId];
-      listenerData.session.push({ message: matchData }, 'matchFinalized');
+      listenerData.session.push(matchData, 'matchFinalized');
       listenerData.res.end();
     }
   }

@@ -66,16 +66,19 @@ export class MatchingRepository {
     }
 
     async findMatch(userId, criteria) {
-        for (const queuedUserId in this.userQueue) {
-            if (this.matchStates[queuedUserId] || queuedUserId === userId) {
-                continue;
+        const window = Object.keys(this.userQueue).slice(0, this.QUEUE_WINDOW);
+
+        for (const queuedUserId of window) {
+            if (queuedUserId === userId || this.userMatches[queuedUserId]) {
+                continue; 
             }
             const sessionData = this.userQueue[queuedUserId];
+
             const queuedCriteria = sessionData.criteria;
+
             if (this.meetsCriteria(criteria, queuedCriteria)) {
-                const user = sessionData.user;
                 return {
-                    user: user,
+                    user: sessionData.user,
                     criteria: queuedCriteria,
                     userId: queuedUserId
                 };
@@ -95,6 +98,7 @@ export class MatchingRepository {
     }
 
     async storeMatchState(matchId, matchState) {
+        matchState.timestamp = Date.now(); // STORE TIMESTAMP FOR STALE CHECKS
         this.matchStates[matchId] = matchState;
         return true;
     }
@@ -123,6 +127,7 @@ export class MatchingRepository {
     async deleteUser(userId) {
         delete this.userQueue[userId];
         await this.deletePendingMatch(userId);
+        this.removeActiveListener(userId);
         return true;
     }
 
@@ -169,7 +174,7 @@ export class MatchingRepository {
         return staleSessionIds;
     }
 
-    async getStaleMatches(timeoutMs = 300000) {
+    async getStaleMatches(timeoutMs = 180000) {
         const now = Date.now();
         const staleMatchIds = [];
         for (const matchId in this.matchStates) {

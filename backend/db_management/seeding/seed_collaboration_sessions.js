@@ -30,32 +30,43 @@ export const seed_collaboration_sessions = async () => {
     }),
   ]);
 
-  const mapped_sessions = COLLABORATION_SESSION_DOCUMENTS.map((session) => ({
-    language: session.language,
-    questionId: session.questionId,
-    code: session.code,
-    version: 0,
-    status: "active",
-    participants: users.map((user) => ({
-      userId: user.id,
-      displayName: user.username,
-      connected: false,
-      joinedAt: new Date(),
-      lastSeenAt: new Date(),
-      disconnectedAt: null,
-      reconnectBy: null,
-      endConfirmed: false,
-    })),
-    pendingQuestionChange: null,
-    endRequests: [],
-    cursorPositions: {},
-    lastOperation: null,
-    lastConflictAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }));
+  for (const session of COLLABORATION_SESSION_DOCUMENTS) {
+    const insertedSession = await collection.insertOne({
+      language: session.language,
+      questionId: session.questionId,
+      code: session.code,
+      version: 0,
+      status: "active",
+      participants: users.map((user) => ({
+        userId: user.id,
+        displayName: user.username,
+        connected: false,
+        joinedAt: new Date(),
+        lastSeenAt: new Date(),
+        disconnectedAt: null,
+        reconnectBy: null,
+        endConfirmed: false,
+      })),
+      pendingQuestionChange: null,
+      endRequests: [],
+      cursorPositions: {},
+      lastOperation: null,
+      lastConflictAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-  await collection.insertMany(mapped_sessions);
+    for (const user of users) {
+      await db.collection("users").updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            collaborationSessionId: insertedSession.insertedId.toString(),
+          },
+        },
+      );
+    }
+  }
 
   console.log(
     `${COLLABORATION_SESSION_DOCUMENTS.length} sessions seeded successfully`,

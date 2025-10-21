@@ -29,10 +29,6 @@ export class CollaborationSessionValidator {
     const language = this.normalizeString(payload.language) ?? "javascript";
     normalized.language = language;
 
-    const initialCode =
-      typeof payload.initialCode === "string" ? payload.initialCode : "";
-    normalized.initialCode = initialCode;
-
     return { errors, normalized };
   }
 

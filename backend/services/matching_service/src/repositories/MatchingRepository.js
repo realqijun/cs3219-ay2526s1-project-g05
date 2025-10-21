@@ -48,8 +48,8 @@ export class MatchingRepository {
         return this.userQueue[userId] || null;
     }
 
-    async userInQueue(user) {
-        return user.id in this.userQueue;
+    async userInQueue(userId) {
+        return userId in this.userQueue;
     }
 
     // --- Queue Management ---
@@ -65,22 +65,19 @@ export class MatchingRepository {
         return userId;
     }
 
-    async findMatch(criteria) {
-        for (const userId in this.userQueue) {
-            if (!Object.prototype.hasOwnProperty.call(this.userQueue, userId)) {
+    async findMatch(userId, criteria) {
+        for (const queuedUserId in this.userQueue) {
+            if (this.matchStates[queuedUserId] || queuedUserId === userId) {
                 continue;
             }
-            if (this.matchStates[userId]) {
-                continue;
-            }
-            const sessionData = this.userQueue[userId];
+            const sessionData = this.userQueue[queuedUserId];
             const queuedCriteria = sessionData.criteria;
             if (this.meetsCriteria(criteria, queuedCriteria)) {
                 const user = sessionData.user;
                 return {
                     user: user,
                     criteria: queuedCriteria,
-                    userId: userId
+                    userId: queuedUserId
                 };
             }
         }
@@ -108,7 +105,7 @@ export class MatchingRepository {
     }
 
     async getPendingMatch(userId) {
-        const matchId = this.getMatchId(userId);
+        const matchId = await this.getMatchId(userId);
         return this.matchStates[matchId] || null;
     }
 
@@ -144,18 +141,18 @@ export class MatchingRepository {
 
     // --- Active Listener Management ---
 
-    async addActiveListener(sessionId) {
-        this.activeListeners.add(sessionId);
+    async addActiveListener(userId) {
+        this.activeListeners.add(userId);
         return true;
     }
 
-    async removeActiveListener(sessionId) {
-        this.activeListeners.delete(sessionId);
+    async removeActiveListener(userId) {
+        this.activeListeners.delete(userId);
         return true;
     }
 
-    async isActiveListener(sessionId) {
-        return this.activeListeners.has(sessionId);
+    async isActiveListener(userId) {
+        return this.activeListeners.has(userId);
     }
 
     // --- Stale Session Management ---
@@ -163,11 +160,10 @@ export class MatchingRepository {
     async getStaleSessions(timeoutMs = 300000) {
         const now = Date.now();
         const staleSessionIds = [];
-        const sessionIds = await this.redis.zRange(this.QUEUE_KEY, 0, -1);
-        for (const sessionId of sessionIds) {
-            const sessionTimestamp = await this.redis.hGet(`${this.SESSION_PREFIX}${sessionId}`, 'timestamp');
-            if (sessionTimestamp && (now - parseInt(sessionTimestamp, 10) > timeoutMs)) {
-                staleSessionIds.push(sessionId);
+        for (const userId in this.userQueue) {
+            const sessionData = this.userQueue[userId];
+            if (sessionData.timestamp && (now - parseInt(sessionData.timestamp, 10) > timeoutMs)) {
+                staleSessionIds.push(userId);
             }
         }
         return staleSessionIds;

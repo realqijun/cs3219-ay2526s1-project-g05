@@ -38,19 +38,19 @@ export class MatchingService {
 
     async enterQueue(user, criteria) {
         this._validateEntryRequest(user, criteria);
-        if (await this.repository.userInQueue(user)) {
+        if (await this.repository.userInQueue(user.id)) {
             throw new ApiError(400, "User is already in the matching queue.");
         }
 
         const userId = await this.repository.enterQueue(user, criteria);
         
-        const matchedUserInfo = await this.repository.findMatch(criteria);
+        const matchedUserInfo = await this.repository.findMatch(userId, criteria);
         if (!matchedUserInfo) {
             return userId;
         }
 
-        const userA = { user: matchedUserInfo.user, userId: matchedUserInfo.userId };
-        const userB = { user: user, userId: userId };
+        const userA = { user: user, userId: userId };
+        const userB = { user: matchedUserInfo.user, userId: matchedUserInfo.userId };
 
         const question = await this._fetch_pro_max(
             `http://localhost:${process.env.QUESTIONSERVICEPORT || 4002}/questions/random?difficulty=${criteria.difficulty}&${criteria.topics.map(t => `topics=${t}`).join('&')}`
@@ -87,7 +87,6 @@ export class MatchingService {
         if (isUserAActive) {
             this.notifier.notifyMatchFound(userA.userId, initialMatchState.users[userA.userId].matchDetails);
         }
-        // just in case
         const isUserBActive = await this.repository.isActiveListener(userB.userId);
         if (isUserBActive) {
             this.notifier.notifyMatchFound(userB.userId, initialMatchState.users[userB.userId].matchDetails);
@@ -100,7 +99,7 @@ export class MatchingService {
         if (!userId) {
             throw new ApiError(400, "User ID is required to add active listener.");
         }
-        if (!await this.repository.userInQueue(userId)) {
+        if (await this.repository.userInQueue(userId) === false) {
             throw new ApiError(404, "User not found in queue.");
         }
         await this.repository.addActiveListener(userId);
@@ -116,7 +115,7 @@ export class MatchingService {
     }
 
     async getPendingMatch(userId) {
-        if (!sessionId) {
+        if (!userId) {
             throw new ApiError(400, "User ID is required to check the pending queue.");
         }
         return await this.repository.getPendingMatch(userId);
@@ -147,27 +146,27 @@ export class MatchingService {
             await this.repository.deleteUser(partnerId);
 
             const collab = await this._fetch_pro_max(
-                `http://localhost:${process.env.COLLABORATIONSERVICEPORT || 4004}/collaboration/sessions`, {
+                `http://localhost:${process.env.COLLABORATIONSERVICEPORT || 4004}/api/collaboration/sessions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hostUserId: matchState.users[sessionId].user.id }),
+                body: JSON.stringify({ hostUserId: userId, guestUserId: partnerId }),
             });
 
             const collabId = collab.session;
 
             this.notifier.notifyMatchFinalized(partnerId, { token: collabId });
             this.notifier.notifyMatchFinalized(userId, { token: collabId });
-            return { status: 'finalized', partnerSessionId: partnerSessionId };
+            return { status: 'finalized', partnerSessionId: partnerId };
         } else {
-            await this.repository.updateMatchState(matchId, matchState);
-            return { status: 'waiting', partnerSessionId: partnerSessionId };
+            await this.repository.storeMatchState(matchId, matchState);
+            return { status: 'waiting', partnerSessionId: partnerId };
         }
     }
 
     async cleanupStaleSessions() {
         const timeoutMs = 5 * 60 * 1000;
         const staleIds = await this.repository.getStaleSessions(timeoutMs);
-        console.log(`Cleaning up ${staleSessionIds.length} stale sessions.`);
+        console.log(`Cleaning up ${staleIds.length} stale sessions.`);
         if (staleIds.length === 0) {
             return;
         }
@@ -193,21 +192,21 @@ export class MatchingService {
     }
 
     // Deletes the pending match if present, and deletes the session data, plus notifies partner if matched
-    async clearMatchAndSession(sessionId) {
-        if (!sessionId) {
+    async clearMatchAndSession(userId) {
+        if (!userId) {
             throw new ApiError(400, "Session ID is required to clear from queue and pending match.");
         }
-        const matchId = await this.repository.getMatchIdFromSession(sessionId);
+        const matchId = await this.repository.getMatchId(userId);
         if (matchId) {
             const matchState = await this.repository.getMatchState(matchId);
             if (matchState) {
                 await this.repository.deleteMatch(matchId);
-                const partnerSessionId = matchState.users[sessionId].matchDetails.partnerSessionId;
-                await this.repository.deletePendingMatch(partnerSessionId);
-                this.notifier.notifyMatchCancelled(partnerSessionId, { message: `Partner cancelled match request. You have been re-queued with priority.` });
+                const partnerId = matchState.users[userId].matchDetails.partnerId;
+                await this.repository.deletePendingMatch(partnerId);
+                this.notifier.notifyMatchCancelled(partnerId, { message: `Partner cancelled match request. You have been re-queued with priority.` });
             }
         }
-        await this.repository.deleteSession(sessionId);
+        await this.repository.deleteSession(userId);
         return true;
     }
 

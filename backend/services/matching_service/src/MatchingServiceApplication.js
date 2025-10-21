@@ -4,7 +4,6 @@ import { errorMiddleware, MatchingController } from './controllers/MatchingContr
 import { createMatchingRouter } from './routes/matchingRoutes.js';
 import { MatchingService } from './services/MatchingService.js';
 import { MatchingRepository } from './repositories/MatchingRepository.js';
-import { RedisSubscriber } from './redis/RedisSubscriber.js';
 import { startSwaggerDocs } from '../../../common_scripts/swagger_docs.js';
 
 export class MatchingServiceApplication {
@@ -20,7 +19,7 @@ export class MatchingServiceApplication {
 
         const app = express();
         const repository = new MatchingRepository();
-        await repository.initialize(); // Initialize Redis connection
+        await repository.initialize();
         
         const service = new MatchingService({ repository });
         const controller = new MatchingController(service);
@@ -37,11 +36,7 @@ export class MatchingServiceApplication {
                 console.error("Stale cleanup worker failed:", err);
             });
         }, 3 * 60 * 1000);
-        
-        const redisSubscriber = new RedisSubscriber(service);
-        await redisSubscriber.start();
-        this.redisSubscriber = redisSubscriber;
-        
+                
         app.enable('trust proxy');
         app.use(express.json());
         startSwaggerDocs(app, "Matching Service API", this.port);

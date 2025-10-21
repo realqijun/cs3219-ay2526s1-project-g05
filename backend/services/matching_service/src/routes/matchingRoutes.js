@@ -18,14 +18,14 @@ export const createMatchingRouter = (controller) => {
     router.post("/queue", [authenticate], controller.queue);
 
     /**
-     * GET /status/:sessionId
+     * GET /status/:userId
      * @summary Creates a Server-Sent Events (SSE) connection for real-time match status updates.
      * @description Keeps the connection open. Sends 'matchFound' event, then 'matchFinalized' or 'sessionExpired' event.
-     * @param {string} sessionId.path.required - The session ID to monitor.
+     * @param {string} userId.path.required - The user ID to monitor.
      * @returns {stream} 200 - An SSE stream.
      * @security bearerAuth
      */
-    router.get("/status/:sessionId", [authenticate], controller.getStatus);
+    router.get("/status/:userId", [authenticate], controller.getStatus);
 
     /**
      * POST /cancel

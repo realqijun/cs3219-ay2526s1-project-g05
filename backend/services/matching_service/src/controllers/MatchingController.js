@@ -10,11 +10,14 @@ export class MatchingController {
   // POST /queue
   queue = async (req, res, next) => {
     try {
-      const { criteria } = req.body;
+      const { difficulty, topics } = req.body;
       const user = res.locals.user;
       // TODO: validate user and criteria format (use userservice?)
       // TODO: check if user is already in collab service (use collabservice?)
-      const userId = await this.matchService.enterQueue(user, criteria);
+      const userId = await this.matchService.enterQueue(user, {
+        difficulty,
+        topics,
+      });
 
       res.status(202).json({
         message: "Match request accepted. Check status for updates.",

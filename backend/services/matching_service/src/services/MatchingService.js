@@ -30,12 +30,9 @@ export class MatchingService {
     }
   }
 
-  _validateEntryRequest(user, criteria) {
-    if (!user || !criteria) {
-      throw new ApiError(
-        400,
-        "User and criteria are required to enter the queue.",
-      );
+  _validateEntryRequest(criteria) {
+    if (!criteria) {
+      throw new ApiError(400, "Criteria is required to enter the queue.");
     }
     if (
       typeof criteria !== "object" ||
@@ -83,7 +80,7 @@ export class MatchingService {
   }
 
   async enterQueue(user, criteria) {
-    this._validateEntryRequest(user, criteria);
+    this._validateEntryRequest(criteria);
     if (await this.repository.userInQueue(user.id)) {
       throw new ApiError(400, "User is already in the matching queue.");
     }

@@ -9,7 +9,8 @@ export const createMatchingRouter = (controller) => {
    * @summary Enters a user into the matching queue.
    * @description Adds the user to the queue and immediately attempts to find a match. Returns a sessionId for status tracking.
    * @param {object} request.body - The user and criteria data.
-   * @param {object} request.body.criteria.required - Matching criteria (e.g., { difficulty: 'easy', topics: ['data_structures'] }).
+   * @param {string} request.body.difficulty.required - 'easy', 'medium', 'hard'.
+   * @param {string[]} request.body.topics.required - List of topics the user wants to match on.
    * @returns {object} 202 - Match request accepted, includes the generated sessionId.
    * @returns {object} 400 - Bad Request (e.g., missing user or criteria, user already in queue).
    * @security bearerAuth
@@ -20,7 +21,6 @@ export const createMatchingRouter = (controller) => {
    * GET /status/:userId
    * @summary Creates a Server-Sent Events (SSE) connection for real-time match status updates.
    * @description Keeps the connection open. Sends 'matchFound' event, then 'matchFinalized' or 'sessionExpired' event.
-   * @param {string} userId.path.required - The user ID to monitor.
    * @returns {stream} 200 - An SSE stream.
    * @security bearerAuth
    */

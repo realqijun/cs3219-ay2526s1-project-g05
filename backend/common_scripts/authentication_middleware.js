@@ -11,9 +11,11 @@ import { ObjectId } from "mongodb";
  */
 export const authenticate = async (req, res, next) => {
   // Whitelist addresses from other services (to allow other services to call without needing user auth)
+
   if (
-    req.socket.remoteAddress === "::1" ||
-    req.socket.remoteAddress === "127.0.0.1"
+    (req.socket.remoteAddress === "::1" ||
+      req.socket.remoteAddress === "127.0.0.1") &&
+    !req.get("sec-fetch-site") // for dev purpose: reject same localhost requests from browsers
   ) {
     return next();
   }
@@ -38,17 +40,38 @@ export const authenticate = async (req, res, next) => {
   next();
 };
 
+const call_user_service = async (user_id) => {
+  try {
+    const response = await fetch(
+      `http://localhost:${process.env.USERSERVICEPORT}/users/${user_id}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const user_result = await response.json();
+    return user_result.user;
+  } catch (error) {
+    return null;
+  }
+};
+
 export const verify_token_user = async (token) => {
   const decoded = verify_token(token);
   if (!decoded) {
     return { success: false, error: "Invalid or expired token." };
   }
 
-  const user_result = await MongoClientInstance.db
-    .collection("users")
-    .findOne({ _id: new ObjectId(decoded.id) });
+  const user_result = await call_user_service(decoded.id);
   if (!user_result) {
-    return { success: false, error: "Invalid or expired token." };
+    return { success: false, error: "User not found." };
   }
 
   return { success: true, decoded };

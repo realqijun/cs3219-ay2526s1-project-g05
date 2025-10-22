@@ -263,4 +263,38 @@ export class UserService {
 
     return this.sanitizeUser(updatedUser ?? user);
   }
+  async updateCurrentCollaborationSession(userId, sessionId) {
+    if (sessionId !== null && typeof sessionId !== "string") {
+      throw new ApiError(400, "Session ID must be a string or null.");
+    }
+
+    const normalizedUserId = userId.trim();
+
+    if (sessionId === null) {
+      const updatedUser = await this.repository.updateById(normalizedUserId, {
+        set: { collaborationSessionId: null },
+      });
+
+      if (!updatedUser) {
+        throw new ApiError(404, "User not found.");
+      }
+
+      return this.sanitizeUser(updatedUser);
+    }
+
+    const normalizedSessionId = sessionId.trim();
+    if (normalizedSessionId.length === 0) {
+      throw new ApiError(400, "A valid session ID is required.");
+    }
+
+    const updatedUser = await this.repository.updateById(normalizedUserId, {
+      set: { collaborationSessionId: normalizedSessionId },
+    });
+
+    if (!updatedUser) {
+      throw new ApiError(404, "User not found.");
+    }
+
+    return this.sanitizeUser(updatedUser);
+  }
 }

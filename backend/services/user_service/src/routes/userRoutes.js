@@ -11,6 +11,7 @@ export const createUserRouter = (controller) => {
   router.post("/password-reset/request", controller.requestPasswordReset);
   router.post("/password-reset/confirm", controller.resetPassword);
   router.post("/add-past-collaboration-session", controller.addPastCollaborationSession);
+  router.post("/update-current-collaboration-session", controller.updateCurrentCollaborationSession);
 
   return router;
 };

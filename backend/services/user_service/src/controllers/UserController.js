@@ -96,6 +96,19 @@ export class UserController {
       next(error);
     }
   };
+
+  updateCurrentCollaborationSession = async (req, res, next) => {
+    try {
+      const { userId, sessionId } = req.body ?? {};
+      const user = await this.userService.updateCurrentCollaborationSession(
+        userId,
+        sessionId,
+      );
+      res.json({ message: "Current collaboration session updated successfully.", user });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export const errorMiddleware = (err, req, res, _next) => {

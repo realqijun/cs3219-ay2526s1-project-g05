@@ -99,3 +99,8 @@ export const collaboration_sessions_indexes = [
     options: { name: "participants.userId_index" },
   },
 ];
+
+export const collaboration_sessions_user = {
+  username: process.env.COLLABORATIONSERVICE_DB_USER,
+  password: process.env.COLLABORATIONSERVICE_DB_PASSWORD,
+};

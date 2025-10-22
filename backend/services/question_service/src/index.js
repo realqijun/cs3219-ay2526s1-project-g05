@@ -8,7 +8,12 @@ const app = express();
 const PORT = process.env.QUESTIONSERVICEPORT || 4002;
 
 const start = async () => {
-  if (!(await MongoClientInstance.start())) {
+  if (
+    !(await MongoClientInstance.start(
+      process.env.QUESTIONSERVICE_DB_USER,
+      process.env.QUESTIONSERVICE_DB_PASSWORD,
+    ))
+  ) {
     console.error("Failed to connect to MongoDB");
     process.exit(1);
   }

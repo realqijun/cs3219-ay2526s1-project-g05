@@ -26,7 +26,10 @@ export class CollaborationApplication {
       return this.app;
     }
 
-    await MongoClientInstance.start();
+    await MongoClientInstance.start(
+      process.env.COLLABORATIONSERVICE_DB_USER,
+      process.env.COLLABORATIONSERVICE_DB_PASSWORD,
+    );
     const repository = await CollaborationSessionRepository.initialize(
       MongoClientInstance.db,
     );

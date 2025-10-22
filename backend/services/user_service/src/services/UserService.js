@@ -244,4 +244,23 @@ export class UserService {
 
     return this.sanitizeUser(updatedUser ?? user);
   }
+
+  async addPastCollaborationSession(userId, sessionId) {
+    if (typeof sessionId !== "string" || sessionId.trim().length === 0) {
+      throw new ApiError(400, "A valid session ID is required.");
+    }
+
+    const normalizedSessionId = sessionId.trim();
+    const normalizedUserId = userId.trim();
+
+    const updatedUser = await this.repository.updateById(normalizedUserId, {
+      push: { pastCollaborationSessions: normalizedSessionId },
+    });
+
+    if (!updatedUser) {
+      throw new ApiError(404, "User not found.");
+    }
+
+    return this.sanitizeUser(updatedUser ?? user);
+  }
 }

@@ -83,6 +83,19 @@ export class UserController {
       next(error);
     }
   };
+
+  addPastCollaborationSession = async (req, res, next) => {
+    try {
+      const { userId, sessionId } = req.body ?? {};
+      const user = await this.userService.addPastCollaborationSession(
+        userId,
+        sessionId,
+      );
+      res.json({ message: "Past collaboration session added successfully.", user });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export const errorMiddleware = (err, req, res, _next) => {

@@ -26,6 +26,7 @@ export class MatchingService {
       }
       return await response.json();
     } catch (error) {
+      console.error("Fetch error:", error);
       throw new ApiError(500, "Internal Server Error");
     }
   }
@@ -46,37 +47,49 @@ export class MatchingService {
     }
   }
 
-  async _handleMatchFound(userAId, userBId, commonMatchData) {
+  async _handleMatchFound(userA, userB, commonMatchData) {
     const matchState = {
       status: "pending",
       users: {
-        [userAId]: {
+        [userA.id]: {
           confirmed: false,
-          matchDetails: { ...commonMatchData, partnerId: userBId },
+          matchDetails: {
+            ...commonMatchData,
+            partnerId: userB.id,
+            partnerUser: userB.username,
+            partnerConfirmed: false,
+          },
         },
-        [userBId]: {
+        [userB.id]: {
           confirmed: false,
-          matchDetails: { ...commonMatchData, partnerId: userAId },
+          matchDetails: {
+            ...commonMatchData,
+            partnerId: userA.id,
+            partnerUser: userA.username,
+            partnerConfirmed: false,
+          },
         },
       },
     };
 
     await this.repository.storeMatchState(commonMatchData.matchId, matchState);
-    await this.repository.storePendingMatch(userAId, commonMatchData.matchId);
-    await this.repository.storePendingMatch(userBId, commonMatchData.matchId);
+    await this.repository.storePendingMatch(userA.id, commonMatchData.matchId);
+    await this.repository.storePendingMatch(userB.id, commonMatchData.matchId);
+    await this.repository.deleteUserFromQueue(userA.id);
+    await this.repository.deleteUserFromQueue(userB.id);
 
     await this.notifier.notifyUser(
-      userAId,
-      { matchDetails: matchState.users[userAId].matchDetails },
+      userA.id,
+      matchState.users[userA.id],
       "matchFound",
     );
     await this.notifier.notifyUser(
-      userBId,
-      { matchDetails: matchState.users[userBId].matchDetails },
+      userB.id,
+      matchState.users[userB.id],
       "matchFound",
     );
 
-    return matchState;
+    return matchState.users[userA.id];
   }
 
   async enterQueue(user, criteria) {
@@ -89,20 +102,17 @@ export class MatchingService {
 
     const matchedUserInfo = await this.repository.findMatch(userId, criteria);
     if (!matchedUserInfo) {
-      return userId;
+      return null;
     }
 
-    const userA = { user: user, userId: userId };
-    const userB = {
-      user: matchedUserInfo.user,
-      userId: matchedUserInfo.userId,
-    };
+    const userA = user;
+    const userB = matchedUserInfo.user;
 
     const question = await this._fetch_pro_max(
       `http://localhost:${
         process.env.QUESTIONSERVICEPORT || 4002
       }/questions/random?difficulty=${criteria.difficulty}&${criteria.topics
-        .map((t) => `topics=${t}`)
+        .map((t) => `topic=${t}`)
         .join("&")}`,
     );
 
@@ -112,17 +122,25 @@ export class MatchingService {
       criteria: criteria,
       question: question,
     };
-    await this._handleMatchFound(userA.userId, userB.userId, commonMatchData);
+    const matchDetails = await this._handleMatchFound(
+      userA,
+      userB,
+      commonMatchData,
+    );
 
-    return userId;
+    // There's a chance before userA can subscribe to SSE, the match is already found. Hence, handleMatchFound fails to notify userA.
+    return matchDetails;
   }
 
   async addActiveListener(userId) {
     if (!userId) {
       throw new ApiError(400, "User ID is required to add active listener.");
     }
-    if ((await this.repository.userInQueue(userId)) === false) {
-      throw new ApiError(404, "User not found in queue.");
+    if (
+      (await this.repository.userInQueue(userId)) === false &&
+      !(await this.repository.getMatchId(userId))
+    ) {
+      throw new ApiError(404, "User not found in queue or match state.");
     }
     await this.repository.addActiveListener(userId);
     return true;
@@ -152,7 +170,7 @@ export class MatchingService {
       throw new ApiError(404, "No pending match found for this user.");
     }
 
-    let matchState = await this.repository.getMatchState(matchId);
+    const matchState = await this.repository.getMatchState(matchId);
     if (!matchState) {
       throw new ApiError(404, "Match data is invalid or expired.");
     }
@@ -162,6 +180,7 @@ export class MatchingService {
 
     matchState.users[userId].confirmed = true;
     const partnerId = matchState.users[userId].matchDetails.partnerId;
+    matchState.users[partnerId].matchDetails.partnerConfirmed = true; // Inform the other party that this user has confirmed
     const partnerConfirmed = matchState.users[partnerId].confirmed;
 
     if (partnerConfirmed) {
@@ -170,10 +189,10 @@ export class MatchingService {
       await this.repository.deleteUser(userId);
       await this.repository.deleteUser(partnerId);
 
-      const collab = await this._fetch_pro_max(
+      const response = await this._fetch_pro_max(
         `http://localhost:${
           process.env.COLLABORATIONSERVICEPORT || 4004
-        }/api/collaboration/sessions`,
+        }/collaboration/sessions`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -185,13 +204,26 @@ export class MatchingService {
         },
       );
 
-      const collabId = collab.session;
+      const session = response.session;
 
-      this.notifier.notifyMatchFinalized(partnerId, { token: collabId });
-      this.notifier.notifyMatchFinalized(userId, { token: collabId });
+      this.notifier.notifyMatchFinalized(partnerId, {
+        session,
+      });
+      this.notifier.notifyMatchFinalized(userId, { session });
       return { status: "finalized", partnerSessionId: partnerId };
     } else {
       await this.repository.storeMatchState(matchId, matchState);
+
+      await this.notifier.notifyUser(
+        userId,
+        matchState.users[userId],
+        "matchFound",
+      );
+      await this.notifier.notifyUser(
+        partnerId,
+        matchState.users[partnerId],
+        "matchFound",
+      );
       return { status: "waiting", partnerSessionId: partnerId };
     }
   }
@@ -213,7 +245,7 @@ export class MatchingService {
         this.notifier.notifyUser(
           partnerId,
           {
-            message: `Partner cancelled match request. You have been re-queued with priority.`,
+            message: `Partner cancelled match request.`,
           },
           "matchCancelled",
         );
@@ -310,5 +342,9 @@ export class MatchingService {
         );
       }
     }
+  }
+
+  async userInQueue(userId) {
+    return await this.repository.userInQueue(userId);
   }
 }

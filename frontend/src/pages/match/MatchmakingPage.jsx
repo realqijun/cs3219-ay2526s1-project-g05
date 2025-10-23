@@ -7,18 +7,20 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { matchingApi } from "@/lib/api";
+import { useMatching } from "@/context/MatchingContext";
 
 const difficulties = [
-  { id: "easy", label: "Easy", color: "from-green-500 to-emerald-500" },
-  { id: "medium", label: "Medium", color: "from-yellow-500 to-orange-500" },
-  { id: "hard", label: "Hard", color: "from-red-500 to-pink-500" },
+  { id: "Easy", label: "Easy", color: "from-green-500 to-emerald-500" },
+  { id: "Medium", label: "Medium", color: "from-yellow-500 to-orange-500" },
+  { id: "Hard", label: "Hard", color: "from-red-500 to-pink-500" },
 ];
 
 export default function MatchmakingPage() {
   const navigate = useNavigate();
   const [selectedDifficulty, setSelectedDifficulty] = useState("");
   const [selectedTopics, setSelectedTopics] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { handleEnterQueue } = useMatching();
 
   const handleTopicToggle = (topic) => {
     setSelectedTopics((prev) =>
@@ -31,11 +33,12 @@ export default function MatchmakingPage() {
       toast.error("Please select a difficulty level");
       return;
     }
-
-    await matchingApi.enterQueue({
+    setLoading(true);
+    await handleEnterQueue({
       difficulty: selectedDifficulty,
       topics: selectedTopics,
     });
+    setLoading(false);
 
     // toast.success("Finding your coding partner...", {
     //   description: `Difficulty: ${selectedDifficulty}${
@@ -143,7 +146,7 @@ export default function MatchmakingPage() {
             <Button
               size="lg"
               onClick={handleStartMatching}
-              disabled={!selectedDifficulty}
+              disabled={loading || !selectedDifficulty}
               className="w-xl bg-black text-white hover:bg-black/90 disabled:opacity-50"
             >
               Find Coding Partner

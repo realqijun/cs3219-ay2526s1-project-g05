@@ -1,5 +1,6 @@
 import { ApiError } from "../errors/ApiError.js";
 import { createSession } from "better-sse";
+import { verify_token_user } from "../../../../common_scripts/authentication_middleware.js";
 
 export class MatchingController {
   constructor(matchService) {
@@ -14,27 +15,58 @@ export class MatchingController {
       const user = res.locals.user;
       // TODO: validate user and criteria format (use userservice?)
       // TODO: check if user is already in collab service (use collabservice?)
-      const userId = await this.matchService.enterQueue(user, {
+      const matchDetails = await this.matchService.enterQueue(user, {
         difficulty,
         topics,
       });
 
-      res.status(202).json({
+      if (matchDetails) {
+        return res.status(200).json({
+          message: "Matched with another user",
+          userId: user.id,
+          matchDetails: matchDetails,
+        });
+      }
+      res.status(200).json({
         message: "Match request accepted. Check status for updates.",
-        userId: userId,
+        userId: user.id,
       });
     } catch (err) {
       next(err);
     }
   };
 
-  // GET /status/
+  isInQueue = async (req, res, next) => {
+    try {
+      const userId = res.locals.user.id;
+      const inQueue = await this.matchService.userInQueue(userId);
+      res.json({ inQueue });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  // GET /status/?token={token}
+  // EventSource does not allow for setting custom headers unfortunately, so we need to handle it specially for this
   getStatus = async (req, res, next) => {
     try {
       // SSE setup
-      const userId = res.locals.user.id;
+      const token = req.query.token;
+      if (!token) {
+        console.log("No token provided");
+        throw new ApiError(400, "Authentication token is required.");
+      }
+
+      const user = await verify_token_user(token);
+      if (!user.success) {
+        console.log("Invalid token");
+        throw new ApiError(401, "Invalid authentication token.");
+      }
+
+      const userId = user.decoded.id;
 
       if (this.activeConnections[userId]) {
+        console.log("active connection");
         throw new ApiError(
           400,
           "An active connection already exists for this session.",
@@ -53,7 +85,7 @@ export class MatchingController {
 
       const pendingMatch = await this.matchService.getPendingMatch(userId);
       if (pendingMatch) {
-        this.notifyUser(userId, { matchDetails: pendingMatch }, "matchFound");
+        this.notifyUser(userId, pendingMatch.users[userId], "matchFound");
       }
 
       req.on("close", () => {
@@ -61,6 +93,7 @@ export class MatchingController {
         this.matchService.removeActiveListener(userId);
       });
     } catch (err) {
+      console.log(err);
       next(err);
     }
   };
@@ -106,7 +139,7 @@ export class MatchingController {
     }
   }
 
-  // POST /cancel sessionid in body
+  // POST /cancel
   cancel = async (req, res, next) => {
     try {
       const userId = res.locals.user.id;

@@ -9,35 +9,37 @@ import { ObjectId } from "mongodb";
  * @param {*} next
  * @returns
  */
-export const authenticate = async (req, res, next) => {
+export const authenticate = (is_user_service = false) => {
   // Whitelist addresses from other services (to allow other services to call without needing user auth)
 
-  if (
-    (req.socket.remoteAddress === "::1" ||
-      req.socket.remoteAddress === "127.0.0.1") &&
-    !req.get("sec-fetch-site") // for dev purpose: reject same localhost requests from browsers
-  ) {
-    return next();
-  }
+  return async (req, res, next) => {
+    if (
+      (req.socket.remoteAddress === "::1" ||
+        req.socket.remoteAddress === "127.0.0.1") &&
+      !req.get("sec-fetch-site") // for dev purpose: reject same localhost requests from browsers
+    ) {
+      return next();
+    }
 
-  let token = req.headers.authorization;
-  if (!token) {
-    return res
-      .status(401)
-      .json({ error: "Missing or invalid Authorization header." });
-  }
+    let token = req.headers.authorization;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ error: "Missing or invalid Authorization header." });
+    }
 
-  token = token.replace("Bearer ", "");
+    token = token.replace("Bearer ", "");
 
-  const result = await verify_token_user(token);
+    const result = await verify_token_user(token, is_user_service);
 
-  if (result.success === false) {
-    return res.status(401).json({ error: result.error });
-  }
+    if (result.success === false) {
+      return res.status(401).json({ error: result.error });
+    }
 
-  res.locals.user = result.decoded;
+    res.locals.user = result.decoded;
 
-  next();
+    next();
+  };
 };
 
 const call_user_service = async (user_id) => {
@@ -63,13 +65,22 @@ const call_user_service = async (user_id) => {
   }
 };
 
-export const verify_token_user = async (token) => {
+const query_user_db = async (user_id) => {
+  const usersCollection = MongoClientInstance.db.collection("users");
+  const user = await usersCollection.findOne({ _id: new ObjectId(user_id) });
+  return user;
+};
+
+export const verify_token_user = async (token, is_user_service = false) => {
   const decoded = verify_token(token);
   if (!decoded) {
     return { success: false, error: "Invalid or expired token." };
   }
 
-  const user_result = await call_user_service(decoded.id);
+  const user_result = await (is_user_service
+    ? query_user_db(decoded.id)
+    : call_user_service(decoded.id));
+
   if (!user_result) {
     return { success: false, error: "User not found." };
   }

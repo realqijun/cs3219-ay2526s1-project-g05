@@ -3,18 +3,22 @@ const API_BASE_URL = import.meta.env.MODE === "production" ? "/api" : "";
 /**
  * Base fetch wrapper with error handling
  */
-async function apiFetch(endpoint, options = {}) {
+export async function apiFetch(endpoint, options = {}, isAuthenticated = true) {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = localStorage.getItem("token");
 
   const config = {
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+
       ...options.headers,
     },
     ...options,
   };
+
+  if (isAuthenticated) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
   const response = await fetch(url, config);
   const data = await response.json();
@@ -46,10 +50,14 @@ export const userApi = {
    * @returns {Promise<Object>} Registered user data
    */
   register: async (userData) => {
-    return apiFetch(`${USER_API_BASE_URL}/register`, {
-      method: "POST",
-      body: JSON.stringify(userData),
-    });
+    return apiFetch(
+      `${USER_API_BASE_URL}/register`,
+      {
+        method: "POST",
+        body: JSON.stringify(userData),
+      },
+      false,
+    );
   },
 
   /**
@@ -60,10 +68,14 @@ export const userApi = {
    * @returns {Promise<Object>} User data and authentication token
    */
   login: async (credentials) => {
-    return apiFetch(`${USER_API_BASE_URL}/login`, {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    });
+    return apiFetch(
+      `${USER_API_BASE_URL}/login`,
+      {
+        method: "POST",
+        body: JSON.stringify(credentials),
+      },
+      false,
+    );
   },
 
   /**
@@ -125,30 +137,6 @@ export const userApi = {
     return apiFetch(`${USER_API_BASE_URL}/password-reset/confirm`, {
       method: "POST",
       body: JSON.stringify({ token, password: newPassword }),
-    });
-  },
-};
-
-const MATCHING_API_URL =
-  import.meta.env.MODE === "production"
-    ? "/matching"
-    : "http://localhost:4003/matching";
-/**
- * Matching API methods
- */
-export const matchingApi = {
-  /**
-   * Start a new matchmaking process
-   * @param {Object} matchingCriteria - User registration data
-   * @param {string} matchingCriteria.difficulty - difficulty level
-   * @param {string[]} matchingCriteria.topics - list of topics
-   * @returns {Promise<Object>} Registered user data
-   */
-  enterQueue: async (matchingCriteria) => {
-    console.log(matchingCriteria);
-    return apiFetch(`${MATCHING_API_URL}/queue`, {
-      method: "POST",
-      body: JSON.stringify(matchingCriteria),
     });
   },
 };

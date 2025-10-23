@@ -6,16 +6,19 @@ import AppRoutes from "@/routes/AppRoutes";
 import { UserProvider } from "@/context/UserContext";
 import "@/App.css";
 import { Toaster } from "sonner";
+import { MatchingProvider } from "./context/MatchingContext";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ThemeProvider>
-        <Toaster />
-        <BrowserRouter>
-          <UserProvider>
-              <AppRoutes />
-          </UserProvider>
-        </BrowserRouter>
+      <Toaster />
+      <BrowserRouter>
+        <UserProvider>
+          <MatchingProvider>
+            <AppRoutes />
+          </MatchingProvider>
+        </UserProvider>
+      </BrowserRouter>
     </ThemeProvider>
-  </StrictMode>
+  </StrictMode>,
 );

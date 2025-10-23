@@ -104,24 +104,33 @@ export class MatchingRepository {
   }
 
   async storeMatchState(matchId, matchState) {
+    // Store a mapping of matchId to matchState
     matchState.timestamp = Date.now(); // STORE TIMESTAMP FOR STALE CHECKS
     this.matchStates[matchId] = matchState;
     return true;
   }
 
   async storePendingMatch(userId, matchId) {
+    // Store a mapping of userId to matchId
     this.userMatches[userId] = matchId;
     return true;
   }
 
   async getPendingMatch(userId) {
+    // Gets the matchState given a userId
     const matchId = await this.getMatchId(userId);
     return this.matchStates[matchId] || null;
   }
 
   // --- Cleanup and Deletion ---
 
+  async deleteUserFromQueue(userId) {
+    delete this.userQueue[userId];
+    return true;
+  }
+
   async deletePendingMatch(userId) {
+    // Deletes the mapping of userId to matchId
     const matchId = await this.getMatchId(userId);
     if (!matchId) {
       return false;

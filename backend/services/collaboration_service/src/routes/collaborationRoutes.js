@@ -8,13 +8,17 @@ export const createCollaborationRouter = (controller) => {
    * POST /sessions
    * @summary Create a new collaboration session
    */
-  router.post("/sessions", [authenticate], controller.createSession);
+  router.post("/sessions", [authenticate(false)], controller.createSession);
 
   /**
    * GET /sessions/:sessionId
    * @summary Fetch a collaboration session by its identifier
    */
-  router.get("/sessions/:sessionId", [authenticate], controller.getSession);
+  router.get(
+    "/sessions/:sessionId",
+    [authenticate(false)],
+    controller.getSession,
+  );
 
   /**
    * POST /sessions/:sessionId/terminate

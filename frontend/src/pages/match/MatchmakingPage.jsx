@@ -7,6 +7,7 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { matchingApi } from "@/lib/api";
 
 const difficulties = [
   { id: "easy", label: "Easy", color: "from-green-500 to-emerald-500" },
@@ -21,23 +22,26 @@ export default function MatchmakingPage() {
 
   const handleTopicToggle = (topic) => {
     setSelectedTopics((prev) =>
-      prev.includes(topic)
-        ? prev.filter((t) => t !== topic)
-        : [...prev, topic]
+      prev.includes(topic) ? prev.filter((t) => t !== topic) : [...prev, topic],
     );
   };
 
-  const handleStartMatching = () => {
+  const handleStartMatching = async () => {
     if (!selectedDifficulty) {
       toast.error("Please select a difficulty level");
       return;
     }
 
-    toast.success("Finding your coding partner...", {
-      description: `Difficulty: ${selectedDifficulty}${
-        selectedTopics.length > 0 ? ` | Topics: ${selectedTopics.join(", ")}` : ""
-      }`,
+    await matchingApi.enterQueue({
+      difficulty: selectedDifficulty,
+      topics: selectedTopics,
     });
+
+    // toast.success("Finding your coding partner...", {
+    //   description: `Difficulty: ${selectedDifficulty}${
+    //     selectedTopics.length > 0 ? ` | Topics: ${selectedTopics.join(", ")}` : ""
+    //   }`,
+    // });
   };
 
   return (
@@ -71,7 +75,9 @@ export default function MatchmakingPage() {
                 <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
                   <Sparkles className="h-6 w-6 text-black" />
                   Difficulty Level
-                  <span className="text-sm text-destructive ml-2">*Required</span>
+                  <span className="text-sm text-destructive ml-2">
+                    *Required
+                  </span>
                 </h2>
                 <div className="space-y-4">
                   {difficulties.map((difficulty) => (
@@ -85,8 +91,12 @@ export default function MatchmakingPage() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-medium">{difficulty.label}</span>
-                        <div className={`h-3 w-3 rounded-full bg-gradient-to-r ${difficulty.color}`} />
+                        <span className="text-lg font-medium">
+                          {difficulty.label}
+                        </span>
+                        <div
+                          className={`h-3 w-3 rounded-full bg-gradient-to-r ${difficulty.color}`}
+                        />
                       </div>
                     </button>
                   ))}
@@ -97,7 +107,9 @@ export default function MatchmakingPage() {
               <Card className="p-8 border-border bg-gradient-to-br from-card to-card/50">
                 <h2 className="text-2xl font-semibold mb-6">
                   Topics
-                  <span className="text-sm text-muted-foreground ml-2 font-normal">Optional</span>
+                  <span className="text-sm text-muted-foreground ml-2 font-normal">
+                    Optional
+                  </span>
                 </h2>
                 <div className="grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
                   {topics.map((topic) => (

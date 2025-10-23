@@ -7,10 +7,12 @@ const UserContext = createContext(null);
 export const UserProvider = ({ children }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
+    setLoading(false);
   }, []);
 
   const setUserAndStorage = useCallback((newUser, token, rememberMe = false) => {
@@ -36,13 +38,14 @@ export const UserProvider = ({ children }) => {
   const logout = useCallback(() => {
     setUserAndStorage(null);
     toast.success("Logged out successfully!");
-    navigate("/");
+    navigate("/login");
   }, [setUserAndStorage, navigate]);
 
   return (
     <UserContext.Provider
       value={{
         user,
+        loading,
         setUser: setUserAndStorage,
         loginUser,
         logout,

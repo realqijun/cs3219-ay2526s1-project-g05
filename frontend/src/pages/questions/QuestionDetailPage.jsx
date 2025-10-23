@@ -78,50 +78,51 @@ export default function QuestionDetail() {
             </div>
 
             <Card>
-                <ScrollArea className="h-[calc(100vh-200px)]">
-                <CardContent className="pt-5 p-6 space-y-6">
-                    {/* Topics */}
-                    <div className="flex flex-wrap gap-2">
+              <ScrollArea className="h-[calc(100vh-200px)]">
+                <CardContent className="pt-4 p-4 space-y-4">
+                  {/* Topics */}
+                  <div className="flex flex-wrap gap-2">
                     {question.topics.map((topic) => (
-                        <Badge key={topic} variant="outline">
+                      <Badge key={topic} variant="outline">
                         {topic}
-                        </Badge>
+                      </Badge>
                     ))}
-                    </div>
+                  </div>
 
-                    {/* Problem Description */}
-                    <div>
+                  {/* Problem Description */}
+                  <div>
                     <h3 className="font-semibold text-lg mb-2">Description</h3>
                     <div
-                        className="text-muted-foreground leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: question.body }}
+                      className="text-muted-foreground leading-normal"
+                      dangerouslySetInnerHTML={{ __html: question.body }}
                     />
-                    </div>
+                  </div>
 
-                    {/* Hints */}
-                    {question.hints && question.hints.length > 0 && (
+                  {/* Hints */}
+                  {question.hints?.length > 0 && (
                     <div>
-                        <h3 className="font-semibold text-lg mb-3">Hints</h3>
-                        <ul className="space-y-2 text-sm text-muted-foreground list-disc list-inside">
+                      <h3 className="font-semibold text-lg mb-2">Hints</h3>
+                      <ul className="space-y-1 text-sm text-muted-foreground list-disc list-inside">
                         {question.hints.map((hint, idx) => (
-                            <li key={idx} dangerouslySetInnerHTML={{ __html: hint }} />
+                          <li key={idx} dangerouslySetInnerHTML={{ __html: hint }} />
                         ))}
-                        </ul>
+                      </ul>
                     </div>
-                    )}
+                  )}
 
-                    {/* Starter Code */}
-                    {question.code && (
+                  {/* Starter Code */}
+                  {question.code && (
                     <div>
-                        <h3 className="font-semibold text-lg mb-2">Starter Code</h3>
-                        <pre className="bg-muted/50 p-4 rounded overflow-auto text-sm">
+                      <h3 className="font-semibold text-lg mb-2">Starter Code</h3>
+                      <pre className="bg-muted/50 p-3 rounded overflow-auto text-sm">
                         {question.code}
-                        </pre>
+                      </pre>
                     </div>
-                    )}
+                  )}
                 </CardContent>
-                </ScrollArea>
+              </ScrollArea>
             </Card>
+
             </div>
         </div>
     </MainLayout>

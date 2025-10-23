@@ -1,4 +1,3 @@
-// useAuth.js
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -50,7 +49,7 @@ export function useAuth() {
         sessionStorage.setItem("authToken", token);
       }
 
-      loginUser(user, token);
+      loginUser(user, token, data.rememberMe);
       navigate("/matchmaking");
     } catch (error) {
       if (error.response?.data?.errors) {

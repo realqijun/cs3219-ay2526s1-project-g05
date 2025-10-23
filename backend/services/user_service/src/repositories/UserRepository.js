@@ -7,15 +7,7 @@ export class UserRepository {
 
   static async initialize(db) {
     const repository = new UserRepository(db);
-    await repository.ensureIndexes();
     return repository;
-  }
-
-  async ensureIndexes() {
-    await Promise.all([
-      this.collection.createIndex({ email: 1 }, { unique: true, name: "uniq_email" }),
-      this.collection.createIndex({ username: 1 }, { unique: true, name: "uniq_username" }),
-    ]);
   }
 
   async create(user) {
@@ -28,6 +20,8 @@ export class UserRepository {
       failedLoginWindowStart: null,
       accountLocked: false,
       accountLockedAt: null,
+      pastCollaborationSessions: [],
+      collaborationSessionId: null,
     };
     const result = await this.collection.insertOne(payload);
     return { ...payload, _id: result.insertedId };

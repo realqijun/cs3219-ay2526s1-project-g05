@@ -1,4 +1,5 @@
 import { ApiError } from "../errors/ApiError.js";
+import { createSession } from "better-sse"
 
 export class MatchingController {
   constructor(matchService) {
@@ -12,115 +13,94 @@ export class MatchingController {
       const { user, criteria } = req.body;
       // TODO: validate user and criteria format (use userservice?)
       // TODO: check if user is already in collab service (use collabservice?)
-      const sessionId = await this.matchService.enterQueue(user, criteria);
+      const userId = await this.matchService.enterQueue(user, criteria);
 
       res.status(202).json({
         message: "Match request accepted. Check status for updates.",
-        sessionId: sessionId
+        userId: userId
       });
     } catch (err) {
       next(err);
     }
   }
 
-  // GET /status/:sessionId
+  // GET /status/:userId
   getStatus = async (req, res, next) => {
     try {
       // SSE setup
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.setHeader('X-Accel-Buffering', 'no');
+      const userId = req.params.userId;
 
-      const sessionId = req.params.sessionId;
-
-      if (this.activeConnections[sessionId]) {
+      if (this.activeConnections[userId]) {
         throw new ApiError(400, "An active connection already exists for this session.");
       }
 
-      await this.matchService.addActiveListener(sessionId);
-      this.activeConnections[sessionId] = res;
-      res.write(`event: connected\ndata: {"message": "Connection established for session ${sessionId}"}\n\n`);
+      const session = await createSession(req, res);
 
-      const pendingMatch = await this.matchService.getPendingMatch(sessionId);
+      await this.matchService.addActiveListener(userId);
+      this.activeConnections[userId] = {session, res};
+
+      session.push({ message: `Connection established for user ${userId}` }, 'connected');
+
+      const pendingMatch = await this.matchService.getPendingMatch(userId);
       if (pendingMatch) {
-        this.notifyMatchFound(sessionId, pendingMatch, res);
+        this.notifyUser(userId, { matchDetails: pendingMatch }, 'matchFound');
       }
 
       req.on('close', () => {
-        delete this.activeConnections[sessionId];
-        this.matchService.removeActiveListener(sessionId);
+        delete this.activeConnections[userId];
+        this.matchService.removeActiveListener(userId);
       });
     } catch (err) {
       next(err);
     }
   }
 
-  notifyMatchFound(sessionId, matchData, resExternal = null) {
-    const res = resExternal || this.activeConnections[sessionId];
-    if (res) {
-      const formattedData = `event: matchFound\ndata: ${JSON.stringify(matchData)}\n\n`;
-      res.write(formattedData);
+  notifyUser(userId, data, event) {
+    const listenerData = this.activeConnections[userId];
+    if (listenerData && listenerData.session) {
+      listenerData.session.push(data, event);
     }
   }
 
-  notifySessionExpired(sessionId) {
-    const res = this.activeConnections[sessionId];
-    if (res) {
-      const formattedData = `event: sessionExpired\ndata: {"message": "Session ${sessionId} has expired. You may cancel your participation in the queue, or rejoin with priority."}\n\n`;
-      res.write(formattedData);
-    }
-  }
-
-  notifyMatchCancelled(sessionId, info) {
-    const res = this.activeConnections[sessionId];
-    if (res) {
-      const formattedData = `event: matchCancelled\ndata: {"message": "Match for session ${sessionId} has been cancelled.", "info": ${JSON.stringify(info)}}\n\n`;
-      res.write(formattedData);
-    }
-  }
-
-  // POST /confirm sessionid in body
+  // POST /confirm userId in body
   confirmMatch = async (req, res, next) => {
     try {
-      const { sessionId } = req.body;
+      const { userId } = req.body;
 
-      const matchResult = await this.matchService.confirmMatch(sessionId);
+      const result = await this.matchService.confirmMatch(userId);
 
-      if (matchResult.status === 'completed') {
+      if (result.status === 'finalized') {
         // Connection is closed in the notifyMatchFinalized
-        res.status(200).json({ message: "Match confirmed and complete." });
-        return;
+        res.json({ message: "Match confirmed and complete.", partnerId: result.partnerId });
+      } else {
+        res.json({ message: "Confirmation sent. Waiting for partner.", partnerId: result.partnerId });
       }
-      res.status(200).json({ message: "Confirmation received. Waiting for partner." });
     } catch (err) {
       next(err);
     }
   }
 
   // internal method to send match finalized event and close connection
-  notifyMatchFinalized(sessionId, matchData) {
-    const res = this.activeConnections[sessionId];
-    if (res) {
-      const formattedData = `event: matchFinalized\ndata: ${JSON.stringify(matchData)}\n\n`;
-      delete this.activeConnections[sessionId];
-      res.write(formattedData);
-      res.end();
+  notifyMatchFinalized(userId, matchData) {
+    const listenerData = this.activeConnections[userId];
+    if (listenerData && listenerData.session) {
+      delete this.activeConnections[userId];
+      listenerData.session.push(matchData, 'matchFinalized');
+      listenerData.res.end();
     }
   }
 
   // POST /cancel sessionid in body
   cancel = async (req, res, next) => {
     try {
-      const { sessionId } = req.body;
-      await this.matchService.clearMatchAndSession(sessionId);
+      const { userId } = req.body;
+      await this.matchService.clearMatchAndSession(userId);
       // Close SSE connection from array if exists
-      const resListener = this.activeConnections[sessionId];
-      if (resListener) {
-        delete this.activeConnections[sessionId];
-        const formattedData = `event: cancelled\ndata: {"message": "You have exited the queue and cancelled any pending matches."}\n\n`;
-        resListener.write(formattedData);
-        resListener.end();
+      const listenerData = this.activeConnections[userId];
+      if (listenerData && listenerData.session) {
+        delete this.activeConnections[userId];
+        listenerData.session.push({ message: "You have exited the queue and cancelled any pending matches." }, 'cancelled');
+        listenerData.res.end();
       }
 
       res.json({ message: "Exited queue successfully." });

@@ -8,10 +8,15 @@ export const question_schema = {
         "titleSlug",
         "difficulty",
         "topics",
+        "hints",
+        "companies",
         "body",
         "code",
+        "similarQuestions",
       ],
+      additionalProperties: false,
       properties: {
+        _id: { bsonType: "objectId" },
         QID: {
           bsonType: "int",
           description: "Question ID must be an integer and is required",
@@ -59,6 +64,8 @@ export const question_schema = {
       },
     },
   },
+  validationLevel: "strict",
+  validationAction: "error",
 };
 
 export const question_indexes = [

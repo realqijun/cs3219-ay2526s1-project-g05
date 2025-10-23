@@ -14,7 +14,6 @@ export default function MatchedPage() {
 
   useEffect(() => {
     if (!matchInfo) navigate("/matchmaking");
-    console.log(matchInfo);
   }, [matchInfo]);
   // Temporary mock data (replace with real matchmaking data later)
 

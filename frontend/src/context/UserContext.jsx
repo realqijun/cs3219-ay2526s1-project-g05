@@ -50,7 +50,6 @@ export const UserProvider = ({ children }) => {
   const refreshUserData = useCallback(async () => {
     try {
       // Fetch updated user data from API
-      console.log(user);
       const response = await userApi.getById(user.id);
       setUserAndStorage(response.user);
     } catch (e) {

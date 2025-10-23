@@ -31,11 +31,13 @@ export async function getQuestions() {
  * Example usage: const question = await getQuestionById(1);
  */
 export async function getQuestionById(qid) {
+  const token = localStorage.getItem("token");
   try {
     const response = await fetch(`http://localhost:4002/questions/${qid}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     });
 

@@ -1,11 +1,14 @@
 // api/questions.js
 
 export async function getQuestions() {
+  const token = localStorage.getItem("token");
+
   try {
     const response = await fetch("http://localhost:4002/questions", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     });
 

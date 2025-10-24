@@ -28,3 +28,43 @@ export const fetchQuestion = async (questionId) => {
   const resultJson = await result.json();
   return resultJson;
 };
+
+export const updateUserCurrentSession = async (userId, sessionId) => {
+  const result = await fetch(
+    `http://localhost:${process.env.USERSERVICEPORT}/users/update-current-collaboration-session`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, sessionId }),
+    },
+  );
+
+  if (!result.ok) {
+    throw new ApiError(result.status, await result.text());
+  }
+
+  const resultJson = await result.json();
+  return resultJson;
+};
+
+export const addUserPastSession = async (userId, sessionId) => {
+  const result = await fetch(
+    `http://localhost:${process.env.USERSERVICEPORT}/users/add-past-collaboration-session`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, sessionId }),
+    },
+  );
+
+  if (!result.ok) {
+    throw new ApiError(result.status, await result.text());
+  }
+
+  const resultJson = await result.json();
+  return resultJson;
+};

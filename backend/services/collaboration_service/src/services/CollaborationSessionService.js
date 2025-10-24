@@ -1,7 +1,12 @@
 import crypto from "crypto";
 import { ApiError } from "../errors/ApiError.js";
 import { CollaborationSessionValidator } from "../validators/CollaborationSessionValidator.js";
-import { fetchUser, fetchQuestion } from "../utils/fetchRequests.js";
+import {
+  fetchUser,
+  fetchQuestion,
+  updateUserCurrentSession,
+  addUserPastSession,
+} from "../utils/fetchRequests.js";
 
 const MAX_PARTICIPANTS = 2;
 const DEFAULT_LANGUAGE = "javascript";
@@ -124,6 +129,10 @@ export class CollaborationSessionService {
       },
     });
 
+    if (updated) {
+      await this.handleSessionEnded(session, updated);
+    }
+
     return updated ?? session;
   }
 
@@ -187,6 +196,16 @@ export class CollaborationSessionService {
       createdAt: now,
       updatedAt: now,
     });
+
+    const sessionId = session._id?.toString?.() ?? session._id;
+    const uniqueParticipantIds = Array.from(
+      new Set(particiants_built.map((participant) => participant.userId)),
+    );
+    await Promise.all(
+      uniqueParticipantIds.map((participantId) =>
+        updateUserCurrentSession(participantId, sessionId),
+      ),
+    );
 
     return this.sanitizeSession(session);
   }
@@ -447,7 +466,45 @@ export class CollaborationSessionService {
 
     this.releaseAllLocksForUser(sessionId, userId);
 
-    return this.sanitizeSession(updatedSession);
+    const sessionAfterUpdate = updatedSession ?? session;
+    if (updatedStatus === "ended") {
+      await this.handleSessionEnded(session, sessionAfterUpdate);
+    }
+
+    return this.sanitizeSession(sessionAfterUpdate);
+  }
+
+  async handleSessionEnded(previousSession, nextSession) {
+    if (!nextSession || nextSession.status !== "ended") {
+      return;
+    }
+    if (previousSession?.status === "ended") {
+      return;
+    }
+
+    const sessionId = nextSession._id?.toString?.() ?? nextSession._id;
+    if (!sessionId) return;
+
+    const participantsSource =
+      nextSession.participants ?? previousSession?.participants ?? [];
+    const uniqueParticipantIds = Array.from(
+      new Set(
+        participantsSource
+          .map((participant) => participant?.userId?.trim?.())
+          .filter((userId) => typeof userId === "string" && userId.length > 0),
+      ),
+    );
+
+    if (uniqueParticipantIds.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      uniqueParticipantIds.map(async (userId) => {
+        await addUserPastSession(userId, sessionId);
+        await updateUserCurrentSession(userId, null);
+      }),
+    );
   }
 
   releaseAllLocksForUser(sessionId, userId) {
@@ -479,6 +536,9 @@ export class CollaborationSessionService {
       const updated = await this.repository.updateById(session._id, {
         set: { status: "ended" },
       });
+      if (updated) {
+        await this.handleSessionEnded(session, updated);
+      }
       return this.sanitizeSession(updated);
     }
 
@@ -629,6 +689,9 @@ export class CollaborationSessionService {
           endRequests: Array.from(approvals),
         },
       });
+      if (updatedSession) {
+        await this.handleSessionEnded(session, updatedSession);
+      }
       return this.sanitizeSession(updatedSession);
     }
 
@@ -642,12 +705,18 @@ export class CollaborationSessionService {
   }
 
   async terminateSession(sessionId) {
+    const currentSession = await this.repository.findById(sessionId);
+    if (!currentSession) {
+      throw new ApiError(404, "Collaboration session not found.");
+    }
+
     const session = await this.repository.updateById(sessionId, {
       set: { status: "ended" },
     });
     if (!session) {
-      throw new ApiError(404, "Collaboration session not found.");
+      throw new ApiError(500, "Failed to end collaboration session.");
     }
+    await this.handleSessionEnded(currentSession, session ?? currentSession);
     return this.sanitizeSession(session);
   }
 }

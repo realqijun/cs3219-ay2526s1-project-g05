@@ -51,10 +51,6 @@ export class MatchingServiceApplication {
       app.use(cors());
     }
 
-    app.get("/status", (_req, res) => {
-      res.json({ status: "Matching service is running" });
-    });
-
     app.use("/", createMatchingRouter(controller));
 
     app.use(errorMiddleware);

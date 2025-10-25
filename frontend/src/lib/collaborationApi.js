@@ -4,6 +4,11 @@ export const COLLABORATION_API_URL =
   import.meta.env.MODE === "production"
     ? "/collaboration"
     : "http://localhost:4004/collaboration";
+
+export const SOCKET_IO_COLLABORATION_URL =
+  import.meta.env.MODE === "production"
+    ? "/collaboration"
+    : "http://localhost:4004";
 /**
  * Matching API methods
  */

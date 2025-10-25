@@ -61,15 +61,15 @@ export const MatchingProvider = ({ children }) => {
   };
 
   const closeEventSource = () => {
-    if (!es.value) return;
+    if (!es.current) return;
 
     setIsInQueue(false);
-    es.value.close();
-    es.value.removeEventListener("connected", handleConnected);
-    es.value.removeEventListener("matchFound", handleMatchFound);
-    es.value.removeEventListener("matchCancelled", handleMatchCancelled);
-    es.value.removeEventListener("matchFinalized", handleMatchFinalized);
-    es.value = null;
+    es.current.close();
+    es.current.removeEventListener("connected", handleConnected);
+    es.current.removeEventListener("matchFound", handleMatchFound);
+    es.current.removeEventListener("matchCancelled", handleMatchCancelled);
+    es.current.removeEventListener("matchFinalized", handleMatchFinalized);
+    es.current = null;
     setConnected(false);
   };
 
@@ -141,14 +141,14 @@ export const MatchingProvider = ({ children }) => {
   };
 
   const startStatusSubscriber = useCallback(async () => {
-    if (es.value) {
+    if (es.current) {
       return;
     }
 
     const newSource = new EventSource(
       `${MATCHING_API_URL}/status/?token=${localStorage.getItem("token")}`,
     );
-    es.value = newSource;
+    es.current = newSource;
 
     newSource.addEventListener("connected", handleConnected);
     newSource.addEventListener("matchFound", handleMatchFound);
@@ -158,8 +158,8 @@ export const MatchingProvider = ({ children }) => {
     newSource.onerror = (error) => {
       console.error("EventSource failed:", error);
       console.log(error);
-      es.value.close();
-      es.value = null;
+      es.current.close();
+      es.current = null;
       toast.error("Lost connection to matchmaking server.");
     };
   }, []);

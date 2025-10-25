@@ -79,24 +79,22 @@ export const userApi = {
   },
 
   /**
-   * Get user by ID
-   * @param {string} userId - User ID
+   * Get own user
    * @returns {Promise<Object>} User data
    */
-  getById: async (userId) => {
-    return apiFetch(`${USER_API_BASE_URL}/${userId}`, {
+  getMe: async () => {
+    return apiFetch(`${USER_API_BASE_URL}/me`, {
       method: "GET",
     });
   },
 
   /**
-   * Update user information
-   * @param {string} userId - User ID
+   * Update own user
    * @param {Object} updates - Fields to update
    * @returns {Promise<Object>} Updated user data
    */
-  update: async (userId, updates) => {
-    return apiFetch(`${USER_API_BASE_URL}/${userId}`, {
+  update: async (updates) => {
+    return apiFetch(`${USER_API_BASE_URL}/me`, {
       method: "PATCH",
       body: JSON.stringify(updates),
     });
@@ -104,12 +102,11 @@ export const userApi = {
 
   /**
    * Delete user account
-   * @param {string} userId - User ID
    * @param {string} password - Password confirmation
    * @returns {Promise<Object>} Deletion confirmation
    */
-  delete: async (userId, password) => {
-    return apiFetch(`${USER_API_BASE_URL}/${userId}`, {
+  delete: async (password) => {
+    return apiFetch(`${USER_API_BASE_URL}/me`, {
       method: "DELETE",
       body: JSON.stringify({ password }),
     });

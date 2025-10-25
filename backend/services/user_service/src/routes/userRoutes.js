@@ -6,9 +6,12 @@ export const createUserRouter = (controller) => {
 
   router.post("/register", controller.register);
   router.post("/login", controller.login);
-  router.get("/:id", [authenticate(true)], controller.getById);
-  router.patch("/:id", [authenticate(true)], controller.update);
-  router.delete("/:id", [authenticate(true)], controller.delete);
+  router.get("/me", [authenticate(true)], controller.getMe);
+  router.patch("/me", [authenticate(true)], controller.updateMe);
+  router.delete("/me", [authenticate(true)], controller.deleteMe);
+  router.get("/:id", [authenticate(true, true)], controller.getById);
+  router.patch("/:id", [authenticate(true, true)], controller.update);
+  router.delete("/:id", [authenticate(true, true)], controller.delete);
   router.post(
     "/password-reset/request",
     [authenticate(true)],

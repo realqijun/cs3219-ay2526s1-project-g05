@@ -3,15 +3,24 @@ import { MongoClientInstance } from "./mongo.js";
 import { ObjectId } from "mongodb";
 
 /**
- * Authentication middleware for EXPRESS to verify JWT tokens in incoming requests.
- * @param {} req
- * @param {*} res
- * @param {*} next
+ *
+ * @param {*} is_user_service Flip to true if this middleware is being used in the user service to avoid a circular call
+ * @param {*} require_same_user Flip to true if you require the "id" in the token to match the "id" in the request params
  * @returns
  */
-export const authenticate = (is_user_service = false) => {
+export const authenticate = (
+  is_user_service = false,
+  require_same_user = false,
+) => {
   // Whitelist addresses from other services (to allow other services to call without needing user auth)
 
+  /**
+   * Authentication middleware for EXPRESS to verify JWT tokens in incoming requests.
+   * @param {} req
+   * @param {*} res
+   * @param {*} next
+   * @returns
+   */
   return async (req, res, next) => {
     if (
       (req.socket.remoteAddress === "::1" ||
@@ -37,6 +46,15 @@ export const authenticate = (is_user_service = false) => {
     }
 
     res.locals.user = result.decoded;
+
+    if (require_same_user) {
+      const param_id = req.params.id;
+      if (!param_id || param_id !== result.decoded.id) {
+        return res
+          .status(403)
+          .json({ error: "Forbidden: You can only access your own data." });
+      }
+    }
 
     next();
   };

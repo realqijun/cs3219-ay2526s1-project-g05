@@ -125,6 +125,7 @@ export const MatchingProvider = ({ children }) => {
     const parsedData = JSON.parse(data.data);
     setMatchInfo(parsedData);
     navigate("/matched");
+    setIsInQueue("matched");
   };
   const handleMatchCancelled = () => {
     // When we have a pending match but the partner cancels

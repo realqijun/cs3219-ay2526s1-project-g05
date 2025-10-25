@@ -36,11 +36,13 @@ export class MatchingController {
     }
   };
 
-  isInQueue = async (req, res, next) => {
+  isInQueueOrMatch = async (req, res, next) => {
     try {
       const userId = res.locals.user.id;
-      const inQueue = await this.matchService.userInQueue(userId);
-      res.json({ inQueue });
+      const userInQueueOrMatch = await this.matchService.userInQueueOrMatch(
+        userId,
+      );
+      res.json(userInQueueOrMatch);
     } catch (err) {
       next(err);
     }

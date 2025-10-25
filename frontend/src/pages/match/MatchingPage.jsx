@@ -7,8 +7,14 @@ import { useMatching } from "@/context/MatchingContext";
 
 export default function MatchingPage() {
   const navigate = useNavigate();
-  const { cancelMatching } = useMatching();
+  const { cancelMatching, isInQueue } = useMatching();
   const [loadingCancel, setLoadingCancel] = useState(false);
+
+  useEffect(() => {
+    if (!isInQueue) {
+      navigate("/matchmaking");
+    }
+  }, []);
 
   return (
     <MainLayout>

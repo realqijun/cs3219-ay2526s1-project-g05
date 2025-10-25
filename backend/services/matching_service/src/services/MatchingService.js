@@ -94,8 +94,14 @@ export class MatchingService {
 
   async enterQueue(user, criteria) {
     this._validateEntryRequest(criteria);
-    if (await this.repository.userInQueue(user.id)) {
-      throw new ApiError(400, "User is already in the matching queue.");
+    if (
+      (await this.repository.userInQueue(user.id)) ||
+      (await this.repository.getMatchId(user.id))
+    ) {
+      throw new ApiError(
+        400,
+        "User is already in the matching queue or has found a match.",
+      );
     }
 
     const userId = await this.repository.enterQueue(user, criteria);
@@ -137,7 +143,7 @@ export class MatchingService {
       throw new ApiError(400, "User ID is required to add active listener.");
     }
     if (
-      (await this.repository.userInQueue(userId)) === false &&
+      !(await this.repository.userInQueue(userId)) &&
       !(await this.repository.getMatchId(userId))
     ) {
       throw new ApiError(404, "User not found in queue or match state.");
@@ -344,7 +350,10 @@ export class MatchingService {
     }
   }
 
-  async userInQueue(userId) {
-    return await this.repository.userInQueue(userId);
+  async userInQueueOrMatch(userId) {
+    return {
+      inQueue: await this.repository.userInQueue(userId),
+      inMatch: await this.repository.getMatchId(userId),
+    };
   }
 }

@@ -53,7 +53,11 @@ export const createMatchingRouter = (controller) => {
    * @returns {object} 400 - Bad Request (e.g., invalid sessionId, session not in pending match).
    * @security bearerAuth
    */
-  router.get("/is_in_queue", [authenticate(false)], controller.isInQueue);
+  router.get(
+    "/is_in_queue_match",
+    [authenticate(false)],
+    controller.isInQueueOrMatch,
+  );
 
   return router;
 };

@@ -22,8 +22,8 @@ export const matchingApi = {
     });
   },
 
-  checkIsInQueue: async () => {
-    return apiFetch(`${MATCHING_API_URL}/is_in_queue`, {
+  checkIsInQueueOrMatch: async () => {
+    return apiFetch(`${MATCHING_API_URL}/is_in_queue_match`, {
       method: "GET",
     });
   },

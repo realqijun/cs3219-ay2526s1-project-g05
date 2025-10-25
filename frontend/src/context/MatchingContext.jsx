@@ -8,25 +8,38 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { MATCHING_API_URL, matchingApi } from "@/lib/matchingApi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useUserContext } from "./UserContext";
 
 const MatchingContext = createContext(null);
 
 export const MatchingProvider = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const es = useRef(null);
   const [matchInfo, setMatchInfo] = useState(null);
+  const [isInQueue, setIsInQueue] = useState(false);
   const [isConnected, setConnected] = useState(false);
   const { refreshUserData } = useUserContext();
 
   useEffect(() => {
-    checkIsInQueue();
+    checkIsInQueueOrMatch();
 
     return () => {
       closeEventSource();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isInQueue) return;
+
+    // Is in queue, we should enforce navigation to matching page
+    if (isInQueue === "matching" && location.pathname !== "/matching") {
+      navigate("/matching");
+    } else if (isInQueue === "matched" && location.pathname !== "/matched") {
+      navigate("/matched");
+    }
+  }, [isInQueue, location]);
 
   const handleEnterQueue = async (matchingCriteria) => {
     try {
@@ -36,18 +49,21 @@ export const MatchingProvider = ({ children }) => {
       if (matchDetails) {
         // A match was already found, switch to matched page directly
         setMatchInfo(matchDetails);
+        setIsInQueue("matched");
         navigate("/matched");
         return;
       }
+      setIsInQueue("matching");
       navigate("/matching");
     } catch (e) {
-      toast.error("Failed to enter queue:", e);
+      toast.error("Failed to enter queue:", e.message);
     }
   };
 
   const closeEventSource = () => {
     if (!es.value) return;
 
+    setIsInQueue(false);
     es.value.close();
     es.value.removeEventListener("connected", handleConnected);
     es.value.removeEventListener("matchFound", handleMatchFound);
@@ -57,18 +73,25 @@ export const MatchingProvider = ({ children }) => {
     setConnected(false);
   };
 
-  const checkIsInQueue = useCallback(async () => {
+  const checkIsInQueueOrMatch = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
-      const isInQueue = await matchingApi.checkIsInQueue();
-      if (isInQueue.inQueue) {
-        navigate("/matching");
+      const isInQueue = await matchingApi.checkIsInQueueOrMatch();
+      if (isInQueue.inQueue || isInQueue.inMatch) {
         startStatusSubscriber();
+
+        if (isInQueue.inMatch) {
+          navigate("/matched");
+          setIsInQueue("matched");
+        } else {
+          navigate("/matching");
+          setIsInQueue("matching");
+        }
       }
     } catch (e) {
-      toast.error("Failed to check if in queue:", e);
+      toast.error("Failed to check if in queue:", e.message);
     }
   }, []);
 
@@ -80,7 +103,7 @@ export const MatchingProvider = ({ children }) => {
       toast.success("Successfully exited the queue.");
       return true;
     } catch (e) {
-      toast.error("Failed to cancel queue:", e);
+      toast.error("Failed to cancel queue:", e.message);
       return false;
     }
   });
@@ -90,7 +113,7 @@ export const MatchingProvider = ({ children }) => {
       const response = await matchingApi.confirmMatch();
       return response;
     } catch (e) {
-      toast.error("Failed to confirm match:", e);
+      toast.error("Failed to confirm match:", e.message);
     }
   });
 
@@ -131,12 +154,6 @@ export const MatchingProvider = ({ children }) => {
     newSource.addEventListener("matchCancelled", handleMatchCancelled);
     newSource.addEventListener("matchFinalized", handleMatchFinalized);
 
-    // newSource.onmessage = (event) => {
-    //   console.log(event);
-    //   const data = JSON.parse(event.data);
-    //   setStatus(data);
-    // };
-
     newSource.onerror = (error) => {
       console.error("EventSource failed:", error);
       console.log(error);
@@ -151,6 +168,7 @@ export const MatchingProvider = ({ children }) => {
       value={{
         isConnected,
         matchInfo,
+        isInQueue,
         cancelMatching,
         startStatusSubscriber,
         handleEnterQueue,

@@ -32,27 +32,14 @@ export function useProfile() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      const userData = localStorage.getItem("user");
-      if (userData) {
-        try {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-        } catch (error) {
-          console.error("Error parsing user data:", error);
-          navigate("/login");
-        }
-      } else {
-        navigate("/login");
-      }
-    } else {
-      setEditFormData({
-        username: user.username,
-        email: user.email,
-        currentPassword: "",
-        newPassword: "",
-      });
-    }
+    if (!user) return;
+
+    setEditFormData({
+      username: user.username,
+      email: user.email,
+      currentPassword: "",
+      newPassword: "",
+    });
   }, [user, navigate, setUser]);
 
   const handleDeleteAccount = async () => {
@@ -67,7 +54,6 @@ export function useProfile() {
     try {
       await userApi.delete(deletePassword);
 
-      localStorage.removeItem("user");
       localStorage.removeItem("token");
       window.dispatchEvent(new Event("userLoggedOut"));
 

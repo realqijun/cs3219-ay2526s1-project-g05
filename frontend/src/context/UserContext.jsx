@@ -18,7 +18,7 @@ export const UserProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState();
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     handleInitialLoad();
@@ -34,21 +34,20 @@ export const UserProvider = ({ children }) => {
       return;
     }
     // If no valid user obj, we need to only allow routes to main page + login page
-
+    console.log(location.pathname);
     if (!UNAUTHENTICATED_ROUTES.includes(location.pathname)) {
       toast.info("Please login to access this page.");
       navigate("/login");
     }
-  }, [user, location]);
+  }, [loading, user, location]);
 
   const setUserAndStorage = useCallback((newUser, token) => {
     if (newUser) {
-      localStorage.setItem("user", JSON.stringify(newUser));
-      if (token) localStorage.setItem("token", token);
+      localStorage.setItem("token", token);
     } else {
-      localStorage.removeItem("user");
       localStorage.removeItem("token");
     }
+    console.log("newuser", newUser);
     setUser(newUser);
   }, []);
 
@@ -75,12 +74,12 @@ export const UserProvider = ({ children }) => {
     try {
       // Fetch updated user data from API
       const response = await userApi.getMe();
-      setUserAndStorage(response.user);
+      setUser(response.user);
       return response.user;
     } catch (e) {
       return null;
     }
-  }, [user, setUserAndStorage]);
+  }, [user, setUser]);
 
   return (
     <UserContext.Provider

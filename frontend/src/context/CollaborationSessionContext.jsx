@@ -17,7 +17,7 @@ export const CollaborationSessionProvider = ({ children }) => {
   const { user } = useUserContext();
 
   useEffect(() => {
-    if (!user.collaborationSessionId) return;
+    if (!user || !user.collaborationSessionId) return;
     // If user has an active collaboration session, navigate to it
     navigate("/session");
   }, [user]);

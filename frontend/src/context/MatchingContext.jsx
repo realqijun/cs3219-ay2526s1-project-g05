@@ -20,7 +20,7 @@ export const MatchingProvider = ({ children }) => {
   const [matchInfo, setMatchInfo] = useState(null);
   const [isInQueue, setIsInQueue] = useState(false);
   const [isConnected, setConnected] = useState(false);
-  const { refreshUserData } = useUserContext();
+  const { refreshUserData, user } = useUserContext();
 
   useEffect(() => {
     checkIsInQueueOrMatch();
@@ -75,7 +75,7 @@ export const MatchingProvider = ({ children }) => {
 
   const checkIsInQueueOrMatch = useCallback(async () => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token || !user) return;
 
     try {
       const isInQueue = await matchingApi.checkIsInQueueOrMatch();
@@ -91,7 +91,7 @@ export const MatchingProvider = ({ children }) => {
         }
       }
     } catch (e) {
-      toast.error("Failed to check if in queue:", e.message);
+      toast.error("Failed to check if in queue", e);
     }
   }, []);
 

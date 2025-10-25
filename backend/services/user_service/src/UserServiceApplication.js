@@ -42,7 +42,7 @@ export class UserServiceApplication {
       res.json({ status: "User service is running" });
     });
 
-    app.use("/users", createUserRouter(controller));
+    app.use("/", createUserRouter(controller));
 
     app.use(errorMiddleware);
 

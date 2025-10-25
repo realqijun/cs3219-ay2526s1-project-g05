@@ -34,9 +34,7 @@ export async function apiFetch(endpoint, options = {}, isAuthenticated = true) {
 }
 
 const USER_API_BASE_URL =
-  import.meta.env.MODE === "production"
-    ? "/users"
-    : "http://localhost:4001/users";
+  import.meta.env.MODE === "production" ? "/users" : "http://localhost:4001";
 /**
  * User API methods
  */

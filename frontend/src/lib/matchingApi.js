@@ -1,9 +1,7 @@
 import { apiFetch } from "./api.js";
 
 export const MATCHING_API_URL =
-  import.meta.env.MODE === "production"
-    ? "/matching"
-    : "http://localhost:4003/matching";
+  import.meta.env.MODE === "production" ? "/matching" : "http://localhost:4003";
 /**
  * Matching API methods
  */

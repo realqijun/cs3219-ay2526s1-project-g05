@@ -6,9 +6,9 @@ import {
   useCallback,
   useRef,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useUserContext } from "./UserContext";
-import { SOCKET_IO_COLLABORATION_URL } from "@/lib/collaborationApi";
+import { COLLABORATION_API_URL } from "@/lib/collaborationApi";
 import { io } from "socket.io-client";
 import { toast } from "sonner";
 
@@ -16,20 +16,22 @@ const CollaborationSessionContext = createContext(null);
 
 export const CollaborationSessionProvider = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUserContext();
   const socket = useRef(null);
 
   useEffect(() => {
     if (!user || !user.collaborationSessionId) return;
     // If user has an active collaboration session, navigate to it
+    if (location.pathname === "/session") return;
     connectToSessionSocket();
     navigate("/session");
-  }, [user]);
+  }, [user, location]);
 
   const connectToSessionSocket = useCallback(() => {
     if (socket.current) return; // Already connected
 
-    socket.current = io(SOCKET_IO_COLLABORATION_URL, {
+    socket.current = io(COLLABORATION_API_URL, {
       auth: { token: localStorage.getItem("token") },
       reconnection: true,
     });

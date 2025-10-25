@@ -55,7 +55,7 @@ export class CollaborationApplication {
       res.json({ status: "Collaboration service is running" });
     });
 
-    app.use("/collaboration", createCollaborationRouter(controller));
+    app.use("/", createCollaborationRouter(controller));
     app.use(errorMiddleware);
 
     this.app = app;

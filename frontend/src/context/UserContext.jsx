@@ -34,7 +34,6 @@ export const UserProvider = ({ children }) => {
       return;
     }
     // If no valid user obj, we need to only allow routes to main page + login page
-    console.log(location.pathname);
     if (!UNAUTHENTICATED_ROUTES.includes(location.pathname)) {
       toast.info("Please login to access this page.");
       navigate("/login");
@@ -47,7 +46,6 @@ export const UserProvider = ({ children }) => {
     } else {
       localStorage.removeItem("token");
     }
-    console.log("newuser", newUser);
     setUser(newUser);
   }, []);
 

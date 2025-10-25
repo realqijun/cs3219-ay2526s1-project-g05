@@ -63,7 +63,7 @@ export const authenticate = (
 const call_user_service = async (user_id) => {
   try {
     const response = await fetch(
-      `http://localhost:${process.env.USERSERVICEPORT}/users/${user_id}`,
+      `http://localhost:${process.env.USERSERVICEPORT}/${user_id}`,
       {
         method: "GET",
         headers: {

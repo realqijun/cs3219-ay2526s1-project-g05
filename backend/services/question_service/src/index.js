@@ -36,7 +36,7 @@ const start = async () => {
     res.json({ status: "Question service is running" });
   });
 
-  app.use("/questions", use_question_routes());
+  app.use("/", use_question_routes());
 
   app.listen(PORT, () => {
     console.log(`Question service running on 127.0.0.1:${PORT}`);

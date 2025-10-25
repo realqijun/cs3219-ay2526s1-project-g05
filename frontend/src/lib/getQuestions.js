@@ -4,7 +4,7 @@ export async function getQuestions() {
   const token = localStorage.getItem("token");
 
   try {
-    const response = await fetch("http://localhost:4002/questions", {
+    const response = await fetch("http://localhost:4002", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -33,7 +33,7 @@ export async function getQuestions() {
 export async function getQuestionById(qid) {
   const token = localStorage.getItem("token");
   try {
-    const response = await fetch(`http://localhost:4002/questions/${qid}`, {
+    const response = await fetch(`http://localhost:4002/${qid}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

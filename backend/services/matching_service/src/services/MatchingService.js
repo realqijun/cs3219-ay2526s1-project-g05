@@ -117,7 +117,7 @@ export class MatchingService {
     const question = await this._fetch_pro_max(
       `http://localhost:${
         process.env.QUESTIONSERVICEPORT || 4002
-      }/questions/random?difficulty=${criteria.difficulty}&${criteria.topics
+      }/random?difficulty=${criteria.difficulty}&${criteria.topics
         .map((t) => `topic=${t}`)
         .join("&")}`,
     );
@@ -198,7 +198,7 @@ export class MatchingService {
       const response = await this._fetch_pro_max(
         `http://localhost:${
           process.env.COLLABORATIONSERVICEPORT || 4004
-        }/collaboration/sessions`,
+        }/sessions`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

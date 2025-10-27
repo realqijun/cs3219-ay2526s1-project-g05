@@ -141,6 +141,15 @@ export class MatchingController {
     }
   }
 
+  notifyMatchExpired(userId, data) {
+    const listenerData = this.activeConnections[userId];
+    if (listenerData && listenerData.session) {
+      delete this.activeConnections[userId];
+      listenerData.session.push(data, 'matchExpired');
+      listenerData.res.end();
+    }
+  }
+
   // POST /cancel
   cancel = async (req, res, next) => {
     try {

@@ -155,7 +155,7 @@ export function useProfile() {
         return;
       }
 
-      const response = await userApi.update(user.id, updates);
+      const response = await userApi.update(updates);
       const updatedUser = response.user ? { ...user, ...response.user } : { ...user, ...updates };
       setUser(updatedUser, null);
 

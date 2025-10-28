@@ -141,11 +141,11 @@ export class MatchingController {
     }
   }
 
-  notifyMatchExpired(userId, data) {
+  notifySessionExpired(userId, data) {
     const listenerData = this.activeConnections[userId];
     if (listenerData && listenerData.session) {
       delete this.activeConnections[userId];
-      listenerData.session.push(data, 'matchExpired');
+      listenerData.session.push(data, 'sessionExpired');
       listenerData.res.end();
     }
   }

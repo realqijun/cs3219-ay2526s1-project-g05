@@ -261,7 +261,11 @@ export class MatchingRepository {
     const staleMatchIds = [];
     const matchIds = await this.redis.keys(`${this.MATCH_STATE_PREFIX}*`);
     for (const matchId of matchIds) {
-      const matchState = await this.getMatchState(matchId);
+      // Remove the prefix before passing to getMatchState
+      const matchIdWithoutPrefix = matchId.startsWith(this.MATCH_STATE_PREFIX)
+        ? matchId.slice(this.MATCH_STATE_PREFIX.length)
+        : matchId;
+      const matchState = await this.getMatchState(matchIdWithoutPrefix);
       if (
         matchState.timestamp &&
         now - parseInt(matchState.timestamp, 10) > timeoutMs

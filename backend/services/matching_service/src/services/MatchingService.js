@@ -312,7 +312,7 @@ export class MatchingService {
         "rejoinedQueue",
       );
     }
-
+    return matchDetails; // return match details if matched immediately (but not used currently)
   }
 
   async cleanupStaleMatches() {

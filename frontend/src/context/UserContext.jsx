@@ -1,45 +1,106 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { userApi } from "@/lib/api";
+import { Loader2 } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const UserContext = createContext(null);
+const UNAUTHENTICATED_ROUTES = ["/register", "/login", "/"];
 
 export const UserProvider = ({ children }) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-    setLoading(false);
+    handleInitialLoad();
   }, []);
 
-  const setUserAndStorage = useCallback((newUser, token, rememberMe = false) => {
-    const storage = rememberMe ? localStorage : sessionStorage;
-
-    if (newUser) {
-      storage.setItem("user", JSON.stringify(newUser));
-      if (token) storage.setItem("token", token);
-    } else {
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-      sessionStorage.removeItem("token");
+  useEffect(() => {
+    if (loading) return; // Return if initialLoad is not complete
+    if (user) {
+      if (location.pathname === "/register" || location.pathname === "/login") {
+        // Don't allow auth users to access login/register pages
+        navigate("/matchmaking");
+      }
+      return;
     }
-    setUser(newUser);
-  }, []);
+    // If no valid user obj, we need to only allow routes to main page + login page
+    if (!UNAUTHENTICATED_ROUTES.includes(location.pathname)) {
+      toast.info("Please login to access this page.");
+      navigate("/login");
+    }
+  }, [loading, user, location]);
 
-  const loginUser = useCallback((userData, token, rememberMe = false) => {
-    setUserAndStorage(userData, token, rememberMe);
-    toast.success("Logged in successfully!");
-  }, [setUserAndStorage]);
+  useEffect(() => {
+    if (loading) return; // Return if initialLoad is not complete
+    if (user) {
+      if (location.pathname === "/register" || location.pathname === "/login") {
+        // Don't allow auth users to access login/register pages
+        navigate("/matchmaking");
+      }
+      return;
+    }
+    // If no valid user obj, we need to only allow routes to main page + login page
+    if (!UNAUTHENTICATED_ROUTES.includes(location.pathname)) {
+      toast.info("Please login to access this page.");
+      navigate("/login");
+    }
+  }, [loading, user, location]);
+
+  const setUserAndStorage = useCallback(
+    (newUser, token, rememberMe = false) => {
+      const storage = rememberMe ? localStorage : sessionStorage;
+
+      if (newUser) {
+        localStorage.setItem("token", token);
+      } else {
+        localStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("token");
+      }
+      setUser(newUser);
+    },
+    [],
+  );
+
+  const loginUser = useCallback(
+    (userData, token, rememberMe) => {
+      setUserAndStorage(userData, token, rememberMe);
+      toast.success("Logged in successfully!");
+    },
+    [setUserAndStorage],
+  );
 
   const logout = useCallback(() => {
     setUserAndStorage(null);
     toast.success("Logged out successfully!");
     navigate("/login");
   }, [setUserAndStorage, navigate]);
+
+  const handleInitialLoad = useCallback(async () => {
+    await refreshUserData();
+    setLoading(false);
+  });
+
+  const refreshUserData = useCallback(async () => {
+    try {
+      // Fetch updated user data from API
+      const response = await userApi.getMe();
+      setUser(response.user);
+      return response.user;
+    } catch (e) {
+      return null;
+    }
+  }, [user, setUser]);
 
   return (
     <UserContext.Provider
@@ -49,9 +110,20 @@ export const UserProvider = ({ children }) => {
         setUser: setUserAndStorage,
         loginUser,
         logout,
+        refreshUserData,
       }}
     >
-      {children}
+      {loading ? (
+        <div className="animate-in fade-in duration-100 flex justify-center items-center w-screen h-screen">
+          <div className="flex flex-col items-center">
+            <img src={logo} className="h-24 mb-3" alt="logo" />
+            <h1 className="text-2xl tracking-widest">Loading PeerPrep...</h1>
+            <Loader2 className="w-16 h-16 mt-4 text-primary animate-spin" />
+          </div>
+        </div>
+      ) : (
+        <div className="animate-in fade-in-100">{children}</div>
+      )}
     </UserContext.Provider>
   );
 };

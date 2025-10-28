@@ -61,10 +61,9 @@ export const UserProvider = ({ children }) => {
       const storage = rememberMe ? localStorage : sessionStorage;
 
       if (newUser) {
-        localStorage.setItem("token", token);
+        storage.setItem("token", token);
       } else {
         localStorage.removeItem("token");
-        sessionStorage.removeItem("user");
         sessionStorage.removeItem("token");
       }
       setUser(newUser);

@@ -38,7 +38,7 @@ export default function QuestionDetail() {
   if (!question) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-background">
           <Card className="max-w-md w-full mx-4">
             <CardContent className="p-12 text-center">
               <Code2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -60,6 +60,7 @@ export default function QuestionDetail() {
     <MainLayout>
       <div className="min-h-screen bg-background">
         <div className="container max-w-4xl mx-auto p-6">
+          {/* Header */}
           <div className="flex items-center gap-4 mb-6">
             <Button
               variant="ghost"

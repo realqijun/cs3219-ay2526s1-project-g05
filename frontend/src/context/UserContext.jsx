@@ -19,6 +19,7 @@ export const UserProvider = ({ children }) => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
     handleInitialLoad();
@@ -26,7 +27,7 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (loading) return; // Return if initialLoad is not complete
-    if (user) {
+    if (user && token) {
       if (location.pathname === "/register" || location.pathname === "/login") {
         // Don't allow auth users to access login/register pages
         navigate("/matchmaking");
@@ -51,6 +52,7 @@ export const UserProvider = ({ children }) => {
         sessionStorage.removeItem("token");
       }
       setUser(newUser);
+      setToken(token);
     },
     [],
   );
@@ -70,7 +72,12 @@ export const UserProvider = ({ children }) => {
   }, [setUserAndStorage, navigate]);
 
   const handleInitialLoad = useCallback(async () => {
-    await refreshUserData();
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (token) {
+      const isValidUser = await refreshUserData();
+      if (isValidUser) setToken(token);
+    }
     setLoading(false);
   });
 
@@ -83,13 +90,14 @@ export const UserProvider = ({ children }) => {
     } catch (e) {
       return null;
     }
-  }, [user, setUser]);
+  }, [setUser]);
 
   return (
     <UserContext.Provider
       value={{
         user,
         loading,
+        token,
         setUser: setUserAndStorage,
         loginUser,
         logout,

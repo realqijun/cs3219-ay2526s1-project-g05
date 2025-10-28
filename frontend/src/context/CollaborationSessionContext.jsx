@@ -16,7 +16,7 @@ const CollaborationSessionContext = createContext(null);
 export const CollaborationSessionProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useUserContext();
+  const { user, token } = useUserContext();
   const socket = useRef(null);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export const CollaborationSessionProvider = ({ children }) => {
     if (socket.current) return; // Already connected
 
     socket.current = io(COLLABORATION_API_URL, {
-      auth: { token: localStorage.getItem("token") },
+      auth: { token: token },
       reconnection: true,
     });
 

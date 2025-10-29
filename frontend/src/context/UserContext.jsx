@@ -79,7 +79,7 @@ export const UserProvider = ({ children }) => {
       if (isValidUser) setToken(token);
     }
     setLoading(false);
-  });
+  }, [refreshUserData]);
 
   const refreshUserData = useCallback(async () => {
     try {

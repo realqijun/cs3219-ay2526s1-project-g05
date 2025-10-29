@@ -19,7 +19,7 @@ export class CollaborationSocketManager {
         return next(new Error("Authentication error: " + result.error));
       }
 
-      socket.data.user = result.decoded;
+      socket.data.user = result.user;
       next();
     });
 

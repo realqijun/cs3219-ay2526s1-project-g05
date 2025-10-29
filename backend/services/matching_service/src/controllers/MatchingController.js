@@ -65,7 +65,7 @@ export class MatchingController {
         throw new ApiError(401, "Invalid authentication token.");
       }
 
-      const userId = user.decoded.id;
+      const userId = user.user.id;
 
       if (this.activeConnections[userId]) {
         console.log("active connection");

@@ -1,8 +1,16 @@
 import express from "express";
+import dotenv from "dotenv";
 import { MongoClientInstance } from "../../../common_scripts/mongo.js";
 import { startSwaggerDocs } from "../../../common_scripts/swagger_docs.js";
 import { use_question_routes } from "./routes/questions.js";
 import cors from "cors";
+import path from "path"
+
+if (process.env.NODE_ENV === "production") {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env.prod") });
+} else {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env") });
+}
 
 const app = express();
 const PORT = process.env.QUESTIONSERVICEPORT || 4002;

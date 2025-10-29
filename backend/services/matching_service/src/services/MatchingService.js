@@ -19,6 +19,7 @@ export class MatchingService {
     try {
       const response = await fetch(uri, options);
       if (!response.ok) {
+        console.log(await response.text())
         throw new ApiError(
           response.status,
           `Failed to fetch: ${response.statusText}`,
@@ -115,7 +116,7 @@ export class MatchingService {
     const userB = matchedUserInfo.user;
 
     const question = await this._fetch_pro_max(
-      `http://localhost:${
+      `http://${process.env.QUESTIONSERVICE_NAME}:${
         process.env.QUESTIONSERVICEPORT || 4002
       }/random?difficulty=${criteria.difficulty}&${criteria.topics
         .map((t) => `topic=${t}`)
@@ -196,7 +197,7 @@ export class MatchingService {
       await this.repository.deleteUser(partnerId);
 
       const response = await this._fetch_pro_max(
-        `http://localhost:${
+        `http://${process.env.COLLABORATIONSERVICE_NAME}:${
           process.env.COLLABORATIONSERVICEPORT || 4004
         }/sessions`,
         {

@@ -6,7 +6,8 @@
   "scripts": {
     "purge": "node purge.js",
     "schema": "node schema.js",
-    "seed": "pnpm run purge && pnpm run schema && node seed.js"
+    "seed": "pnpm run purge && pnpm run schema && node seed.js",
+    "seed:prod": "cross-env NODE_ENV=production MONGO_HOST=localhost pnpm run seed"
   },
   "keywords": [],
   "author": "",
@@ -14,8 +15,10 @@
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "argon2": "^0.43.1",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.2.2",
-    "mongodb": "^6.20.0"
+    "mongodb": "^6.20.0",
+    "proxy-addr": "^2.0.7"
   },
   "type": "module"
 }

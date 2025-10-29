@@ -2,7 +2,11 @@ import * as MongoDB from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
 
-dotenv.config({ path: path.join(import.meta.dirname, "..", ".env") });
+if (process.env.NODE_ENV === "production") {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env.prod") });
+} else {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env") });
+}
 // Use the .env in backend/.env
 
 export class MongoClientInstance {
@@ -18,7 +22,7 @@ export class MongoClientInstance {
       const combinedUserPass =
         username && password ? `${username}:${password}@` : "";
       const clientResponse = await MongoDB.MongoClient.connect(
-        `mongodb://${combinedUserPass}localhost:27017/?authSource=${process.env.MONGO_DB_NAME}`,
+        `mongodb://${combinedUserPass}${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/?authSource=${process.env.MONGO_DB_NAME}`,
       );
       console.info("Connected to MongoDB successfully");
       MongoClientInstance.client = clientResponse;

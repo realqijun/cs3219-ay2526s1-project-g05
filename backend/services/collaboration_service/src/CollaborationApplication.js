@@ -42,7 +42,6 @@ export class CollaborationApplication {
     });
 
     const app = express();
-    app.enable("trust proxy");
     app.use(express.json());
     if (process.env.NODE_ENV === "development") {
       app.use(cors());

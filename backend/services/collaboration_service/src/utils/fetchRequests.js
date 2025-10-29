@@ -2,7 +2,7 @@ import { ApiError } from "../errors/ApiError.js";
 
 export const fetchUser = async (userId) => {
   const result = await fetch(
-    `http://localhost:${process.env.USERSERVICEPORT}/${userId}`,
+    `http://${process.env.USERSERVICE_NAME}:${process.env.USERSERVICEPORT}/${userId}`,
   );
   if (result.status === 404) {
     throw new ApiError(404, `User ${userId} not found`);
@@ -16,7 +16,7 @@ export const fetchUser = async (userId) => {
 
 export const fetchQuestion = async (questionId) => {
   const result = await fetch(
-    `http://localhost:${process.env.QUESTIONSERVICEPORT}/${questionId}`,
+    `http://${process.env.QUESTIONSERVICE_NAME}:${process.env.QUESTIONSERVICEPORT}/${questionId}`,
   );
   if (result.status === 404) {
     throw new ApiError(404, `Question ${questionId} not found`);
@@ -31,7 +31,7 @@ export const fetchQuestion = async (questionId) => {
 
 export const updateUserCurrentSession = async (userId, sessionId) => {
   const result = await fetch(
-    `http://localhost:${process.env.USERSERVICEPORT}/update-current-collaboration-session`,
+    `http://${process.env.USERSERVICE_NAME}:${process.env.USERSERVICEPORT}/update-current-collaboration-session`,
     {
       method: "POST",
       headers: {
@@ -51,7 +51,7 @@ export const updateUserCurrentSession = async (userId, sessionId) => {
 
 export const addUserPastSession = async (userId, sessionId) => {
   const result = await fetch(
-    `http://localhost:${process.env.USERSERVICEPORT}/add-past-collaboration-session`,
+    `http://${process.env.USERSERVICE_NAME}:${process.env.USERSERVICEPORT}/add-past-collaboration-session`,
     {
       method: "POST",
       headers: {

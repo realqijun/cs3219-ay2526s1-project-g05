@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { MATCHING_API_URL, matchingApi } from "@/lib/matchingApi";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserContext } from "./UserContext";
+import {API_BASE_URL} from "../lib/api.js";
 
 const MatchingContext = createContext(null);
 
@@ -145,7 +146,7 @@ export const MatchingProvider = ({ children }) => {
     }
 
     const newSource = new EventSource(
-      `${MATCHING_API_URL}/status/?token=${token}`,
+      `${API_BASE_URL}/${MATCHING_API_URL}/status/?token=${token}`,
     );
     es.current = newSource;
 
@@ -159,6 +160,10 @@ export const MatchingProvider = ({ children }) => {
       console.log(error);
       es.current.close();
       es.current = null;
+      setIsInQueue(false);
+      setMatchInfo(null);
+      setConnected(false);
+      navigate("/matchmaking");
       toast.error("Lost connection to matchmaking server.");
     };
   }, [token]);

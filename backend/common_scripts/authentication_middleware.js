@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { MongoClientInstance } from "./mongo.js";
 import { ObjectId } from "mongodb";
+import proxyAddr from 'proxy-addr';
 
 /**
  *
@@ -21,11 +22,16 @@ export const authenticate = (
    * @param {*} next
    * @returns
    */
+  const trust = proxyAddr.compile(["loopback", process.env.MAIN_SUBNET, process.env.INTERNAL_SUBNET]);
+
   return async (req, res, next) => {
     if (
-      (req.socket.remoteAddress === "::1" ||
+      (process.env.NODE_ENV === "production" ? 
+         trust(req.ip) // loopback means from same host (127.0.0.1)
+        : 
+        req.socket.remoteAddress === "::1" ||
         req.socket.remoteAddress === "127.0.0.1") &&
-      !req.get("sec-fetch-site") // for dev purpose: reject same localhost requests from browsers
+        !req.get("sec-fetch-site") // for dev purpose: reject same localhost requests from browsers
     ) {
       return next();
     }
@@ -40,16 +46,16 @@ export const authenticate = (
     token = token.replace("Bearer ", "");
 
     const result = await verify_token_user(token, is_user_service);
-
-    if (result.success === false) {
+    
+    if (!result.success) {
       return res.status(401).json({ error: result.error });
     }
 
-    res.locals.user = result.decoded;
+    res.locals.user = result.user;
 
     if (require_same_user) {
       const param_id = req.params.id;
-      if (!param_id || param_id !== result.decoded.id) {
+      if (!param_id || param_id !== result.user.id) {
         return res
           .status(403)
           .json({ error: "Forbidden: You can only access your own data." });
@@ -63,7 +69,7 @@ export const authenticate = (
 const call_user_service = async (user_id) => {
   try {
     const response = await fetch(
-      `http://localhost:${process.env.USERSERVICEPORT}/${user_id}`,
+      `http://${process.env.USERSERVICE_NAME}:${process.env.USERSERVICEPORT}/${user_id}`,
       {
         method: "GET",
         headers: {
@@ -73,20 +79,24 @@ const call_user_service = async (user_id) => {
     );
 
     if (!response.ok) {
-      return null;
+      return {success: false, error: "User not found."};
     }
 
     const user_result = await response.json();
-    return user_result.user;
+    return {success: true, user: user_result.user};
   } catch (error) {
-    return null;
+    return {success: false, error: "Fetch to user service failed."};
   }
 };
 
 const query_user_db = async (user_id) => {
   const usersCollection = MongoClientInstance.db.collection("users");
   const user = await usersCollection.findOne({ _id: new ObjectId(user_id) });
-  return user;
+  if (!user) {
+    return {success: false,  error: "User not found."};
+  }
+
+  return {success: true, user: {...user, id: user._id.toString()}};
 };
 
 export const verify_token_user = async (token, is_user_service = false) => {
@@ -98,12 +108,12 @@ export const verify_token_user = async (token, is_user_service = false) => {
   const user_result = await (is_user_service
     ? query_user_db(decoded.id)
     : call_user_service(decoded.id));
-
-  if (!user_result) {
-    return { success: false, error: "User not found." };
+  
+  if (!user_result.success) {
+    return user_result;
   }
 
-  return { success: true, decoded };
+  return { success: true, user: user_result.user };
 };
 
 const SIGNER_ALGORITHM = "HS256";

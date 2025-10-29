@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useUserContext } from "./UserContext";
 import { COLLABORATION_API_URL, collaborationApi } from "@/lib/collaborationApi";
 import { io } from "socket.io-client";
+import { API_BASE_URL } from "../lib/api.js";
 
 const CollaborationSessionContext = createContext(null);
 
@@ -172,8 +173,9 @@ export const CollaborationSessionProvider = ({ children }) => {
       resetState();
     }
 
-    const socket = io(COLLABORATION_API_URL, {
+    const socket = io(import.meta.env.MODE === "production" ? `${window.location.protocol}//${window.location.host}` : COLLABORATION_API_URL, {
       auth: { token },
+      path: import.meta.env.MODE === "production" ? `${API_BASE_URL}${COLLABORATION_API_URL}/socket.io/` : "/socket.io/",
       autoConnect: true,
       reconnection: true,
     });

@@ -4,10 +4,9 @@ WORKDIR /app
 
 # We build all services from the root /backend as the context
 COPY ./common_scripts common_scripts
-COPY ./services/matching_service/package.json services/matching_service/package.json
-COPY ./services/matching_service/src services/matching_service/src
-COPY ./services/matching_service/index.js services/matching_service/index.js
-COPY ./services/matching_service/pnpm-lock.yaml services/matching_service/pnpm-lock.yaml
+COPY ./services/question_service/package.json services/question_service/package.json
+COPY ./services/question_service/src services/question_service/src
+COPY ./services/question_service/pnpm-lock.yaml services/question_service/pnpm-lock.yaml
 COPY ./package.json .
 COPY ./pnpm-lock.yaml .
 COPY ./pnpm-workspace.yaml .
@@ -19,6 +18,6 @@ RUN npm install -g pnpm@10.17.1
 # Install dependemcoes for all workspaces (only 1 workspace in this case)
 RUN pnpm -r install --frozen-lockfile
 
-WORKDIR /app/services/matching_service
+WORKDIR /app/services/question_service
 
 CMD ["pnpm", "run", "start"]

@@ -19,7 +19,6 @@ export class MatchingService {
     try {
       const response = await fetch(uri, options);
       if (!response.ok) {
-        console.log(await response.text())
         throw new ApiError(
           response.status,
           `Failed to fetch: ${response.statusText}`,

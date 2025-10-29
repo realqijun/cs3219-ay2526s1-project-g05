@@ -3,8 +3,6 @@ services:
     image: mongo:8.0.14-noble
     restart: unless-stopped
     container_name: "peerprep_mongo"
-    ports:
-      - "127.0.0.1:27017:27017" # bind to localhost of the host only - prevents external access but allows local debugging
     volumes:
       - mongo_data:/data/db # Use a named volume called "mongo_data", and mount it to /data/db for reading by MongoDB
     networks:
@@ -14,8 +12,6 @@ services:
     image: redis:7.4-alpine
     restart: unless-stopped
     container_name: "peerprep_redis"
-    ports:
-      - "127.0.0.1:6379:6379" # bind to localhost of the host only - prevents external access but allows local debugging
     volumes:
       - redis_data:/data # Use a named volume for Redis data persistence
     command: >

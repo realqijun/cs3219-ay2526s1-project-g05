@@ -22,7 +22,7 @@ services:
       redis-server 
       --appendonly yes 
       --notify-keyspace-events KEA
-      --maxmemory 4gb
+      --maxmemory 2gb
       --maxmemory-policy allkeys-lfu
     networks:
       - internal_mongo_redis

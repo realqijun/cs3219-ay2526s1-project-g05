@@ -7,7 +7,7 @@
     "purge": "node purge.js",
     "schema": "node schema.js",
     "seed": "pnpm run purge && pnpm run schema && node seed.js",
-    "seed:prod": "cross-env NODE_ENV=production MONGO_HOST=localhost pnpm run seed"
+    "seed:prod": "cross-env NODE_ENV=production MONGO_HOST=localhost MONGO_PORT=27018 pnpm run seed"
   },
   "keywords": [],
   "author": "",

@@ -263,7 +263,8 @@ export class CollaborationSessionService {
       },
     });
 
-    return updatedSession ?? session;
+    const finalSession = updatedSession ?? session;
+    return this.sanitizeSession(finalSession);
   }
 
   async recordOperation(sessionId, userId, payload) {

@@ -20,7 +20,7 @@ export const MatchingProvider = ({ children }) => {
   const [matchInfo, setMatchInfo] = useState(null);
   const [isInQueue, setIsInQueue] = useState(false);
   const [isConnected, setConnected] = useState(false);
-  const { refreshUserData, user } = useUserContext();
+  const { refreshUserData, user, token } = useUserContext();
 
   useEffect(() => {
     checkIsInQueueOrMatch();
@@ -74,7 +74,6 @@ export const MatchingProvider = ({ children }) => {
   };
 
   const checkIsInQueueOrMatch = useCallback(async () => {
-    const token = localStorage.getItem("token");
     if (!token || !user) return;
 
     try {
@@ -93,7 +92,7 @@ export const MatchingProvider = ({ children }) => {
     } catch (e) {
       toast.error("Failed to check if in queue", e);
     }
-  }, []);
+  }, [token]);
 
   const cancelMatching = useCallback(async () => {
     try {
@@ -146,7 +145,7 @@ export const MatchingProvider = ({ children }) => {
     }
 
     const newSource = new EventSource(
-      `${MATCHING_API_URL}/status/?token=${localStorage.getItem("token")}`,
+      `${MATCHING_API_URL}/status/?token=${token}`,
     );
     es.current = newSource;
 
@@ -162,7 +161,7 @@ export const MatchingProvider = ({ children }) => {
       es.current = null;
       toast.error("Lost connection to matchmaking server.");
     };
-  }, []);
+  }, [token]);
 
   return (
     <MatchingContext.Provider

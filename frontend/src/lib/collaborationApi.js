@@ -22,4 +22,10 @@ export const collaborationApi = {
       body: JSON.stringify(matchingCriteria),
     });
   },
+
+  getSession: async (sessionId) => {
+    return apiFetch(`${COLLABORATION_API_URL}/sessions/${sessionId}`, {
+      method: "GET",
+    });
+  },
 };

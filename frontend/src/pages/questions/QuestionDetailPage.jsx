@@ -78,22 +78,19 @@ export default function QuestionDetail() {
             </div>
           </div>
 
-          {/* Question Content */}
-          <Card className="h-[calc(100vh-160px)]">
-            <ScrollArea className="h-full">
-              <CardContent className="pt-4 p-4 space-y-6">
+          <Card>
+            <ScrollArea className="h-[calc(100vh-200px)]">
+              <CardContent className="pt-4 p-4 space-y-4">
                 {/* Topics */}
-                {question.topics?.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {question.topics.map((topic) => (
-                      <Badge key={topic} variant="outline">
-                        {topic}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {question.topics.map((topic) => (
+                    <Badge key={topic} variant="outline">
+                      {topic}
+                    </Badge>
+                  ))}
+                </div>
 
-                {/* Description */}
+                {/* Problem Description */}
                 <div>
                   <h3 className="font-semibold text-lg mb-2">Description</h3>
                   <div
@@ -108,7 +105,10 @@ export default function QuestionDetail() {
                     <h3 className="font-semibold text-lg mb-2">Hints</h3>
                     <ul className="space-y-1 text-sm text-muted-foreground list-disc list-inside">
                       {question.hints.map((hint, idx) => (
-                        <li key={idx} dangerouslySetInnerHTML={{ __html: hint }} />
+                        <li
+                          key={idx}
+                          dangerouslySetInnerHTML={{ __html: hint }}
+                        />
                       ))}
                     </ul>
                   </div>

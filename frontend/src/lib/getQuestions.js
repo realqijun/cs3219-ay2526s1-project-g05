@@ -1,24 +1,17 @@
 // api/questions.js
+import { apiFetch } from "@/lib/api";
+
+const QUESTION_SERVICE_ENDPOINT =
+  import.meta.env.MODE === "production"
+    ? "/questions"
+    : "http://localhost:4002";
 
 export async function getQuestions() {
-  const token = localStorage.getItem("token");
-
   try {
-    const response = await fetch("http://localhost:4002", {
+    const response = await apiFetch(`${QUESTION_SERVICE_ENDPOINT}/`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      console.error("Failed to fetch questions:", response.status);
-      return [];
-    }
-
-    const data = await response.json();
-    return data; // Expecting array of { QID, title, difficulty, topics }
+    return response; // Expecting array of { QID, title, difficulty, topics }
   } catch (error) {
     console.error("Error fetching questions:", error);
     return [];
@@ -31,23 +24,11 @@ export async function getQuestions() {
  * Example usage: const question = await getQuestionById(1);
  */
 export async function getQuestionById(qid) {
-  const token = localStorage.getItem("token");
   try {
-    const response = await fetch(`http://localhost:4002/${qid}`, {
+    const questions = await apiFetch(`${QUESTION_SERVICE_ENDPOINT}/${qid}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      console.error(`Failed to fetch question ${qid}:`, response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    return data; // Matches your JSON structure
+    return questions;
   } catch (error) {
     console.error(`Error fetching question ${qid}:`, error);
     return null;

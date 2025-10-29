@@ -155,9 +155,9 @@ export function useProfile() {
         return;
       }
 
-      const response = await userApi.update(user.id, updates);
-      const updatedUser = response.user ? { ...user, ...response.user } : { ...user, ...updates };
-      setUser(updatedUser, null);
+      const response = await userApi.update(updates);
+      const updatedUser = { ...user, ...response.user };
+      setUser(updatedUser);
 
       setEditFormData({
         username: updatedUser.username,

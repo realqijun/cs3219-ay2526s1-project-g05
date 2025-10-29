@@ -35,8 +35,7 @@ services:
     restart: unless-stopped
     container_name: "peerprep_nginx"
     ports:
-      - "80:80"       # Expose Nginx on port 80 for HTTP
-      - "443:443"     # Expose Nginx on port 443 for HTTPS
+      - "127.0.0.1:8080:80"       # Expose Nginx on localhost:8080 as we have an external reverse proxy handling SSL termination (another nginx)
     depends_on:
       - peerprep_user_service
       - peerprep_question_service

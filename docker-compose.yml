@@ -1,4 +1,3 @@
-name: peerprep-prod
 services:
   peerprep_mongo:
     image: mongo:8.0.14-noble

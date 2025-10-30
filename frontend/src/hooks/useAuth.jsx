@@ -15,7 +15,7 @@ export function useAuth() {
       try {
         const response = await userApi.register(data);
         loginUser(response.user, response.token);
-        navigate("/login");
+        navigate("/matchmaking");
       } catch (error) {
         // handle field-level errors
         if (error.response?.data?.errors) {
@@ -31,7 +31,7 @@ export function useAuth() {
             general: "Registration failed. Please try again.",
           }));
         }
-        toast.error("Registration failed.");
+        toast.error(`Registration failed: ${error.message}`);
       } finally {
         setIsLoading(false);
       }

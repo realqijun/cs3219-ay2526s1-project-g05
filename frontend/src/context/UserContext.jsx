@@ -71,16 +71,6 @@ export const UserProvider = ({ children }) => {
     navigate("/login");
   }, [setUserAndStorage, navigate]);
 
-  const handleInitialLoad = useCallback(async () => {
-    const token =
-      localStorage.getItem("token") || sessionStorage.getItem("token");
-    if (token) {
-      const isValidUser = await refreshUserData();
-      if (isValidUser) setToken(token);
-    }
-    setLoading(false);
-  }, [refreshUserData]);
-
   const refreshUserData = useCallback(async () => {
     try {
       // Fetch updated user data from API
@@ -91,6 +81,16 @@ export const UserProvider = ({ children }) => {
       return null;
     }
   }, [setUser]);
+
+  const handleInitialLoad = useCallback(async () => {
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (token) {
+      const isValidUser = await refreshUserData();
+      if (isValidUser) setToken(token);
+    }
+    setLoading(false);
+  }, [refreshUserData]);
 
   return (
     <UserContext.Provider

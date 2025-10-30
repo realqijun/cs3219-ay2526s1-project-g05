@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { MongoClientInstance } from "./mongo.js";
 import { ObjectId } from "mongodb";
-import proxyAddr from 'proxy-addr';
+import proxyAddr from "proxy-addr";
 
 /**
  *
@@ -22,16 +22,21 @@ export const authenticate = (
    * @param {*} next
    * @returns
    */
-  const trust = proxyAddr.compile(["loopback", process.env.MAIN_SUBNET, process.env.INTERNAL_SUBNET]);
+  let trust = null;
+  if (process.env.NODE_ENV === "production")
+    trust = proxyAddr.compile([
+      "loopback",
+      process.env.MAIN_SUBNET,
+      process.env.INTERNAL_SUBNET,
+    ]);
 
   return async (req, res, next) => {
     if (
-      (process.env.NODE_ENV === "production" ? 
-         trust(req.ip) // loopback means from same host (127.0.0.1)
-        : 
-        req.socket.remoteAddress === "::1" ||
-        req.socket.remoteAddress === "127.0.0.1") &&
-        !req.get("sec-fetch-site") // for dev purpose: reject same localhost requests from browsers
+      (process.env.NODE_ENV === "production" && trust
+        ? trust(req.ip) // loopback means from same host (127.0.0.1)
+        : req.socket.remoteAddress === "::1" ||
+          req.socket.remoteAddress === "127.0.0.1") &&
+      !req.get("sec-fetch-site") // for dev purpose: reject same localhost requests from browsers
     ) {
       return next();
     }
@@ -46,7 +51,7 @@ export const authenticate = (
     token = token.replace("Bearer ", "");
 
     const result = await verify_token_user(token, is_user_service);
-    
+
     if (!result.success) {
       return res.status(401).json({ error: result.error });
     }
@@ -79,13 +84,13 @@ const call_user_service = async (user_id) => {
     );
 
     if (!response.ok) {
-      return {success: false, error: "User not found."};
+      return { success: false, error: "User not found." };
     }
 
     const user_result = await response.json();
-    return {success: true, user: user_result.user};
+    return { success: true, user: user_result.user };
   } catch (error) {
-    return {success: false, error: "Fetch to user service failed."};
+    return { success: false, error: "Fetch to user service failed." };
   }
 };
 
@@ -93,10 +98,10 @@ const query_user_db = async (user_id) => {
   const usersCollection = MongoClientInstance.db.collection("users");
   const user = await usersCollection.findOne({ _id: new ObjectId(user_id) });
   if (!user) {
-    return {success: false,  error: "User not found."};
+    return { success: false, error: "User not found." };
   }
 
-  return {success: true, user: {...user, id: user._id.toString()}};
+  return { success: true, user: { ...user, id: user._id.toString() } };
 };
 
 export const verify_token_user = async (token, is_user_service = false) => {
@@ -108,7 +113,7 @@ export const verify_token_user = async (token, is_user_service = false) => {
   const user_result = await (is_user_service
     ? query_user_db(decoded.id)
     : call_user_service(decoded.id));
-  
+
   if (!user_result.success) {
     return user_result;
   }

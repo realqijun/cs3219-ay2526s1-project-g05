@@ -27,6 +27,7 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (loading) return; // Return if initialLoad is not complete
+
     if (user && token) {
       if (location.pathname === "/register" || location.pathname === "/login") {
         // Don't allow auth users to access login/register pages
@@ -34,27 +35,28 @@ export const UserProvider = ({ children }) => {
       }
       return;
     }
+
     // If no valid user obj, we need to only allow routes to main page + login page
     if (!UNAUTHENTICATED_ROUTES.includes(location.pathname)) {
       toast.info("Please login to access this page.");
       navigate("/login");
     }
-  }, [loading, user, location]);
+  }, [loading, user, token, location]);
 
   const setUserAndStorage = useCallback(
     (newUser, token, rememberMe = false) => {
-      const storage = rememberMe ? localStorage : sessionStorage;
+      setUser(newUser);
+      setToken(token);
 
+      const storage = rememberMe ? localStorage : sessionStorage;
       if (newUser) {
         storage.setItem("token", token);
       } else {
         localStorage.removeItem("token");
         sessionStorage.removeItem("token");
       }
-      setUser(newUser);
-      setToken(token);
     },
-    [],
+    [setUser, setToken],
   );
 
   const loginUser = useCallback(

@@ -13,9 +13,9 @@ export function useAuth() {
     async (data, setFieldErrors) => {
       setIsLoading(true);
       try {
-        const response = await userApi.register(data);
-        loginUser(response.user, response.token);
-        navigate("/matchmaking");
+        await userApi.register(data);
+        toast.success("Registration successful! Please log in.");
+        navigate("/login");
       } catch (error) {
         // handle field-level errors
         if (error.response?.data?.errors) {

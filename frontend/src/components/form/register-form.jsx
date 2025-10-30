@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +9,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export function RegisterForm({ className, ...props }) {
   const { register, isLoading } = useAuth();

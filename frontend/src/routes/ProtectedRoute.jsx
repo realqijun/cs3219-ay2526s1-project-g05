@@ -6,7 +6,11 @@ export function ProtectedRoute({ children }) {
 
   if (loading) return <p>Loading...</p>;
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    toast.info("Please login to access this page.");
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
 
   return children;
 }

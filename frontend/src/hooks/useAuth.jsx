@@ -14,8 +14,8 @@ export function useAuth() {
       setIsLoading(true);
       try {
         const response = await userApi.register(data);
-        loginUser(response.user, response.token);
-        navigate("/login");
+        loginUser(response.user, response.token, false);
+        navigate("/matchmaking");
       } catch (error) {
         // handle field-level errors
         if (error.response?.data?.errors) {

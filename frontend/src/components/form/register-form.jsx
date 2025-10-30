@@ -99,7 +99,7 @@ export function RegisterForm({ className, ...props }) {
 
               <div className="text-center text-sm">
                 Have an account?{" "}
-                <a href="/login" className="underline underline-offset-4">Log in</a>
+                <Link to="/login" className="underline underline-offset-4">Log in</Link>
               </div>
             </div>
           </form>
@@ -107,8 +107,8 @@ export function RegisterForm({ className, ...props }) {
       </Card>
 
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By signing up, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        By signing up, you agree to our <Link to="#">Terms of Service</Link>{" "}
+        and <Link to="#">Privacy Policy</Link>.
       </div>
     </div>
   );

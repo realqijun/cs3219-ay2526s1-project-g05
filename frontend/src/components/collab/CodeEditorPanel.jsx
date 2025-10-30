@@ -7,7 +7,7 @@ import { EditorView, keymap, highlightActiveLine, lineNumbers, highlightActiveLi
 import { EditorState } from "@codemirror/state";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle, bracketMatching } from "@codemirror/language";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
@@ -206,6 +206,7 @@ export default function CodeEditorPanel() {
         highlightSelectionMatches(),
         syntaxHighlighting(defaultHighlightStyle),
         keymap.of([
+          indentWithTab,
           ...defaultKeymap,
           ...historyKeymap,
           ...searchKeymap,

@@ -1,9 +1,9 @@
-import { createContext, useContext, useEffect, useCallback, useMemo, useRef, useState } from "react";
+import { COLLABORATION_API_URL, collaborationApi } from "@/lib/collaborationApi";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 import { toast } from "sonner";
 import { useUserContext } from "./UserContext";
-import { COLLABORATION_API_URL, collaborationApi } from "@/lib/collaborationApi";
-import { io } from "socket.io-client";
 
 const CollaborationSessionContext = createContext(null);
 

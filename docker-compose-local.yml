@@ -22,6 +22,39 @@ services:
       --notify-keyspace-events KEA
       --maxmemory 4gb
       --maxmemory-policy allkeys-lfu
+  
+  peerprep_coderunner:
+    image: peerprep-runner-service:latest
+    build:
+      context: ./backend/code_execution
+      dockerfile: Dockerfile
+      
+    container_name: "peerprep_coderunner"
+    restart: unless-stopped
+    ports:
+      - "4005:4005"
+    environment:
+      - CODEEXECUTIONPORT=4005
+      - NODE_ENV=development
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - js_sandbox
+      - py_sandbox
+  
+  js_sandbox:
+    image: peerprep/js-sandbox:latest
+    build:
+      context: ./backend/code_execution/runner_images
+      dockerfile: Dockerfile.javascript
+    command: ["true"] 
+
+  py_sandbox:
+    image: peerprep/py-sandbox:latest
+    build:
+      context: ./backend/code_execution/runner_images
+      dockerfile: Dockerfile.python
+    command: ["true"]
 
 volumes:
   mongo_data:

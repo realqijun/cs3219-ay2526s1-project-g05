@@ -57,7 +57,7 @@ export async function executeCode(code, language, input) {
         startTime = process.hrtime.bigint();
         const containerConfig = {
             Image: config.image,
-            Cmd: ['sleep', String(MAX_TIMEOUT_MS / 1000)], // Keep container alive for the maximum timeout duration
+            Cmd: ['sh', '-c', 'while true; do sleep 1; done'], // Keep container alive (WHY)
             Tty: false,
             HostConfig: {
                 NetworkMode: 'none',
@@ -113,11 +113,7 @@ export async function executeCode(code, language, input) {
         }
     } finally {
         if (container) {
-            await container.kill().catch(e => {
-                if (!(e && (e.statusCode === 404 || e.statusCode === 409))) {
-                    console.error("Failed to kill container:", e);
-                }
-            });
+            await container.stop().catch(() => {});
         }
         for (const fPath of cleanupFiles) {
              await unlink(fPath).catch(e => console.error(`Failed to clean up file ${fPath}:`, e));

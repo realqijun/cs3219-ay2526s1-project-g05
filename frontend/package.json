@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
-    "test": "echo \"No tests specified\""
+    "test": "echo \"No tests\""
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {

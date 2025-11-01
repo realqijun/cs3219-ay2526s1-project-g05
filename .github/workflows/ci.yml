@@ -18,9 +18,5 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-      - name: Install pnpm
-        run: npm install -g pnpm@10.17.1
-      - name: CD to ${{ matrix.environments }} directory
-        run: cd ${{ matrix.environments }}
-      - name: Run ${{ matrix.environments }} Lint
-        run: pnpm run lint
+      - name: Run lint in ${{ matrix.environments }} directory
+        run: cd ${{ matrix.environments }} && pnpm run lint

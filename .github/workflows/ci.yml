@@ -1,0 +1,26 @@
+name: Run CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  lint:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environments: [frontend, backend]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Install pnpm
+        run: npm install -g pnpm@10.17.1
+      - name: CD to ${{ matrix.environments }} directory
+        run: cd ${{ matrix.environments }}
+      - name: Run ${{ matrix.environments }} Lint
+        run: pnpm run lint

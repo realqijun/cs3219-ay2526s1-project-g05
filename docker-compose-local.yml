@@ -47,6 +47,7 @@ services:
     build:
       context: ./backend/code_execution/runner_images
       dockerfile: Dockerfile.javascript
+    # command doesnt do anything main thing is to build the image
     command: ["true"] 
 
   py_sandbox:

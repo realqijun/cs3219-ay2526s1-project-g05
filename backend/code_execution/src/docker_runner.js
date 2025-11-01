@@ -10,6 +10,7 @@ const docker = new Docker();
 const MAX_TIMEOUT_MS = 5000;
 const CONTAINER_WORKDIR = '/tmp/run';
 const CODE_FILENAME = 'solution'; // name of file in docker container
+const INPUT_FILENAME = 'input.txt';
 const LANGUAGE_CONFIG = {
     javascript: {
         image: 'peerprep/js-sandbox:latest',
@@ -30,11 +31,16 @@ export async function executeCode(code, language, input) {
     const config = LANGUAGE_CONFIG[language.toLowerCase()];
     const fileId = crypto.randomUUID();
     const tempDir = os.tmpdir();
-    const filePath = path.join(tempDir, `${fileId}${config.extension}`);
-    const containerFilePath = `${CONTAINER_WORKDIR}/${CODE_FILENAME}${config.extension}`;
+
+    const codeFilePath = path.join(tempDir, `${fileId}${config.extension}`);
+    const inputFilePath = path.join(tempDir, `${fileId}${INPUT_FILENAME}`);
+
+    const containerCodePath = `${CONTAINER_WORKDIR}/${CODE_FILENAME}${config.extension}`;
+    const containerInputPath = `${CONTAINER_WORKDIR}/${INPUT_FILENAME}`;
 
     let startTime;
     let container;
+    let cleanupFiles = [codeFilePath, inputFilePath];
 
     let result = {
         status: 'Failure',
@@ -45,11 +51,13 @@ export async function executeCode(code, language, input) {
     };
 
     try {
-        await writeFile(filePath, code);
+        await writeFile(codeFilePath, code);
+        await writeFile(inputFilePath, input || '');
+
         startTime = process.hrtime.bigint();
         const containerConfig = {
             Image: config.image,
-            Cmd: ['sleep', '60'], // Keep container alive for up to 60 seconds
+            Cmd: ['sleep', String(MAX_TIMEOUT_MS / 1000)], // Keep container alive for the maximum timeout duration
             Tty: false,
             HostConfig: {
                 NetworkMode: 'none',
@@ -61,9 +69,12 @@ export async function executeCode(code, language, input) {
         container = await docker.createContainer(containerConfig);
         await container.start();
 
-        await copyFileToContainer(container, filePath, CONTAINER_WORKDIR, CODE_FILENAME + config.extension);
+        await copyFileToContainer(container, codeFilePath, CONTAINER_WORKDIR, CODE_FILENAME + config.extension);
+        await copyFileToContainer(container, inputFilePath, CONTAINER_WORKDIR, INPUT_FILENAME);
 
-        const execCommand = [config.command, containerFilePath];
+        const shellCommand = `/bin/sh -c "${config.command} ${containerCodePath} < ${containerInputPath}"`;
+        const execCommand = ['/bin/sh', '-c', shellCommand];
+
         const { stdout, stderr, exitCode } = await executeCommandInContainer({
             container,
             command: execCommand,
@@ -86,6 +97,9 @@ export async function executeCode(code, language, input) {
 
     } catch (error) {
         const endTime = process.hrtime.bigint();
+        if (!startTime) {
+            startTime = endTime;
+        }
         result.executionTimeMs = Number(endTime - startTime) / 1000000;
 
         if (error.message === 'TIMEOUT_EXCEEDED') {
@@ -100,12 +114,14 @@ export async function executeCode(code, language, input) {
     } finally {
         if (container) {
             await container.kill().catch(e => {
-                if (!e.message.includes('No such container') && !e.message.includes('already stopped')) {
+                if (!(e && (e.statusCode === 404 || e.statusCode === 409))) {
                     console.error("Failed to kill container:", e);
                 }
             });
         }
-        await unlink(filePath).catch(e => console.error(`Failed to clean up file ${filePath}:`, e));
+        for (const fPath of cleanupFiles) {
+             await unlink(fPath).catch(e => console.error(`Failed to clean up file ${fPath}:`, e));
+        }
     }
     return result;
 }

@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpm -r --filter \"./services/*\" --parallel --stream run dev --if-present"
+    "dev": "pnpm -r --filter \"./services/*\" --parallel --stream run dev --if-present",
+    "lint": "eslint \"**/*.js\"",
+    "lint:fix": "eslint \"**/*.js\" --fix"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +20,12 @@
     "mongodb": "^6.20.0",
     "proxy-addr": "^2.0.7"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2"
+  }
 }

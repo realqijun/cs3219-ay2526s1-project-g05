@@ -259,7 +259,7 @@ export class UserService {
       throw new ApiError(404, "User not found.");
     }
 
-    return this.sanitizeUser(updatedUser ?? user);
+    return this.sanitizeUser(updatedUser);
   }
   async updateCurrentCollaborationSession(userId, sessionId) {
     if (sessionId !== null && typeof sessionId !== "string") {

@@ -62,9 +62,9 @@ export const UserProvider = ({ children }) => {
   );
 
   const logout = useCallback(() => {
+    navigate("/login", { replace: true, state: {} });
     setUserAndStorage(null);
     toast.success("Logged out successfully!");
-    navigate("/login");
   }, [setUserAndStorage, navigate]);
 
   const handleInitialLoad = useCallback(async () => {

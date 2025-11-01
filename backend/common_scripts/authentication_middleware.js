@@ -89,7 +89,7 @@ const call_user_service = async (user_id) => {
 
     const user_result = await response.json();
     return { success: true, user: user_result.user };
-  } catch (error) {
+  } catch (_err) {
     return { success: false, error: "Fetch to user service failed." };
   }
 };
@@ -136,7 +136,7 @@ export const verify_token = (token) => {
     return jwt.verify(token, process.env.AUTHENTICATION_SECRET, {
       algorithms: [SIGNER_ALGORITHM],
     });
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 };

@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { ApiError } from "../errors/ApiError.js";
 import { CollaborationSessionValidator } from "../validators/CollaborationSessionValidator.js";
 import {
@@ -308,7 +307,7 @@ export class CollaborationSessionService {
     const nextCode =
       normalized.type === "cursor" || normalized.type === "selection"
         ? currentCode
-        : normalized.content ?? currentCode;
+        : (normalized.content ?? currentCode);
 
     const updatedParticipants = (session.participants ?? []).map((item) =>
       item.userId === userId
@@ -345,7 +344,7 @@ export class CollaborationSessionService {
           timestamp: now,
           conflict,
         },
-        lastConflictAt: conflict ? now : session.lastConflictAt ?? null,
+        lastConflictAt: conflict ? now : (session.lastConflictAt ?? null),
       },
     });
 

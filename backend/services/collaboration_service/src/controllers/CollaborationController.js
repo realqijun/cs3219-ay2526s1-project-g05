@@ -48,7 +48,7 @@ export class CollaborationController {
   };
 }
 
-export const errorMiddleware = (err, req, res, _next) => {
+export const errorMiddleware = (err, _req, res, _next) => {
   if (err instanceof ApiError) {
     const payload = { message: err.message };
     if (Array.isArray(err.details)) {

@@ -36,12 +36,11 @@ export class MatchingController {
     }
   };
 
-  isInQueueOrMatch = async (req, res, next) => {
+  isInQueueOrMatch = async (_req, res, next) => {
     try {
       const userId = res.locals.user.id;
-      const userInQueueOrMatch = await this.matchService.userInQueueOrMatch(
-        userId,
-      );
+      const userInQueueOrMatch =
+        await this.matchService.userInQueueOrMatch(userId);
       res.json(userInQueueOrMatch);
     } catch (err) {
       next(err);
@@ -108,7 +107,7 @@ export class MatchingController {
   }
 
   // POST /confirm userId in body
-  confirmMatch = async (req, res, next) => {
+  confirmMatch = async (_req, res, next) => {
     try {
       const userId = res.locals.user.id;
 
@@ -142,7 +141,7 @@ export class MatchingController {
   }
 
   // POST /cancel
-  cancel = async (req, res, next) => {
+  cancel = async (_req, res, next) => {
     try {
       const userId = res.locals.user.id;
       await this.matchService._handleUserDeletion(userId);
@@ -167,7 +166,7 @@ export class MatchingController {
   };
 }
 
-export const errorMiddleware = (err, req, res, _next) => {
+export const errorMiddleware = (err, _req, res, _next) => {
   if (err instanceof ApiError) {
     const payload = { message: err.message };
     if (Array.isArray(err.details)) {

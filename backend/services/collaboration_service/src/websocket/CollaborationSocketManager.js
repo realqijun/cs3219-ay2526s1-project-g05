@@ -157,7 +157,7 @@ export class CollaborationSocketManager {
     });
   }
 
-  async handleAction(socket, payload, callback, handler) {
+  async handleAction(_socket, payload, callback, handler) {
     try {
       const result = await handler(payload);
       if (typeof callback === "function") {

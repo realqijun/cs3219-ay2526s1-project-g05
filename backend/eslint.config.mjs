@@ -20,7 +20,18 @@ export default [
     },
     ignores: ["node_modules/**"],
     rules: {
-      "no-unused-vars": "off",
+      "no-unused-vars": [
+        "error",
+        {
+          varsIgnorePattern: "^_",
+          // ignore unused function params that start with _
+          args: "all",
+          argsIgnorePattern: "^_",
+          // ignore unused catch(error) if it matches the pattern
+          caughtErrors: "all",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
   },
 ];

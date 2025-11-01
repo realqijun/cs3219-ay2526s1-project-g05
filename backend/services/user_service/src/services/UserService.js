@@ -13,13 +13,13 @@ export class UserService {
     if (!user) return null;
     const {
       _id,
-      passwordHash,
-      passwordResetToken,
-      passwordResetExpiresAt,
-      failedLoginAttempts,
-      failedLoginWindowStart,
-      accountLocked,
-      accountLockedAt,
+      _passwordHash,
+      _ppasswordResetToken,
+      _ppasswordResetExpiresAt,
+      _pfailedLoginAttempts,
+      _pfailedLoginWindowStart,
+      _paccountLocked,
+      _paccountLockedAt,
       ...rest
     } = user;
     return {

@@ -27,3 +27,6 @@ jobs:
       - name: Run lint in ${{ matrix.environments }}
         run: pnpm run lint
         working-directory: ./${{ matrix.environments }}
+      - name: Run tests in ${{ matrix.environments }}
+        run: pnpm run test
+        working-directory: ./${{ matrix.environments }}

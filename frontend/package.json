@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "echo \"No tests specified\""
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {

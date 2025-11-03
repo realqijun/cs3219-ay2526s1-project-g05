@@ -22,6 +22,7 @@ import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } 
 import { toast } from "sonner";
 import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 import { useUserContext } from "@/context/UserContext";
+import { executeCode } from "@/lib/codeExecutionApi";
 
 const languageExtensions = {
   javascript: javascript(),
@@ -451,10 +452,10 @@ export default function CodeEditorPanel() {
     });
   }, [remoteCursors]);
 
-  const handleRun = () => {
+  const handleRun = async () => {
     const code = viewRef.current?.state.doc.toString() || "";
-    console.log("Running code:", code);
-    // TODO: Implement code execution
+    const result = await executeCode({ language, code, input: "" });
+    alert(JSON.stringify(result));
   };
 
   const handleLanguageChange = (newLanguage) => {

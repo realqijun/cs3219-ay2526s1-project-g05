@@ -57,7 +57,7 @@ export async function executeCode(code, language, input) {
         startTime = process.hrtime.bigint();
         const containerConfig = {
             Image: config.image,
-            Cmd: ['sh', '-c', 'while true; do sleep 1; done'], // Keep container alive (WHY)
+            Cmd: ['tail', '-f', '/dev/null'],
             Tty: false,
             HostConfig: {
                 NetworkMode: 'none',
@@ -81,6 +81,9 @@ export async function executeCode(code, language, input) {
             timeout: MAX_TIMEOUT_MS
         });
 
+        // kill the container after execution
+        await container.kill().catch(() => { });
+
         const endTime = process.hrtime.bigint();
         result.executionTimeMs = Number(endTime - startTime) / 1000000;
         result.output = stdout;
@@ -97,10 +100,11 @@ export async function executeCode(code, language, input) {
 
     } catch (error) {
         const endTime = process.hrtime.bigint();
-        if (!startTime) {
-            startTime = endTime;
+        if (startTime) {
+            result.executionTimeMs = Number(endTime - startTime) / 1000000;
+        } else {
+            result.executionTimeMs = 0;
         }
-        result.executionTimeMs = Number(endTime - startTime) / 1000000;
 
         if (error.message === 'TIMEOUT_EXCEEDED') {
             result.status = 'Time Limit Exceeded';
@@ -112,6 +116,7 @@ export async function executeCode(code, language, input) {
             result.message = `Failed to execute code. Details: ${error.message}`;
         }
     } finally {
+        // stop the container if the code execution times out or errors out
         if (container) {
             await container.stop().catch(() => {});
         }

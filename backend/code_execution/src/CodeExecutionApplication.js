@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { runCodeHandler } from "./execution_controller.js";
+import { createCodeExecutionRouter } from "./codeExecutionRoutes.js";
 
 export class CodeExecutionApplication {
     constructor({ port = process.env.CODEEXECUTIONPORT || 4005 } = {}) {
@@ -18,9 +18,9 @@ export class CodeExecutionApplication {
         if (process.env.NODE_ENV === "development") {
             app.use(cors());
         }
-        app.post('/api/run', runCodeHandler);
-        app.get('/', (req, res) => {
-            res.send({ status: 'Code Runner Service is Operational' });
+        app.use("/", createCodeExecutionRouter());
+        app.get('/status', (req, res) => {
+            res.send({ status: 'Code Execution Service is Operational' });
         });
         this.app = app;
         return this.app;

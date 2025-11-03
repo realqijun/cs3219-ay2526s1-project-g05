@@ -62,7 +62,8 @@ export class CollaborationSessionRepository {
       update,
       { returnDocument: "after", ...options },
     );
-    return result.value;
+
+    return result;
   }
 
   async updateOne(filter, operations, options = {}) {

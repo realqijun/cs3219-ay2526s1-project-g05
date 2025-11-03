@@ -88,18 +88,22 @@ export class CollaborationSessionService {
   }
 
   async checkExpiredSession(session) {
-    if (!session || session.status === "ended") {
+    if (!session) {
       return session;
     }
 
     const now = this.now();
     const participants = session.participants ?? [];
-    const expired = participants.filter(
-      (participant) =>
-        !participant.connected &&
-        participant.reconnectBy &&
-        participant.reconnectBy < now,
-    );
+
+    const expired =
+      session.status === "ended"
+        ? participants
+        : participants.filter(
+            (participant) =>
+              !participant.connected &&
+              participant.reconnectBy &&
+              participant.reconnectBy < now,
+          );
 
     if (expired.length === 0) {
       return session;
@@ -110,7 +114,6 @@ export class CollaborationSessionService {
       expiredIds.has(participant.userId)
         ? {
             ...participant,
-            reconnectBy: null,
             disconnectedAt: participant.disconnectedAt ?? now,
           }
         : {
@@ -129,9 +132,7 @@ export class CollaborationSessionService {
       },
     });
 
-    if (updated) {
-      await this.handleSessionEnded(session, updated);
-    }
+    await this.handleSessionEnded(session, updated);
 
     return updated ?? session;
   }
@@ -233,7 +234,6 @@ export class CollaborationSessionService {
     }
 
     session = await this.checkExpiredSession(session);
-    // Always does nothing atm because there is no reconnectBy unless the user leaves
     this.ensureActive(session);
 
     const participants = session.participants ?? [];
@@ -477,9 +477,6 @@ export class CollaborationSessionService {
 
   async handleSessionEnded(previousSession, nextSession) {
     if (!nextSession || nextSession.status !== "ended") {
-      return;
-    }
-    if (previousSession?.status === "ended") {
       return;
     }
 

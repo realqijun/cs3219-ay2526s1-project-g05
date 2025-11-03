@@ -118,10 +118,10 @@ export async function executeCode(code, language, input) {
     } finally {
         // stop the container if the code execution times out or errors out
         if (container) {
-            await container.stop().catch(() => {});
+            await container.stop().catch(() => { });
         }
         for (const fPath of cleanupFiles) {
-             await unlink(fPath).catch(e => console.error(`Failed to clean up file ${fPath}:`, e));
+            await unlink(fPath).catch(e => console.error(`Failed to clean up file ${fPath}:`, e));
         }
     }
     return result;

@@ -8,12 +8,12 @@ export const createCodeExecutionRouter = () => {
      * POST /run
      * @summary Execute the provided code snippet
      */
-    router.post("/run", 
-        // [authenticate(false)], 
+    router.post("/run",
+        // [authenticate(false)],
         async (req, res) => {
-        const result = await runCodeHandler(req, res);
-        return result;
-    });
+            const result = await runCodeHandler(req, res);
+            return result;
+        });
 
     return router;
 };

@@ -330,12 +330,12 @@ export default function CodeEditorPanel() {
         const changeRange = getChangeRange(update.changes);
         const normalizedRange = changeRange
           ? {
-              start: changeRange.start,
-              end:
-                changeRange.endExclusive <= changeRange.start
-                  ? changeRange.start
-                  : changeRange.endExclusive - 1,
-            }
+            start: changeRange.start,
+            end:
+              changeRange.endExclusive <= changeRange.start
+                ? changeRange.start
+                : changeRange.endExclusive - 1,
+          }
           : undefined;
 
         sendOperationRef.current({

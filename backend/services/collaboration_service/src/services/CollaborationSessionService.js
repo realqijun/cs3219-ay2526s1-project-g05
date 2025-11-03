@@ -88,7 +88,7 @@ export class CollaborationSessionService {
   }
 
   async checkExpiredSession(session) {
-    if (!session) {
+    if (!session || session.status === "ended") {
       return session;
     }
 
@@ -452,7 +452,7 @@ export class CollaborationSessionService {
     }
 
     const activeParticipants = updatedParticipants.filter(
-      (item) => item.connected,
+      (item) => item.connected || (item.reconnectBy && item.reconnectBy > now),
     );
     if (activeParticipants.length === 0) {
       updatedStatus = "ended";

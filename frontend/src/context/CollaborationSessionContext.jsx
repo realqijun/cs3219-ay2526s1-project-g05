@@ -1,5 +1,16 @@
-import { COLLABORATION_API_URL, collaborationApi } from "@/lib/collaborationApi";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  COLLABORATION_API_URL,
+  collaborationApi,
+} from "@/lib/collaborationApi";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { toast } from "sonner";
@@ -24,7 +35,7 @@ const normalizeSession = (raw) => {
     ...rest
   } = sessionData;
 
-  const normalizedId = id ?? sessionId ?? (_id?.toString?.() ?? _id) ?? null;
+  const normalizedId = id ?? sessionId ?? _id?.toString?.() ?? _id ?? null;
 
   return {
     id: normalizedId,
@@ -152,6 +163,9 @@ export const CollaborationSessionProvider = ({ children }) => {
         disconnectSocket();
         resetState();
       }
+
+      if (location.pathname === "/session") navigate("/matchmaking");
+
       return;
     }
 
@@ -269,27 +283,29 @@ export const CollaborationSessionProvider = ({ children }) => {
         return;
       }
 
-      socketRef.current.timeout(5000).emit(event, payload, (error, response) => {
-        if (error) {
-          reject(error instanceof Error ? error : new Error(String(error)));
-          return;
-        }
+      socketRef.current
+        .timeout(5000)
+        .emit(event, payload, (error, response) => {
+          if (error) {
+            reject(error instanceof Error ? error : new Error(String(error)));
+            return;
+          }
 
-        if (!response) {
-          reject(new Error("No acknowledgement received from server."));
-          return;
-        }
+          if (!response) {
+            reject(new Error("No acknowledgement received from server."));
+            return;
+          }
 
-        if (response.ok === false) {
-          const message = response.error?.message ?? "Operation failed.";
-          const err = new Error(message);
-          err.status = response.error?.status;
-          reject(err);
-          return;
-        }
+          if (response.ok === false) {
+            const message = response.error?.message ?? "Operation failed.";
+            const err = new Error(message);
+            err.status = response.error?.status;
+            reject(err);
+            return;
+          }
 
-        resolve(response);
-      });
+          resolve(response);
+        });
     });
   }, []);
 

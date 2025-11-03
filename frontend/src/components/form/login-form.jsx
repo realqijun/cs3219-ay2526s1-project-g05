@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,15 +9,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export function LoginForm({ className, ...props }) {
   const { login, isLoading } = useAuth();
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({ email: "", password: "", rememberMe: false });
   const [fieldErrors, setFieldErrors] = useState({ email: "", password: "", general: "" });
 
   const handleInputChange = (e) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    const { id, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [id]: type === "checkbox" ? checked : value }));
     setFieldErrors(prev => ({ ...prev, [id]: "", general: "" }));
   };
 
@@ -107,6 +108,24 @@ export function LoginForm({ className, ...props }) {
                   )}
                 </div>
 
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    id="rememberMe"
+                    type="checkbox"
+                    checked={formData.rememberMe}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-0"
+                    disabled={isLoading}
+                  />
+                  <Label
+                    htmlFor="rememberMe"
+                    className="text-sm text-muted-foreground select-none"
+                  >
+                    Remember me
+                  </Label>
+                </div>
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
@@ -114,9 +133,9 @@ export function LoginForm({ className, ...props }) {
 
               <div className="text-center text-sm">
                 Don&apos;t have an account?{" "}
-                <a href="/register" className="underline underline-offset-4">
+                <Link to="/register" className="underline underline-offset-4">
                   Sign up
-                </a>
+                </Link>
               </div>
             </div>
           </form>

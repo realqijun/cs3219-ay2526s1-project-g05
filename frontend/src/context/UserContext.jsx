@@ -19,6 +19,7 @@ export const UserProvider = ({ children }) => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
     handleInitialLoad();
@@ -26,45 +27,53 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (loading) return; // Return if initialLoad is not complete
-    if (user) {
+    
+    if (user && token) {
       if (location.pathname === "/register" || location.pathname === "/login") {
         // Don't allow auth users to access login/register pages
         navigate("/matchmaking");
       }
       return;
     }
-    // If no valid user obj, we need to only allow routes to main page + login page
-    if (!UNAUTHENTICATED_ROUTES.includes(location.pathname)) {
-      toast.info("Please login to access this page.");
-      navigate("/login");
-    }
   }, [loading, user, location]);
 
-  const setUserAndStorage = useCallback((newUser, token) => {
-    if (newUser) {
-      localStorage.setItem("token", token);
-    } else {
-      localStorage.removeItem("token");
-    }
-    setUser(newUser);
-  }, []);
+  const setUserAndStorage = useCallback(
+    (newUser, token, rememberMe = false) => {
+      const storage = rememberMe ? localStorage : sessionStorage;
+
+      if (newUser) {
+        storage.setItem("token", token);
+      } else {
+        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
+      }
+      setUser(newUser);
+      setToken(token);
+    },
+    [],
+  );
 
   const loginUser = useCallback(
-    (userData, token) => {
-      setUserAndStorage(userData, token);
+    (userData, token, rememberMe) => {
+      setUserAndStorage(userData, token, rememberMe);
       toast.success("Logged in successfully!");
     },
     [setUserAndStorage],
   );
 
   const logout = useCallback(() => {
+    navigate("/login", { replace: true, state: {} });
     setUserAndStorage(null);
     toast.success("Logged out successfully!");
-    navigate("/");
   }, [setUserAndStorage, navigate]);
 
   const handleInitialLoad = useCallback(async () => {
-    await refreshUserData();
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (token) {
+      const isValidUser = await refreshUserData();
+      if (isValidUser) setToken(token);
+    }
     setLoading(false);
   });
 
@@ -77,13 +86,14 @@ export const UserProvider = ({ children }) => {
     } catch (e) {
       return null;
     }
-  }, [user, setUser]);
+  }, [setUser]);
 
   return (
     <UserContext.Provider
       value={{
         user,
         loading,
+        token,
         setUser: setUserAndStorage,
         loginUser,
         logout,

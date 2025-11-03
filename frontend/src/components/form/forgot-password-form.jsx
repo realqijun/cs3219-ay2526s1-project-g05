@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,8 +8,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 export function ForgotPasswordForm({ className, ...props }) {
   const { requestPasswordReset } = useAuth();
@@ -84,9 +85,9 @@ export function ForgotPasswordForm({ className, ...props }) {
                 Try Again
               </Button>
               <div className="text-sm mt-2">
-                <a href="/login" className="underline underline-offset-4">
-                  Back to Login
-                </a>
+                <Link to="/login" className="underline underline-offset-4">
+                Back to Login
+                </Link>
               </div>
             </div>
           </CardContent>
@@ -143,12 +144,12 @@ export function ForgotPasswordForm({ className, ...props }) {
               </div>
 
               <div className="flex flex-col gap-2 text-center text-sm">
-                <a href="/login" className="underline underline-offset-4">
+                <Link to="/login" className="underline underline-offset-4">
                   Back to Login
-                </a>
-                <a href="/register" className="underline underline-offset-4">
+                </Link>
+                <Link to="/register" className="underline underline-offset-4">
                   Create New Account
-                </a>
+                </Link>
               </div>
             </div>
           </form>

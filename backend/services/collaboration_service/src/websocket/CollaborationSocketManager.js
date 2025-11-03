@@ -57,10 +57,14 @@ export class CollaborationSocketManager {
           payload,
         );
 
-        this.io?.to(result.id).emit("session:operation", {
-          session: result.session,
-          conflict: result.conflict,
-        });
+        const roomId = result?.session?.id ?? socket.data.sessionId;
+
+        if (roomId) {
+          this.io?.to(roomId).emit("session:operation", {
+            session: result.session,
+            conflict: result.conflict,
+          });
+        }
 
         return result;
       });
@@ -72,6 +76,7 @@ export class CollaborationSocketManager {
           socket.data.sessionId,
           socket.data.user.id,
           {
+            sessionId: socket.data.sessionId,
             reason: "leave",
           },
         );
@@ -131,6 +136,7 @@ export class CollaborationSocketManager {
           socket.data.sessionId,
           user.id,
           {
+            sessionId: socket.data.sessionId,
             reason: "disconnect",
           },
         );
@@ -180,10 +186,13 @@ export class CollaborationSocketManager {
   emitSessionState(session) {
     if (!this.io || !session?.id) return;
 
-    this.io.to(session.sessionId).emit("session:state", { session });
+    const roomId = session?.id;
+    if (!roomId) return;
+
+    this.io.to(roomId).emit("session:state", { session });
 
     if (session.status === "ended") {
-      this.kickAllFromSession(session.sessionId);
+      this.kickAllFromSession(roomId);
     }
   }
 

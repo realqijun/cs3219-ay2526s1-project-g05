@@ -10,7 +10,7 @@ export const use_question_routes = () => {
   const router = Router();
 
   /**
-   * GET /questions
+   * GET /
    * @summary Gets list of questions, optionally filtered by topic and/or difficulty
    * @param {string[]} topic.query - List of topic names (e.g topic="Hash Table"&topic="String")
    * @param {string[]} difficulty.query - List of difficulties (e.g difficulty="Hard"&difficulty="Medium")
@@ -32,7 +32,7 @@ export const use_question_routes = () => {
   });
 
   /**
-   * GET /questions/random
+   * GET /random
    * @summary Gets a random question, optionally filtered by topic and/or difficulty
    * @param {string[]} topic.query - List of topic names (e.g topic="Hash Table"&topic="String")
    * @param {string[]} difficulty.query - List of difficulties (e.g difficulty="Hard"&difficulty="Medium")
@@ -54,7 +54,7 @@ export const use_question_routes = () => {
   });
 
   /**
-   * GET /questions/{id}
+   * GET /{id}
    * @summary Gets the question by its Question ID
    * @param {string} id.path.required - Question ID (QID)
    * @return {object} 200 - Success

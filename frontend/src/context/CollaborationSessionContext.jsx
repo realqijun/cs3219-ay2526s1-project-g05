@@ -53,7 +53,7 @@ export const CollaborationSessionProvider = ({ children }) => {
   const { user, token, refreshUserData } = useUserContext();
   const socketRef = useRef(null);
   const sessionIdRef = useRef(null);
-  const versionRef = useRef(0);
+  const versionRef = useRef(-1);
   const joinInFlightRef = useRef(false);
   const snapshotTimeoutRef = useRef(null);
 
@@ -200,8 +200,8 @@ export const CollaborationSessionProvider = ({ children }) => {
         auth: { token },
         path:
           import.meta.env.MODE === "production"
-            ? `${API_BASE_URL}${COLLABORATION_API_URL}/socket.io/`
-            : "/socket.io/",
+            ? `${API_BASE_URL}${COLLABORATION_API_URL}/socket.io`
+            : "/socket.io",
         autoConnect: true,
         reconnection: true,
       },

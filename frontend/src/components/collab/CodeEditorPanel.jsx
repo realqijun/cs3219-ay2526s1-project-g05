@@ -411,6 +411,7 @@ export default function CodeEditorPanel() {
 
   useEffect(() => {
     if (!editorRef.current) return;
+    if (viewRef.current) return;
 
     const initialDoc =
       session?.id != null ? "" : defaultCode[effectiveLanguage] ?? "";
@@ -456,12 +457,14 @@ export default function CodeEditorPanel() {
       state,
       parent: editorRef.current,
     });
+  }, [effectiveLanguage, handleEditorUpdate, session]);
 
+  useEffect(() => {
     return () => {
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [effectiveLanguage, handleEditorUpdate, session?.id]);
+  }, []);
 
   useEffect(() => {
     if (!viewRef.current) return;
@@ -497,7 +500,7 @@ export default function CodeEditorPanel() {
     if (!session?.id) return "Waiting for session";
     if (isJoining) return "Joining session...";
     return connected ? "Live" : "Reconnecting...";
-  }, [session?.id, connected, isJoining]);
+  }, [session, connected, isJoining]);
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">

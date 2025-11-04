@@ -144,6 +144,7 @@ export class CollaborationSocketManager {
 
     socket.on("disconnect", async () => {
       const { sessionId, user, hasLeft } = socket.data ?? {};
+      console.log("Socket disconnected", { socketId: socket.id });
       if (!sessionId || hasLeft) return;
 
       if (this.hasActiveSocketForUser(sessionId, user?.id, socket.id)) return;

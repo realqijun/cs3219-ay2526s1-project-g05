@@ -11,9 +11,11 @@ import MatchingPage from "@/pages/match/MatchingPage";
 import MatchmakingPage from "@/pages/match/MatchmakingPage";
 import QuestionPage from "@/pages/questions/QuestionPage";
 import MatchTimeoutPage from "@/pages/match/MatchTimeoutPage";
-import CollaborativePage from "@/pages/collab/CollaborativePage";
+import SessionPage from "@/pages/session/SessionPage";
 import PastSessionsPage from "@/pages/profile/PastSessionsPage";
 import QuestionDetailPage from "@/pages/questions/QuestionDetailPage";
+import SessionEndedPage from "@/pages/session/SessionEndedPage";
+import SessionDisconnectedPage from "@/pages/session/SessionDisconnectedPage";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { GuestRoute } from "@/routes/GuestRoute";
 
@@ -40,7 +42,9 @@ export default function AppRoutes() {
       <Route path="/session-history" element={<ProtectedRoute><PastSessionsPage /></ProtectedRoute>} />
 
       {/* Session */}
-      <Route path="/session" element={<ProtectedRoute><CollaborativePage /></ProtectedRoute>} />
+      <Route path="/session" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
+      <Route path="/session-disconnected" element={<ProtectedRoute><SessionDisconnectedPage /></ProtectedRoute>} />
+      <Route path="/session-ended" element={<ProtectedRoute><SessionEndedPage /></ProtectedRoute>} />
 
       {/* Error + Catch-all */}
       <Route path="/404" element={<ErrorPage />} />

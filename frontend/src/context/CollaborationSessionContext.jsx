@@ -1,8 +1,25 @@
-import { createContext, useContext, useEffect, useCallback, useMemo, useRef, useState } from "react";
+import {
+  COLLABORATION_API_URL,
+  collaborationApi,
+} from "@/lib/collaborationApi";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 import { toast } from "sonner";
+import { debounce } from "lodash";
 import { useUserContext } from "./UserContext";
-import { COLLABORATION_API_URL, collaborationApi } from "@/lib/collaborationApi";
+import {
+  COLLABORATION_API_URL,
+  collaborationApi,
+} from "@/lib/collaborationApi";
 import { io } from "socket.io-client";
 import { API_BASE_URL } from "../lib/api.js";
 
@@ -25,7 +42,7 @@ const normalizeSession = (raw) => {
     ...rest
   } = sessionData;
 
-  const normalizedId = id ?? sessionId ?? (_id?.toString?.() ?? _id) ?? null;
+  const normalizedId = id ?? sessionId ?? _id?.toString?.() ?? _id ?? null;
 
   return {
     id: normalizedId,
@@ -75,7 +92,7 @@ export const CollaborationSessionProvider = ({ children }) => {
       }
 
       setSession(normalized);
-      setCode(normalized.code ?? "");
+      if (normalized.code) setCode(normalized.code);
       setParticipants(normalized.participants ?? []);
       setCursorPositions(normalized.cursorPositions ?? {});
       versionRef.current = normalized.version ?? 0;
@@ -153,6 +170,9 @@ export const CollaborationSessionProvider = ({ children }) => {
         disconnectSocket();
         resetState();
       }
+
+      if (location.pathname === "/session") navigate("/matchmaking");
+
       return;
     }
 
@@ -173,12 +193,20 @@ export const CollaborationSessionProvider = ({ children }) => {
       resetState();
     }
 
-    const socket = io(import.meta.env.MODE === "production" ? `${window.location.protocol}//${window.location.host}` : COLLABORATION_API_URL, {
-      auth: { token },
-      path: import.meta.env.MODE === "production" ? `${API_BASE_URL}${COLLABORATION_API_URL}/socket.io/` : "/socket.io/",
-      autoConnect: true,
-      reconnection: true,
-    });
+    const socket = io(
+      import.meta.env.MODE === "production"
+        ? `${window.location.protocol}//${window.location.host}`
+        : COLLABORATION_API_URL,
+      {
+        auth: { token },
+        path:
+          import.meta.env.MODE === "production"
+            ? `${API_BASE_URL}${COLLABORATION_API_URL}/socket.io/`
+            : "/socket.io/",
+        autoConnect: true,
+        reconnection: true,
+      },
+    );
 
     socketRef.current = socket;
     sessionIdRef.current = activeSessionId;
@@ -271,45 +299,34 @@ export const CollaborationSessionProvider = ({ children }) => {
         return;
       }
 
-      socketRef.current.timeout(5000).emit(event, payload, (error, response) => {
-        if (error) {
-          reject(error instanceof Error ? error : new Error(String(error)));
-          return;
-        }
+      socketRef.current
+        .timeout(5000)
+        .emit(event, payload, (error, response) => {
+          if (error) {
+            reject(error instanceof Error ? error : new Error(String(error)));
+            return;
+          }
 
-        if (!response) {
-          reject(new Error("No acknowledgement received from server."));
-          return;
-        }
+          if (!response) {
+            reject(new Error("No acknowledgement received from server."));
+            return;
+          }
 
-        if (response.ok === false) {
-          const message = response.error?.message ?? "Operation failed.";
-          const err = new Error(message);
-          err.status = response.error?.status;
-          reject(err);
-          return;
-        }
+          if (response.ok === false) {
+            const message = response.error?.message ?? "Operation failed.";
+            const err = new Error(message);
+            err.status = response.error?.status;
+            reject(err);
+            return;
+          }
 
-        resolve(response);
-      });
+          resolve(response);
+        });
     });
   }, []);
 
-  const handleOperationAck = useCallback(
-    (response) => {
-      const sessionPayload = response.session ?? response;
-      if (sessionPayload) {
-        applySessionState(sessionPayload, {
-          conflict: Boolean(response.conflict),
-        });
-        scheduleSnapshotRefresh();
-      }
-    },
-    [applySessionState, scheduleSnapshotRefresh],
-  );
-
-  const sendOperation = useCallback(
-    async ({ type, range, content, cursor, version }) => {
+  const sendOperationRaw = useCallback(
+    ({ type, range, content, cursor, version }) => {
       const activeSessionId = sessionIdRef.current;
       if (!activeSessionId) {
         throw new Error("No active collaboration session.");
@@ -322,19 +339,27 @@ export const CollaborationSessionProvider = ({ children }) => {
         version: version ?? versionRef.current,
       };
 
-      const response = await emitWithAck("session:operation", payload);
-      handleOperationAck(response);
-      return response;
+      socketRef.current?.emit("session:operation", payload);
     },
-    [emitWithAck, handleOperationAck],
+    [],
   );
 
-  const sendCursor = useCallback(
+  const sendCursorRaw = useCallback(
     async ({ cursor }) => {
       if (!cursor) return;
-      await sendOperation({ type: "cursor", cursor });
+      sendOperationRaw({ type: "cursor", cursor });
     },
-    [sendOperation],
+    [sendOperationRaw],
+  );
+
+  const sendOperation = useMemo(
+    () => debounce(sendOperationRaw, 300),
+    [sendOperationRaw],
+  );
+
+  const sendCursor = useMemo(
+    () => debounce(sendCursorRaw, 300),
+    [sendCursorRaw],
   );
 
   const value = useMemo(

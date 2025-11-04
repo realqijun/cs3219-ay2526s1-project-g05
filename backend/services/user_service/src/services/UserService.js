@@ -251,6 +251,16 @@ export class UserService {
     const normalizedSessionId = sessionId.trim();
     const normalizedUserId = userId.trim();
 
+    const already_added_user =
+      await this.repository.findPastCollaborationSession(
+        normalizedUserId,
+        normalizedSessionId,
+      );
+
+    if (already_added_user) {
+      return this.sanitizeUser(already_added_user);
+    }
+
     const updatedUser = await this.repository.updateById(normalizedUserId, {
       push: { pastCollaborationSessions: normalizedSessionId },
     });

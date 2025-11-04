@@ -1,18 +1,54 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Play } from "lucide-react";
-import { EditorView, keymap, highlightActiveLine, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import {
+  Decoration,
+  EditorView,
+  WidgetType,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  keymap,
+  lineNumbers,
+} from "@codemirror/view";
+import {
+  EditorState,
+  RangeSetBuilder,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { syntaxHighlighting, defaultHighlightStyle, bracketMatching } from "@codemirror/language";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from "@codemirror/commands";
+import {
+  syntaxHighlighting,
+  defaultHighlightStyle,
+  bracketMatching,
+} from "@codemirror/language";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
-import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { toast } from "sonner";
+import {
+  autocompletion,
+  completionKeymap,
+  closeBrackets,
+  closeBracketsKeymap,
+} from "@codemirror/autocomplete";
 import { useCollaborationSession } from "@/context/CollaborationSessionContext";
+import { useUserContext } from "@/context/UserContext";
+import { Annotation } from "@codemirror/state";
+
+export const ExternalChange = Annotation.define();
 
 const languageExtensions = {
   javascript: javascript(),
@@ -26,7 +62,154 @@ const defaultCode = {
 }`,
   python: `def two_sum(nums, target):
     # Write your solution here
-    pass`
+    pass`,
+};
+
+const REMOTE_CURSOR_COLORS = [
+  "#ec4899",
+  "#6366f1",
+  "#f97316",
+  "#22c55e",
+  "#3b82f6",
+  "#f43f5e",
+  "#14b8a6",
+  "#a855f7",
+];
+
+const remoteCursorEffect = StateEffect.define();
+
+const remoteCursorField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(value, tr) {
+    if (tr.docChanged) {
+      value = value.map(tr.changes);
+    }
+    for (const effect of tr.effects) {
+      if (effect.is(remoteCursorEffect)) {
+        return effect.value;
+      }
+    }
+    return value;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
+
+const remoteCursorTheme = EditorView.baseTheme({
+  ".cm-remote-cursor": {
+    position: "relative",
+    width: "0px",
+    pointerEvents: "none",
+    zIndex: 10,
+  },
+  ".cm-remote-cursor-caret": {
+    position: "absolute",
+    left: "-1px",
+    top: "0",
+    bottom: "0",
+    width: "2px",
+    borderRadius: "1px",
+  },
+  ".cm-remote-cursor-label": {
+    position: "absolute",
+    top: "-1.4em",
+    left: "0",
+    transform: "translate(-50%, -2px)",
+    padding: "0 6px",
+    borderRadius: "4px",
+    fontSize: "10px",
+    fontWeight: 600,
+    color: "white",
+    whiteSpace: "nowrap",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+  },
+});
+
+class RemoteCursorWidget extends WidgetType {
+  constructor(color, label) {
+    super();
+    this.color = color;
+    this.label = label;
+  }
+
+  eq(other) {
+    return other.color === this.color && other.label === this.label;
+  }
+
+  toDOM() {
+    const wrapper = document.createElement("span");
+    wrapper.className = "cm-remote-cursor";
+
+    const caret = document.createElement("span");
+    caret.className = "cm-remote-cursor-caret";
+    caret.style.backgroundColor = this.color;
+    wrapper.appendChild(caret);
+
+    if (this.label) {
+      const label = document.createElement("span");
+      label.className = "cm-remote-cursor-label";
+      label.style.backgroundColor = this.color;
+      label.textContent = this.label;
+      wrapper.appendChild(label);
+    }
+
+    return wrapper;
+  }
+
+  ignoreEvent() {
+    return true;
+  }
+}
+
+const getReadableParticipantName = (rawName, fallback) => {
+  const name = rawName ?? fallback ?? "Guest";
+  return name.length > 18 ? `${name.slice(0, 17)}...` : name;
+};
+
+const normalizeUserId = (user) => {
+  if (!user) return null;
+  return user.id ?? user._id ?? user.userId ?? null;
+};
+
+const getColorForUser = (userId) => {
+  const value = String(userId ?? "");
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % REMOTE_CURSOR_COLORS.length;
+  return REMOTE_CURSOR_COLORS[index];
+};
+
+const createRemoteCursorDecorations = (state, cursors) => {
+  if (!Array.isArray(cursors) || cursors.length === 0) {
+    return Decoration.none;
+  }
+
+  const builder = new RangeSetBuilder();
+  const { doc } = state;
+
+  cursors.forEach(({ line, column, color, label }) => {
+    if (typeof line !== "number" || typeof column !== "number") {
+      return;
+    }
+
+    const lineNumber = Math.max(1, Math.min(doc.lines, line + 1));
+    const lineInfo = doc.line(lineNumber);
+    const lineLength = lineInfo.length;
+    const clampedColumn = Math.max(0, Math.min(column, lineLength));
+    const position = lineInfo.from + clampedColumn;
+
+    const widget = Decoration.widget({
+      widget: new RemoteCursorWidget(color, label),
+      side: 1,
+    });
+    builder.add(position, position, widget);
+  });
+
+  return builder.finish();
 };
 
 export default function CodeEditorPanel() {
@@ -43,12 +226,16 @@ export default function CodeEditorPanel() {
   const lastCursorRef = useRef(null);
   const [language, setLanguage] = useState("javascript");
 
+  const { user } = useUserContext();
+
   const {
     session,
     code,
     version,
     connected,
     isJoining,
+    participants,
+    cursorPositions,
     sendOperation,
     sendCursor,
     fetchSessionSnapshot,
@@ -84,12 +271,48 @@ export default function CodeEditorPanel() {
 
   useEffect(() => {
     if (!session?.language) return;
-    setLanguage((prev) => (prev === session.language ? prev : session.language));
+    setLanguage((prev) =>
+      prev === session.language ? prev : session.language,
+    );
   }, [session?.language]);
 
   const effectiveLanguage = useMemo(() => {
     return languageExtensions[language] ? language : "javascript";
   }, [language]);
+
+  const currentUserId = useMemo(() => normalizeUserId(user), [user]);
+
+  const remoteCursors = useMemo(() => {
+    if (!participants || !cursorPositions) return [];
+    const result = [];
+
+    participants.forEach((participant) => {
+      const participantId = participant?.userId;
+      if (
+        !participantId ||
+        participantId === currentUserId ||
+        participant?.connected === false
+      ) {
+        return;
+      }
+
+      const cursor = cursorPositions[participantId];
+      if (!cursor) return;
+
+      result.push({
+        userId: participantId,
+        line: cursor.line,
+        column: cursor.column,
+        color: getColorForUser(participantId),
+        label: getReadableParticipantName(
+          participant.displayName ?? participant.username,
+          participantId,
+        ),
+      });
+    });
+
+    return result;
+  }, [participants, cursorPositions, currentUserId]);
 
   const getChangeRange = useCallback((changes) => {
     let start = null;
@@ -111,6 +334,7 @@ export default function CodeEditorPanel() {
     applyingRemoteRef.current = true;
     editor.dispatch({
       changes: { from: 0, to: current.length, insert: nextCode },
+      annotations: [ExternalChange.of(true)],
     });
     applyingRemoteRef.current = false;
   }, []);
@@ -125,6 +349,12 @@ export default function CodeEditorPanel() {
       ) {
         return;
       }
+
+      const isExternal = update.transactions.some(
+        // This is a change from the server, do not propogate back to remote
+        (tr) => tr.annotation(ExternalChange) === true,
+      );
+      if (isExternal) return;
 
       if (update.docChanged) {
         if (applyingRemoteRef.current) {
@@ -148,12 +378,6 @@ export default function CodeEditorPanel() {
           content: nextDoc,
           range: normalizedRange,
           version: versionRef.current,
-        }).catch((error) => {
-          console.error("Failed to sync code change:", error);
-          toast.error(error.message ?? "Failed to sync change.");
-          if (sessionIdRef.current) {
-            fetchSnapshotRef.current?.(sessionIdRef.current);
-          }
         });
       }
 
@@ -178,8 +402,6 @@ export default function CodeEditorPanel() {
           sendCursorRef.current({
             cursor: cursorPosition,
             version: versionRef.current,
-          }).catch(() => {
-            /* ignore cursor sync errors */
           });
         }
       }
@@ -206,30 +428,33 @@ export default function CodeEditorPanel() {
         highlightSelectionMatches(),
         syntaxHighlighting(defaultHighlightStyle),
         keymap.of([
+          indentWithTab,
           ...defaultKeymap,
           ...historyKeymap,
           ...searchKeymap,
           ...completionKeymap,
-          ...closeBracketsKeymap
+          ...closeBracketsKeymap,
         ]),
         languageExtensions[effectiveLanguage],
+        remoteCursorField,
+        remoteCursorTheme,
         EditorView.updateListener.of(handleEditorUpdate),
         EditorView.theme({
           "&": {
             height: "100%",
-            fontSize: "14px"
+            fontSize: "14px",
           },
           ".cm-scroller": {
             overflow: "auto",
-            fontFamily: "'Fira Code', 'Monaco', 'Courier New', monospace"
-          }
-        })
-      ]
+            fontFamily: "'Fira Code', 'Monaco', 'Courier New', monospace",
+          },
+        }),
+      ],
     });
 
     viewRef.current = new EditorView({
       state,
-      parent: editorRef.current
+      parent: editorRef.current,
     });
 
     return () => {
@@ -244,6 +469,19 @@ export default function CodeEditorPanel() {
       applyRemoteCode(typeof code === "string" ? code : "");
     }
   }, [code, session?.id, applyRemoteCode]);
+
+  useEffect(() => {
+    if (!viewRef.current) return;
+    const view = viewRef.current;
+    const decorations = createRemoteCursorDecorations(
+      view.state,
+      remoteCursors,
+    );
+    view.dispatch({
+      effects: remoteCursorEffect.of(decorations),
+      annotations: [ExternalChange.of(true)],
+    });
+  }, [remoteCursors]);
 
   const handleRun = () => {
     const code = viewRef.current?.state.doc.toString() || "";
@@ -267,7 +505,9 @@ export default function CodeEditorPanel() {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <CardTitle className="text-xl">Code Editor</CardTitle>
-            <span className="text-xs text-muted-foreground">{connectionLabel}</span>
+            <span className="text-xs text-muted-foreground">
+              {connectionLabel}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Select value={language} onValueChange={handleLanguageChange}>

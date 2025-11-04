@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Play } from "lucide-react";
 import {
   Decoration,
@@ -12,16 +18,37 @@ import {
   keymap,
   lineNumbers,
 } from "@codemirror/view";
-import { EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
+import {
+  EditorState,
+  RangeSetBuilder,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { syntaxHighlighting, defaultHighlightStyle, bracketMatching } from "@codemirror/language";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from "@codemirror/commands";
+import {
+  syntaxHighlighting,
+  defaultHighlightStyle,
+  bracketMatching,
+} from "@codemirror/language";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
-import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { toast } from "sonner";
+import {
+  autocompletion,
+  completionKeymap,
+  closeBrackets,
+  closeBracketsKeymap,
+} from "@codemirror/autocomplete";
 import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 import { useUserContext } from "@/context/UserContext";
+import { Annotation } from "@codemirror/state";
+
+export const ExternalChange = Annotation.define();
 
 const languageExtensions = {
   javascript: javascript(),
@@ -35,7 +62,7 @@ const defaultCode = {
 }`,
   python: `def two_sum(nums, target):
     # Write your solution here
-    pass`
+    pass`,
 };
 
 const REMOTE_CURSOR_COLORS = [
@@ -244,7 +271,9 @@ export default function CodeEditorPanel() {
 
   useEffect(() => {
     if (!session?.language) return;
-    setLanguage((prev) => (prev === session.language ? prev : session.language));
+    setLanguage((prev) =>
+      prev === session.language ? prev : session.language,
+    );
   }, [session?.language]);
 
   const effectiveLanguage = useMemo(() => {
@@ -305,6 +334,7 @@ export default function CodeEditorPanel() {
     applyingRemoteRef.current = true;
     editor.dispatch({
       changes: { from: 0, to: current.length, insert: nextCode },
+      annotations: [ExternalChange.of(true)],
     });
     applyingRemoteRef.current = false;
   }, []);
@@ -319,6 +349,12 @@ export default function CodeEditorPanel() {
       ) {
         return;
       }
+
+      const isExternal = update.transactions.some(
+        // This is a change from the server, do not propogate back to remote
+        (tr) => tr.annotation(ExternalChange) === true,
+      );
+      if (isExternal) return;
 
       if (update.docChanged) {
         if (applyingRemoteRef.current) {
@@ -342,12 +378,6 @@ export default function CodeEditorPanel() {
           content: nextDoc,
           range: normalizedRange,
           version: versionRef.current,
-        }).catch((error) => {
-          console.error("Failed to sync code change:", error);
-          toast.error(error.message ?? "Failed to sync change.");
-          if (sessionIdRef.current) {
-            fetchSnapshotRef.current?.(sessionIdRef.current);
-          }
         });
       }
 
@@ -372,8 +402,6 @@ export default function CodeEditorPanel() {
           sendCursorRef.current({
             cursor: cursorPosition,
             version: versionRef.current,
-          }).catch(() => {
-            /* ignore cursor sync errors */
           });
         }
       }
@@ -405,7 +433,7 @@ export default function CodeEditorPanel() {
           ...historyKeymap,
           ...searchKeymap,
           ...completionKeymap,
-          ...closeBracketsKeymap
+          ...closeBracketsKeymap,
         ]),
         languageExtensions[effectiveLanguage],
         remoteCursorField,
@@ -414,19 +442,19 @@ export default function CodeEditorPanel() {
         EditorView.theme({
           "&": {
             height: "100%",
-            fontSize: "14px"
+            fontSize: "14px",
           },
           ".cm-scroller": {
             overflow: "auto",
-            fontFamily: "'Fira Code', 'Monaco', 'Courier New', monospace"
-          }
-        })
-      ]
+            fontFamily: "'Fira Code', 'Monaco', 'Courier New', monospace",
+          },
+        }),
+      ],
     });
 
     viewRef.current = new EditorView({
       state,
-      parent: editorRef.current
+      parent: editorRef.current,
     });
 
     return () => {
@@ -445,9 +473,13 @@ export default function CodeEditorPanel() {
   useEffect(() => {
     if (!viewRef.current) return;
     const view = viewRef.current;
-    const decorations = createRemoteCursorDecorations(view.state, remoteCursors);
+    const decorations = createRemoteCursorDecorations(
+      view.state,
+      remoteCursors,
+    );
     view.dispatch({
       effects: remoteCursorEffect.of(decorations),
+      annotations: [ExternalChange.of(true)],
     });
   }, [remoteCursors]);
 
@@ -473,7 +505,9 @@ export default function CodeEditorPanel() {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <CardTitle className="text-xl">Code Editor</CardTitle>
-            <span className="text-xs text-muted-foreground">{connectionLabel}</span>
+            <span className="text-xs text-muted-foreground">
+              {connectionLabel}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Select value={language} onValueChange={handleLanguageChange}>

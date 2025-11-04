@@ -14,6 +14,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { toast } from "sonner";
+import { debounce } from "lodash";
 import { useUserContext } from "./UserContext";
 
 const CollaborationSessionContext = createContext(null);
@@ -85,7 +86,7 @@ export const CollaborationSessionProvider = ({ children }) => {
       }
 
       setSession(normalized);
-      setCode(normalized.code ?? "");
+      if (normalized.code) setCode(normalized.code);
       setParticipants(normalized.participants ?? []);
       setCursorPositions(normalized.cursorPositions ?? {});
       versionRef.current = normalized.version ?? 0;
@@ -309,21 +310,8 @@ export const CollaborationSessionProvider = ({ children }) => {
     });
   }, []);
 
-  const handleOperationAck = useCallback(
-    (response) => {
-      const sessionPayload = response.session ?? response;
-      if (sessionPayload) {
-        applySessionState(sessionPayload, {
-          conflict: Boolean(response.conflict),
-        });
-        scheduleSnapshotRefresh();
-      }
-    },
-    [applySessionState, scheduleSnapshotRefresh],
-  );
-
-  const sendOperation = useCallback(
-    async ({ type, range, content, cursor, version }) => {
+  const sendOperationRaw = useCallback(
+    ({ type, range, content, cursor, version }) => {
       const activeSessionId = sessionIdRef.current;
       if (!activeSessionId) {
         throw new Error("No active collaboration session.");
@@ -336,19 +324,27 @@ export const CollaborationSessionProvider = ({ children }) => {
         version: version ?? versionRef.current,
       };
 
-      const response = await emitWithAck("session:operation", payload);
-      handleOperationAck(response);
-      return response;
+      socketRef.current?.emit("session:operation", payload);
     },
-    [emitWithAck, handleOperationAck],
+    [],
   );
 
-  const sendCursor = useCallback(
+  const sendCursorRaw = useCallback(
     async ({ cursor }) => {
       if (!cursor) return;
-      await sendOperation({ type: "cursor", cursor });
+      sendOperationRaw({ type: "cursor", cursor });
     },
-    [sendOperation],
+    [sendOperationRaw],
+  );
+
+  const sendOperation = useMemo(
+    () => debounce(sendOperationRaw, 300),
+    [sendOperationRaw],
+  );
+
+  const sendCursor = useMemo(
+    () => debounce(sendCursorRaw, 300),
+    [sendCursorRaw],
   );
 
   const value = useMemo(

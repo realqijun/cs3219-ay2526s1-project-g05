@@ -50,24 +50,41 @@ export class CollaborationSocketManager {
     });
 
     socket.on("session:operation", async (payload = {}, callback) => {
-      await this.handleAction(socket, payload, callback, async () => {
-        const result = await this.collaborationService.recordOperation(
-          socket.data.sessionId,
-          socket.data.user.id,
-          payload,
-        );
+      await this.handleAction(
+        socket,
+        payload,
+        callback,
+        async () => {
+          const updatedSession =
+            await this.collaborationService.resolveOperation(
+              socket.data.sessionId,
+              socket.data.user.id,
+              payload,
+            );
 
-        const roomId = result?.session?.id ?? socket.data.sessionId;
+          const roomId = updatedSession?.session?.id;
 
-        if (roomId) {
-          this.io?.to(roomId).emit("session:operation", {
-            session: result.session,
-            conflict: result.conflict,
-          });
-        }
+          if (roomId) {
+            this.io?.to(roomId).emit("session:operation", {
+              session: updatedSession.session,
+              conflict: updatedSession.conflict,
+            });
+          }
 
-        return result;
-      });
+          if (updatedSession.conflict) {
+            return null;
+          }
+
+          const result = await this.collaborationService.recordOperation(
+            socket.data.sessionId,
+            socket.data.user.id,
+            updatedSession.session,
+          );
+
+          return result;
+        },
+        false,
+      ); // Do not callback to avoid repeat calls
     });
 
     socket.on("session:leave", async (payload = {}, callback) => {
@@ -157,10 +174,16 @@ export class CollaborationSocketManager {
     });
   }
 
-  async handleAction(socket, payload, callback, handler) {
+  async handleAction(
+    socket,
+    payload,
+    callback,
+    handler,
+    shouldCallback = true,
+  ) {
     try {
       const result = await handler(payload);
-      if (typeof callback === "function") {
+      if (typeof callback === "function" && shouldCallback) {
         callback({ ok: true, ...result });
       }
     } catch (error) {

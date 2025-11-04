@@ -50,20 +50,41 @@ export class CollaborationSocketManager {
     });
 
     socket.on("session:operation", async (payload = {}, callback) => {
-      await this.handleAction(socket, payload, callback, async () => {
-        const result = await this.collaborationService.recordOperation(
-          socket.data.sessionId,
-          socket.data.user.id,
-          payload,
-        );
+      await this.handleAction(
+        socket,
+        payload,
+        callback,
+        async () => {
+          const updatedSession =
+            await this.collaborationService.resolveOperation(
+              socket.data.sessionId,
+              socket.data.user.id,
+              payload,
+            );
 
-        this.io?.to(result.id).emit("session:operation", {
-          session: result.session,
-          conflict: result.conflict,
-        });
+          const roomId = updatedSession?.session?.id;
 
-        return result;
-      });
+          if (roomId) {
+            this.io?.to(roomId).emit("session:operation", {
+              session: updatedSession.session,
+              conflict: updatedSession.conflict,
+            });
+          }
+
+          if (updatedSession.conflict) {
+            return null;
+          }
+
+          const result = await this.collaborationService.recordOperation(
+            socket.data.sessionId,
+            socket.data.user.id,
+            updatedSession.session,
+          );
+
+          return result;
+        },
+        false,
+      ); // Do not callback to avoid repeat calls
     });
 
     socket.on("session:leave", async (payload = {}, callback) => {
@@ -72,6 +93,7 @@ export class CollaborationSocketManager {
           socket.data.sessionId,
           socket.data.user.id,
           {
+            sessionId: socket.data.sessionId,
             reason: "leave",
           },
         );
@@ -131,6 +153,7 @@ export class CollaborationSocketManager {
           socket.data.sessionId,
           user.id,
           {
+            sessionId: socket.data.sessionId,
             reason: "disconnect",
           },
         );
@@ -151,10 +174,16 @@ export class CollaborationSocketManager {
     });
   }
 
-  async handleAction(socket, payload, callback, handler) {
+  async handleAction(
+    socket,
+    payload,
+    callback,
+    handler,
+    shouldCallback = true,
+  ) {
     try {
       const result = await handler(payload);
-      if (typeof callback === "function") {
+      if (typeof callback === "function" && shouldCallback) {
         callback({ ok: true, ...result });
       }
     } catch (error) {
@@ -180,10 +209,13 @@ export class CollaborationSocketManager {
   emitSessionState(session) {
     if (!this.io || !session?.id) return;
 
-    this.io.to(session.sessionId).emit("session:state", { session });
+    const roomId = session?.id;
+    if (!roomId) return;
+
+    this.io.to(roomId).emit("session:state", { session });
 
     if (session.status === "ended") {
-      this.kickAllFromSession(session.sessionId);
+      this.kickAllFromSession(roomId);
     }
   }
 

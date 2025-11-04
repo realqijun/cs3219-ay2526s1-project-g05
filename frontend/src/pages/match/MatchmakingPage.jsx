@@ -142,7 +142,7 @@ export default function MatchmakingPage() {
           </div>
 
           {/* Action Button */}
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 mb-8 flex justify-center">
             <Button
               size="lg"
               onClick={handleStartMatching}

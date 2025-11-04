@@ -345,14 +345,14 @@ export class CollaborationSessionService {
           timestamp: now,
           conflict,
         },
-        lastConflictAt: conflict ? now : session.lastConflictAt ?? null,
+        lastConflictAt: conflict ? now : (session.lastConflictAt ?? null),
         updatedAt: now,
       }),
       conflict,
     };
   }
 
-  async recordOperation(sessionId, userId, payload) {
+  async recordOperation(sessionId, _userId, payload) {
     const updateObj = {
       set: {
         version: payload.version,

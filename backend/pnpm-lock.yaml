@@ -87,6 +87,9 @@ importers:
       proxy-addr:
         specifier: ^2.0.7
         version: 2.0.7
+      redis:
+        specifier: ^5.9.0
+        version: 5.9.0
       socket.io:
         specifier: ^4.7.5
         version: 4.8.1

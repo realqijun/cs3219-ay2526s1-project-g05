@@ -16,11 +16,6 @@ import { io } from "socket.io-client";
 import { toast } from "sonner";
 import { debounce } from "lodash";
 import { useUserContext } from "./UserContext";
-import {
-  COLLABORATION_API_URL,
-  collaborationApi,
-} from "@/lib/collaborationApi";
-import { io } from "socket.io-client";
 import { API_BASE_URL } from "../lib/api.js";
 
 const CollaborationSessionContext = createContext(null);
@@ -88,6 +83,10 @@ export const CollaborationSessionProvider = ({ children }) => {
     (rawSession, { conflict = false } = {}) => {
       const normalized = normalizeSession(rawSession);
       if (!normalized || !normalized.id) {
+        return;
+      }
+
+      if (normalized.version <= versionRef.current) {
         return;
       }
 
@@ -285,7 +284,7 @@ export const CollaborationSessionProvider = ({ children }) => {
     token,
     user?.collaborationSessionId,
     navigate,
-    location.pathname,
+    location,
     disconnectSocket,
     resetState,
     applySessionState,
@@ -358,7 +357,7 @@ export const CollaborationSessionProvider = ({ children }) => {
   );
 
   const sendCursor = useMemo(
-    () => debounce(sendCursorRaw, 300),
+    () => debounce(sendCursorRaw, 450),
     [sendCursorRaw],
   );
 

@@ -175,7 +175,7 @@ export class CollaborationSocketManager {
   }
 
   async handleAction(
-    socket,
+    _socket,
     payload,
     callback,
     handler,

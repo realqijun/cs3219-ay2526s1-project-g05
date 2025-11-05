@@ -50,11 +50,13 @@ export const CollaborationSessionProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, token, refreshUserData } = useUserContext();
+
   const socketRef = useRef(null);
   const sessionIdRef = useRef(null);
   const versionRef = useRef(0);
   const joinInFlightRef = useRef(false);
   const snapshotTimeoutRef = useRef(null);
+  const suppressAutoJoinRef = useRef(false);
 
   const [session, setSession] = useState(null);
   const [connected, setConnected] = useState(false);
@@ -138,20 +140,14 @@ export const CollaborationSessionProvider = ({ children }) => {
 
   const scheduleSnapshotRefresh = useCallback(() => {
     if (!sessionIdRef.current) return;
-
-    if (snapshotTimeoutRef.current) {
-      return;
-    }
+    if (snapshotTimeoutRef.current) return;
 
     snapshotTimeoutRef.current = setTimeout(async () => {
       snapshotTimeoutRef.current = null;
       try {
         await fetchSessionSnapshot(sessionIdRef.current);
       } catch (error) {
-        console.error(
-          "Failed to refresh collaboration session snapshot:",
-          error,
-        );
+        console.error("Failed to refresh collaboration session snapshot:", error);
       }
     }, 200);
   }, [fetchSessionSnapshot]);
@@ -165,13 +161,23 @@ export const CollaborationSessionProvider = ({ children }) => {
         resetState();
       }
 
-      if (location.pathname === "/session") navigate("/matchmaking");
-
       return;
     }
 
-    if (location.pathname !== "/session") {
-      navigate("/session");
+    const AUTO_CONNECT_ROUTES = new Set(['/session']);
+    if (!AUTO_CONNECT_ROUTES.has(location.pathname)) {
+      // We have an activeSessionId but we're not on /session.
+      // Make sure socket is not connected to avoid flicker.
+      if (socketRef.current) {
+        disconnectSocket();
+        resetState();
+      }
+      return;
+    }
+    
+
+    if (suppressAutoJoinRef.current) {
+      return;
     }
 
     if (
@@ -198,7 +204,10 @@ export const CollaborationSessionProvider = ({ children }) => {
 
     const handleConnect = () => {
       setConnected(true);
+
+      if (suppressAutoJoinRef.current) return;
       if (joinInFlightRef.current) return;
+
       joinInFlightRef.current = true;
       setIsJoining(true);
 
@@ -226,14 +235,19 @@ export const CollaborationSessionProvider = ({ children }) => {
           }
 
           applySessionState(normalized);
-          toast.success("Connected to collaboration session.");
+
+          if (!suppressAutoJoinRef.current) {
+            toast.success("Connected to collaboration session.");
+          }
         },
       );
     };
 
     const handleConnectError = (error) => {
       console.error("Collaboration socket connect error:", error);
-      toast.error("Unable to connect to collaboration service.");
+      if (!suppressAutoJoinRef.current) {
+        toast.error("Unable to connect to collaboration service.");
+      }
     };
 
     const handleDisconnect = () => {
@@ -347,6 +361,41 @@ export const CollaborationSessionProvider = ({ children }) => {
     [sendCursorRaw],
   );
 
+  const leaveSession = useCallback(
+    async ({ terminateForAll = false } = {}) => {
+      const activeSessionId = sessionIdRef.current;
+
+      suppressAutoJoinRef.current = true;
+
+      try {
+        if (socketRef.current) {
+          await emitWithAck("session:leave", {
+            sessionId: activeSessionId,
+            terminateForAll,
+          });
+        } else if (collaborationApi.leaveSession) {
+          await collaborationApi.leaveSession(activeSessionId, terminateForAll);
+        }
+      } catch (err) {
+        console.error("leaveSession error:", err);
+      } finally {
+        disconnectSocket();
+        resetState();
+
+        try {
+          await refreshUserData?.();
+        } catch (e) {
+          console.warn("refreshUserData failed:", e);
+        }
+
+        setTimeout(() => {
+          suppressAutoJoinRef.current = false;
+        }, 5000);
+      }
+    },
+    [emitWithAck, disconnectSocket, resetState, refreshUserData]
+  );
+
   const value = useMemo(
     () => ({
       session,
@@ -360,6 +409,7 @@ export const CollaborationSessionProvider = ({ children }) => {
       sendOperation,
       sendCursor,
       fetchSessionSnapshot,
+      leaveSession,
     }),
     [
       session,
@@ -372,6 +422,7 @@ export const CollaborationSessionProvider = ({ children }) => {
       sendOperation,
       sendCursor,
       fetchSessionSnapshot,
+      leaveSession,
     ],
   );
 

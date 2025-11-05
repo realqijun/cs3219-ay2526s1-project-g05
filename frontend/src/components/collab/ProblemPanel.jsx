@@ -1,10 +1,7 @@
-// ProblemPanel.jsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSession } from "@/hooks/useSession";
-// Optional (recommended) if you want to sanitize HTML:
-// import DOMPurify from "dompurify";
 
 function badgeVariantForDifficulty(diff) {
   const d = (diff || "").toLowerCase();
@@ -48,12 +45,11 @@ export default function ProblemPanel() {
     examples = [],
     constraints = [],
     hints = [],
-    codeBlock, // optional: if your API included a single code block
+    codeBlock,
   } = problem;
 
   const renderDescription = () => {
     if (descriptionHtml) {
-      // const safe = DOMPurify.sanitize(descriptionHtml);
       return (
         <div
           className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground"

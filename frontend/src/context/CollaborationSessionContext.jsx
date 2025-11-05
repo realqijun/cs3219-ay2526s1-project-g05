@@ -4,6 +4,7 @@ import {
   useEffect,
   useCallback,
   useRef,
+  useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUserContext } from "./UserContext";
@@ -18,13 +19,16 @@ export const CollaborationSessionProvider = ({ children }) => {
   const location = useLocation();
   const { user } = useUserContext();
   const socket = useRef(null);
+  const [messages, setMessages] = useState([]);
+  const sentClientMessageIds = useRef(new Set());
 
   useEffect(() => {
     if (!user || !user.collaborationSessionId) return;
-    // If user has an active collaboration session, navigate to it
-    if (location.pathname === "/session") return;
+    // Always connect when a session exists; navigate only if needed
     connectToSessionSocket();
-    navigate("/session");
+    if (location.pathname !== "/session") {
+      navigate("/session");
+    }
   }, [user, location]);
 
   const connectToSessionSocket = useCallback(() => {
@@ -41,10 +45,58 @@ export const CollaborationSessionProvider = ({ children }) => {
         sessionId: user.collaborationSessionId,
       });
     });
+
+    socket.current.on("session:chat:message", ({ message }) => {
+      // Ignore server echo for messages we already optimistically added
+      if (message?.clientMessageId && sentClientMessageIds.current.has(message.clientMessageId)) {
+        sentClientMessageIds.current.delete(message.clientMessageId);
+        return;
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...message,
+          isCurrentUser: message?.sender?.id === user?.id,
+        },
+      ]);
+    });
+
+    socket.current.on("disconnect", () => {
+      toast.error("Disconnected from collaboration session.");
+    });
   }, []);
 
+  const sendChatMessage = useCallback((content) => {
+    if (!socket.current) return;
+    if (!content || !content.trim()) return;
+
+    const clientMessageId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const optimistic = {
+      id: clientMessageId,
+      content,
+      timestamp: new Date().toISOString(),
+      sender: { id: user?.id, name: user?.username || user?.name || "You" },
+      isCurrentUser: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    sentClientMessageIds.current.add(clientMessageId);
+
+    socket.current.emit(
+      "session:chat:message",
+      { content, clientMessageId },
+      (ack) => {
+        if (!ack?.ok) {
+          toast.error(ack?.error?.message || "Failed to send message");
+        }
+      }
+    );
+  }, [user]);
+
   return (
-    <CollaborationSessionContext.Provider value={{}}>
+    <CollaborationSessionContext.Provider value={{
+      messages,
+      sendChatMessage,
+    }}>
       {children}
     </CollaborationSessionContext.Provider>
   );

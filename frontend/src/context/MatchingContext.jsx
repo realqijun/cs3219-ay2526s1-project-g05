@@ -69,6 +69,8 @@ export const MatchingProvider = ({ children }) => {
     es.current.removeEventListener("matchFound", handleMatchFound);
     es.current.removeEventListener("matchCancelled", handleMatchCancelled);
     es.current.removeEventListener("matchFinalized", handleMatchFinalized);
+    es.current.removeEventListener("sessionExpired", handleSessionExpired);
+    es.current.removeEventListener("rejoinedQueue", handleRejoinedQueue);
     es.current = null;
     setConnected(false);
   };
@@ -132,6 +134,18 @@ export const MatchingProvider = ({ children }) => {
     closeEventSource();
     navigate("/matchmaking");
   };
+  const handleSessionExpired = () => {
+    // When we have a pending match but the partner cancels
+    toast.error("You did not confirm the match in time, or your session has expired.");
+    closeEventSource();
+    navigate("/matchmaking");
+  };
+  const handleRejoinedQueue = () => {
+    toast.success("Your partner has exited the match. You have been requeued with priority.");
+    setMatchInfo(null);
+    setIsInQueue("matching");
+    navigate("/matching");
+  }
   const handleMatchFinalized = async () => {
     // Let's refresh the user data to get the updated session info
     closeEventSource();
@@ -153,6 +167,8 @@ export const MatchingProvider = ({ children }) => {
     newSource.addEventListener("matchFound", handleMatchFound);
     newSource.addEventListener("matchCancelled", handleMatchCancelled);
     newSource.addEventListener("matchFinalized", handleMatchFinalized);
+    newSource.addEventListener("sessionExpired", handleSessionExpired);
+    newSource.addEventListener("rejoinedQueue", handleRejoinedQueue);
 
     newSource.onerror = (error) => {
       console.error("EventSource failed:", error);

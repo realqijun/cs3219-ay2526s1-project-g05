@@ -117,8 +117,7 @@ export class MatchingService {
     const userB = matchedUserInfo.user;
 
     const question = await this._fetch_pro_max(
-      `http://localhost:${
-        process.env.QUESTIONSERVICEPORT || 4002
+      `http://localhost:${process.env.QUESTIONSERVICEPORT || 4002
       }/random?difficulty=${criteria.difficulty}&${criteria.topics
         .map((t) => `topic=${t}`)
         .join("&")}`,
@@ -198,8 +197,7 @@ export class MatchingService {
       await this.repository.deleteUser(partnerId);
 
       const response = await this._fetch_pro_max(
-        `http://localhost:${
-          process.env.COLLABORATIONSERVICEPORT || 4004
+        `http://localhost:${process.env.COLLABORATIONSERVICEPORT || 4004
         }/sessions`,
         {
           method: "POST",
@@ -321,7 +319,6 @@ export class MatchingService {
     if (matchIds.length === 0) {
       return;
     }
-
     for (const matchId of matchIds) {
       const matchState = await this.repository.getMatchState(matchId);
       const userAId =
@@ -348,8 +345,8 @@ export class MatchingService {
         await this.repository.deleteUser(deleteId);
         this.notifier.notifySessionExpired(
           deleteId,
-          { 
-            message: `Match ${matchId} has expired. You have been removed from the queue.` 
+          {
+            message: `Match ${matchId} has expired. You have been removed from the queue.`
           }
         );
         // requeue the confirmed user with priority

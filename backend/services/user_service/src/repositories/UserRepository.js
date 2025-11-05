@@ -101,4 +101,13 @@ export class UserRepository {
     const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
   }
+
+  async findPastCollaborationSession(userId, sessionId) {
+    const result = await this.collection.findOne({
+      _id: new ObjectId(userId),
+      pastCollaborationSessions: sessionId,
+    });
+
+    return result;
+  }
 }

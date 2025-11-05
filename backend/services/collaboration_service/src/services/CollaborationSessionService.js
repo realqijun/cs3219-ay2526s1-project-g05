@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { ApiError } from "../errors/ApiError.js";
 import { CollaborationSessionValidator } from "../validators/CollaborationSessionValidator.js";
 import {
@@ -7,6 +6,7 @@ import {
   updateUserCurrentSession,
   addUserPastSession,
 } from "../utils/fetchRequests.js";
+import { parseDate } from "../utils/misc.js";
 
 const MAX_PARTICIPANTS = 2;
 const DEFAULT_LANGUAGE = "javascript";
@@ -50,7 +50,7 @@ export class CollaborationSessionService {
     return {
       id: session._id?.toString?.() ?? session._id,
       questionId: session.questionId ?? null,
-      code: session.code ?? "",
+      code: session.code,
       language: session.language ?? DEFAULT_LANGUAGE,
       version: session.version ?? 0,
       status: session.status ?? "active",
@@ -94,12 +94,16 @@ export class CollaborationSessionService {
 
     const now = this.now();
     const participants = session.participants ?? [];
-    const expired = participants.filter(
-      (participant) =>
-        !participant.connected &&
-        participant.reconnectBy &&
-        participant.reconnectBy < now,
-    );
+
+    const expired =
+      session.status === "ended"
+        ? participants
+        : participants.filter(
+            (participant) =>
+              !participant.connected &&
+              participant.reconnectBy &&
+              participant.reconnectBy < now,
+          );
 
     if (expired.length === 0) {
       return session;
@@ -110,7 +114,6 @@ export class CollaborationSessionService {
       expiredIds.has(participant.userId)
         ? {
             ...participant,
-            reconnectBy: null,
             disconnectedAt: participant.disconnectedAt ?? now,
           }
         : {
@@ -129,9 +132,7 @@ export class CollaborationSessionService {
       },
     });
 
-    if (updated) {
-      await this.handleSessionEnded(session, updated);
-    }
+    await this.handleSessionEnded(session, updated);
 
     return updated ?? session;
   }
@@ -233,7 +234,6 @@ export class CollaborationSessionService {
     }
 
     session = await this.checkExpiredSession(session);
-    // Always does nothing atm because there is no reconnectBy unless the user leaves
     this.ensureActive(session);
 
     const participants = session.participants ?? [];
@@ -263,10 +263,10 @@ export class CollaborationSessionService {
       },
     });
 
-    return updatedSession ?? session;
+    return this.sanitizeSession(updatedSession);
   }
 
-  async recordOperation(sessionId, userId, payload) {
+  async resolveOperation(sessionId, userId, payload) {
     const { errors, normalized } =
       CollaborationSessionValidator.validateOperation(payload);
     if (errors.length > 0) {
@@ -303,11 +303,6 @@ export class CollaborationSessionService {
 
     const conflict = normalized.version !== (session.version ?? 0);
     const newVersion = (session.version ?? 0) + 1;
-    const currentCode = session.code ?? "";
-    const nextCode =
-      normalized.type === "cursor" || normalized.type === "selection"
-        ? currentCode
-        : normalized.content ?? currentCode;
 
     const updatedParticipants = (session.participants ?? []).map((item) =>
       item.userId === userId
@@ -331,12 +326,18 @@ export class CollaborationSessionService {
       };
     }
 
-    const updatedSession = await this.repository.updateById(sessionId, {
-      set: {
-        code: nextCode,
+    this.releaseLock(sessionId, userId, normalized.range);
+
+    return {
+      session: this.sanitizeSession({
+        ...session,
         version: newVersion,
         participants: updatedParticipants,
         cursorPositions,
+        code:
+          normalized.type !== "cursor" && normalized.type !== "selection"
+            ? normalized.content
+            : null,
         lastOperation: {
           userId: userId,
           type: normalized.type,
@@ -345,14 +346,41 @@ export class CollaborationSessionService {
           conflict,
         },
         lastConflictAt: conflict ? now : session.lastConflictAt ?? null,
-      },
-    });
+        updatedAt: now,
+      }),
+      conflict,
+    };
+  }
 
-    this.releaseLock(sessionId, userId, normalized.range);
+  async recordOperation(sessionId, userId, payload) {
+    const updateObj = {
+      set: {
+        version: payload.version,
+        participants: payload.participants.map((p) => ({
+          ...p,
+          joinedAt: parseDate(p.joinedAt),
+          lastSeenAt: parseDate(p.lastSeenAt),
+          disconnectedAt: parseDate(p.disconnectedAt),
+          reconnectBy: parseDate(p.reconnectBy),
+        })),
+        cursorPositions: payload.cursorPositions,
+        lastOperation: payload.lastOperation,
+        lastConflictAt: parseDate(payload.lastConflictAt),
+        updatedAt: parseDate(payload.updatedAt),
+      },
+    };
+
+    if (payload.code) {
+      updateObj.set.code = payload.code;
+    }
+
+    const updatedSession = await this.repository.updateById(
+      sessionId,
+      updateObj,
+    );
 
     return {
       session: this.sanitizeSession(updatedSession),
-      conflict,
     };
   }
 
@@ -451,7 +479,7 @@ export class CollaborationSessionService {
     }
 
     const activeParticipants = updatedParticipants.filter(
-      (item) => item.connected,
+      (item) => item.connected || (item.reconnectBy && item.reconnectBy > now),
     );
     if (activeParticipants.length === 0) {
       updatedStatus = "ended";
@@ -476,9 +504,6 @@ export class CollaborationSessionService {
 
   async handleSessionEnded(previousSession, nextSession) {
     if (!nextSession || nextSession.status !== "ended") {
-      return;
-    }
-    if (previousSession?.status === "ended") {
       return;
     }
 

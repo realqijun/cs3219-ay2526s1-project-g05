@@ -99,7 +99,7 @@ export class CollaborationSocketManager {
           },
         );
 
-        this.io?.to(socket.data.sessionId).emit("session:leave", {});
+        socket.to(socket.data.sessionId).emit("session:leave", {});
 
         socket.data.hasLeft = true;
         socket.leave(session.id);
@@ -168,6 +168,10 @@ export class CollaborationSocketManager {
           socket.data.user.id,
           payload,
         );
+
+        if (session.status === "ended")
+          this.io?.to(socket.data.sessionId).emit("session:ended"); // This sends to everyone
+        else socket.to(socket.data.sessionId).emit("session:end"); // This only sends to other users in the room, not itself
         this.emitSessionState(session);
         return { session };
       });

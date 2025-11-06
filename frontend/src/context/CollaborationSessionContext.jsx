@@ -67,6 +67,7 @@ export const CollaborationSessionProvider = ({ children }) => {
   const [cursorPositions, setCursorPositions] = useState({});
   const [lastConflict, setLastConflict] = useState(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [partnerRequestedLeave, setPartnerRequestedLeave] = useState(false);
   const [messages, setMessages] = useState([]);
 
   const resetState = useCallback(() => {
@@ -182,12 +183,8 @@ export const CollaborationSessionProvider = ({ children }) => {
     [user],
   );
 
-  const handleOtherUserLeft = useCallback(async ({ _message }) => {
-    if (userJustLeft.current) return; // Means it is the same user that left
-
-    toast.info("The other user has left the collaboration session.");
+  const handleLeaveCleanup = useCallback(async () => {
     userJustLeft.current = true;
-
     disconnectSocket();
     resetState();
 
@@ -196,6 +193,24 @@ export const CollaborationSessionProvider = ({ children }) => {
     } catch (e) {
       console.warn("refreshUserData failed:", e);
     }
+
+    setPartnerRequestedLeave(false);
+  }, [disconnectSocket, resetState, refreshUserData]);
+
+  const handleOtherUserLeft = useCallback(async ({ _message }) => {
+    toast.info("The other user has left the collaboration session.");
+
+    handleLeaveCleanup();
+  }, []);
+
+  const handleSessionEnded = useCallback(() => {
+    toast.info("The collaboration session has ended.");
+    handleLeaveCleanup();
+  }, []);
+
+  const handlePartnerRequestedLeave = useCallback(() => {
+    console.log("Partner has requested to end the session");
+    setPartnerRequestedLeave(true);
   }, []);
 
   useEffect(() => {
@@ -278,6 +293,8 @@ export const CollaborationSessionProvider = ({ children }) => {
 
           if (response.ok === false) {
             toast.error(response.error?.message ?? "Failed to join session.");
+            disconnectSocket();
+            resetState();
             return;
           }
 
@@ -318,6 +335,8 @@ export const CollaborationSessionProvider = ({ children }) => {
     socket.on("session:operation", handleSessionOperation);
     socket.on("session:chat:message", handleMessage);
     socket.on("session:leave", handleOtherUserLeft);
+    socket.on("session:end", handlePartnerRequestedLeave);
+    socket.on("session:ended", handleSessionEnded);
 
     return () => {
       socket.off("connect", handleConnect);
@@ -327,6 +346,8 @@ export const CollaborationSessionProvider = ({ children }) => {
       socket.off("session:operation", handleSessionOperation);
       socket.off("session:chat:message", handleMessage);
       socket.off("session:leave", handleOtherUserLeft);
+      socket.off("session:end", handlePartnerRequestedLeave);
+      socket.off("session:ended", handleSessionEnded);
       disconnectSocket();
       resetState();
     };
@@ -340,7 +361,24 @@ export const CollaborationSessionProvider = ({ children }) => {
     applySessionState,
     scheduleSnapshotRefresh,
     handleMessage,
+    handleOtherUserLeft,
+    handlePartnerRequestedLeave,
+    handleSessionEnded,
   ]);
+
+  const requestSessionEnd = useCallback(() => {
+    socketRef.current?.emit("session:end", {
+      sessionId: sessionIdRef.current,
+      confirm: true,
+    });
+  }, []);
+
+  const acceptRequestedLeave = useCallback(() => {
+    socketRef.current?.emit("session:end", {
+      sessionId: sessionIdRef.current,
+      confirm: true,
+    });
+  }, []);
 
   const sendChatMessage = useCallback(
     (content) => {
@@ -446,7 +484,6 @@ export const CollaborationSessionProvider = ({ children }) => {
   const leaveSession = useCallback(
     async ({ terminateForAll = false } = {}) => {
       const activeSessionId = sessionIdRef.current;
-      userJustLeft.current = true;
 
       try {
         await emitWithAck("session:leave", {
@@ -459,16 +496,7 @@ export const CollaborationSessionProvider = ({ children }) => {
         return;
       }
 
-      disconnectSocket();
-      resetState();
-
-      try {
-        await refreshUserData();
-      } catch (e) {
-        console.warn("refreshUserData failed:", e);
-        userJustLeft.current = false;
-        return;
-      }
+      handleLeaveCleanup();
     },
     [emitWithAck, disconnectSocket, resetState, refreshUserData],
   );
@@ -489,6 +517,10 @@ export const CollaborationSessionProvider = ({ children }) => {
       messages,
       sendChatMessage,
       leaveSession,
+      partnerRequestedLeave,
+      handlePartnerRequestedLeave,
+      acceptRequestedLeave,
+      requestSessionEnd,
     }),
     [
       session,
@@ -504,6 +536,10 @@ export const CollaborationSessionProvider = ({ children }) => {
       messages,
       sendChatMessage,
       leaveSession,
+      partnerRequestedLeave,
+      handlePartnerRequestedLeave,
+      acceptRequestedLeave,
+      requestSessionEnd,
     ],
   );
 

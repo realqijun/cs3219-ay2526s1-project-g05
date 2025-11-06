@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -18,11 +16,15 @@ import { cn } from "@/lib/utils";
 import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 
 export default function LeaveSessionDialog({
-  onRequestEnd,
   lastRequestTime,
   requestRejected,
 }) {
-  const { leaveSession } = useCollaborationSession();
+  const {
+    leaveSession,
+    partnerRequestedLeave,
+    acceptRequestedLeave,
+    requestSessionEnd,
+  } = useCollaborationSession();
   const [open, setOpen] = useState(false);
   const [forceEndEnabled, setForceEndEnabled] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
@@ -67,11 +69,15 @@ export default function LeaveSessionDialog({
   };
 
   const handleRequestEnd = () => {
-    onRequestEnd?.();
+    requestSessionEnd();
     setOpen(false);
     toast("Request Sent", {
       description: "Waiting for your partner's response...",
     });
+  };
+
+  const handleAcceptRequestEnd = () => {
+    acceptRequestedLeave();
   };
 
   const handleForceEnd = async () => {
@@ -94,6 +100,10 @@ export default function LeaveSessionDialog({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  useEffect(() => {
+    if (partnerRequestedLeave) setOpen(true);
+  }, [partnerRequestedLeave]);
+
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
@@ -103,78 +113,114 @@ export default function LeaveSessionDialog({
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="sm:max-w-md">
-        <AlertDialogHeader className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
-              <LogOut className="h-5 w-5 text-destructive" />
-            </div>
-            <AlertDialogTitle className="text-xl">
-              Leave Session?
-            </AlertDialogTitle>
-          </div>
-          <AlertDialogDescription className="text-base">
-            You can request to end the session with your partner, or leave
-            immediately and disconnect.
-          </AlertDialogDescription>
+        {partnerRequestedLeave ? (
+          <>
+            <AlertDialogHeader className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                  <LogOut className="h-5 w-5 text-destructive" />
+                </div>
+                <AlertDialogTitle className="text-xl">
+                  Leave Request
+                </AlertDialogTitle>
+              </div>
+              <AlertDialogDescription className="text-base">
+                Your partner has request to end the session.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
 
-          {requestRejected && timeRemaining !== null && (
-            <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/5 p-3 animate-fade-in">
-              <Clock className="h-4 w-4 text-warning" />
-              <span className="text-sm font-medium">
-                Force end available in:{" "}
-                <span className="font-mono text-warning">
-                  {formatTime(timeRemaining)}
-                </span>
-              </span>
-            </div>
-          )}
-        </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <AlertDialogCancel className="flex-1">Reject</AlertDialogCancel>
 
-        <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <AlertDialogCancel className="flex-1">Cancel</AlertDialogCancel>
+                <Button
+                  onClick={handleAcceptRequestEnd}
+                  className={cn(
+                    "gap-2 flex-1",
+                    "bg-destructive hover:bg-destructive/90",
+                  )}
+                >
+                  End Session
+                </Button>
+              </div>
+            </AlertDialogFooter>
+          </>
+        ) : (
+          <>
+            <AlertDialogHeader className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                  <LogOut className="h-5 w-5 text-destructive" />
+                </div>
+                <AlertDialogTitle className="text-xl">
+                  Leave Session?
+                </AlertDialogTitle>
+              </div>
+              <AlertDialogDescription className="text-base">
+                You can request to end the session with your partner, or leave
+                immediately and disconnect.
+              </AlertDialogDescription>
 
-            <Button
-              onClick={forceEndEnabled ? handleForceEnd : handleRequestEnd}
-              disabled={requestRejected && !forceEndEnabled}
-              className={cn(
-                "gap-2 flex-1",
-                forceEndEnabled && "bg-destructive hover:bg-destructive/90",
+              {requestRejected && timeRemaining !== null && (
+                <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/5 p-3 animate-fade-in">
+                  <Clock className="h-4 w-4 text-warning" />
+                  <span className="text-sm font-medium">
+                    Force end available in:{" "}
+                    <span className="font-mono text-warning">
+                      {formatTime(timeRemaining)}
+                    </span>
+                  </span>
+                </div>
               )}
-            >
-              {forceEndEnabled ? (
-                <>
-                  <AlertCircle className="h-4 w-4" />
-                  Force End Session
-                </>
-              ) : (
-                "Request to End"
-              )}
-            </Button>
-          </div>
+            </AlertDialogHeader>
 
-          {/* divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                or
-              </span>
-            </div>
-          </div>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <AlertDialogCancel className="flex-1">Cancel</AlertDialogCancel>
 
-          {/* immediate leave */}
-          <Button
-            variant="destructive"
-            onClick={handleLeaveAnyway}
-            className="w-full gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Leave Anyway
-          </Button>
-        </AlertDialogFooter>
+                <Button
+                  onClick={forceEndEnabled ? handleForceEnd : handleRequestEnd}
+                  disabled={requestRejected && !forceEndEnabled}
+                  className={cn(
+                    "gap-2 flex-1",
+                    forceEndEnabled && "bg-destructive hover:bg-destructive/90",
+                  )}
+                >
+                  {forceEndEnabled ? (
+                    <>
+                      <AlertCircle className="h-4 w-4" />
+                      Force End Session
+                    </>
+                  ) : (
+                    "Request to End"
+                  )}
+                </Button>
+              </div>
+
+              {/* divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    or
+                  </span>
+                </div>
+              </div>
+
+              {/* immediate leave */}
+              <Button
+                variant="destructive"
+                onClick={handleLeaveAnyway}
+                className="w-full gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Leave Anyway
+              </Button>
+            </AlertDialogFooter>
+          </>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );

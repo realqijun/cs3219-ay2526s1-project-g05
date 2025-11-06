@@ -68,7 +68,7 @@ export const collaboration_sessions_schema = {
 
         endRequests: {
           bsonType: "array",
-          items: { bsonType: "object" },
+          items: { bsonType: "string" },
         },
 
         cursorPositions: {

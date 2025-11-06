@@ -56,6 +56,7 @@ export const CollaborationSessionProvider = ({ children }) => {
   const versionRef = useRef(-1);
   const joinInFlightRef = useRef(false);
   const snapshotTimeoutRef = useRef(null);
+  const sentClientMessageIds = useRef(new Set());
 
   const [session, setSession] = useState(null);
   const [connected, setConnected] = useState(false);
@@ -64,6 +65,7 @@ export const CollaborationSessionProvider = ({ children }) => {
   const [cursorPositions, setCursorPositions] = useState({});
   const [lastConflict, setLastConflict] = useState(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [messages, setMessages] = useState([]);
 
   const resetState = useCallback(() => {
     setSession(null);
@@ -71,7 +73,7 @@ export const CollaborationSessionProvider = ({ children }) => {
     setParticipants([]);
     setCursorPositions({});
     setLastConflict(null);
-    versionRef.current = 0;
+    versionRef.current = -1;
     sessionIdRef.current = null;
     if (snapshotTimeoutRef.current) {
       clearTimeout(snapshotTimeoutRef.current);
@@ -94,7 +96,7 @@ export const CollaborationSessionProvider = ({ children }) => {
       if (normalized.code) setCode(normalized.code);
       setParticipants(normalized.participants ?? []);
       setCursorPositions(normalized.cursorPositions ?? {});
-      versionRef.current = normalized.version ?? 0;
+      versionRef.current = normalized.version;
       sessionIdRef.current = normalized.id;
 
       if (normalized.status === "ended") {
@@ -160,6 +162,26 @@ export const CollaborationSessionProvider = ({ children }) => {
       }
     }, 200);
   }, [fetchSessionSnapshot]);
+
+  const handleMessage = useCallback(
+    ({ message }) => {
+      if (
+        message?.clientMessageId &&
+        sentClientMessageIds.current.has(message.clientMessageId)
+      ) {
+        sentClientMessageIds.current.delete(message.clientMessageId);
+        return;
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...message,
+          isCurrentUser: message?.sender?.id === user?.id,
+        },
+      ]);
+    },
+    [user],
+  );
 
   useEffect(() => {
     const activeSessionId = user?.collaborationSessionId;
@@ -270,6 +292,7 @@ export const CollaborationSessionProvider = ({ children }) => {
     socket.on("disconnect", handleDisconnect);
     socket.on("session:state", handleSessionState);
     socket.on("session:operation", handleSessionOperation);
+    socket.on("session:chat:message", handleMessage);
 
     return () => {
       socket.off("connect", handleConnect);
@@ -277,6 +300,7 @@ export const CollaborationSessionProvider = ({ children }) => {
       socket.off("disconnect", handleDisconnect);
       socket.off("session:state", handleSessionState);
       socket.off("session:operation", handleSessionOperation);
+      socket.off("session:chat:message", handleMessage);
       disconnectSocket();
       resetState();
     };
@@ -289,7 +313,39 @@ export const CollaborationSessionProvider = ({ children }) => {
     resetState,
     applySessionState,
     scheduleSnapshotRefresh,
+    handleMessage,
   ]);
+
+  const sendChatMessage = useCallback(
+    (content) => {
+      if (!socketRef.current) return;
+      if (!content || !content.trim()) return;
+
+      const clientMessageId = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`;
+      const optimistic = {
+        id: clientMessageId,
+        content,
+        timestamp: new Date().toISOString(),
+        sender: { id: user?.id, name: user?.username || user?.name || "You" },
+        isCurrentUser: true,
+      };
+      setMessages((prev) => [...prev, optimistic]);
+      sentClientMessageIds.current.add(clientMessageId);
+
+      socketRef.current.emit(
+        "session:chat:message",
+        { content, clientMessageId },
+        (ack) => {
+          if (!ack?.ok) {
+            toast.error(ack?.error?.message || "Failed to send message");
+          }
+        },
+      );
+    },
+    [user],
+  );
 
   const emitWithAck = useCallback((event, payload) => {
     return new Promise((resolve, reject) => {
@@ -374,6 +430,8 @@ export const CollaborationSessionProvider = ({ children }) => {
       sendOperation,
       sendCursor,
       fetchSessionSnapshot,
+      messages,
+      sendChatMessage,
     }),
     [
       session,
@@ -386,6 +444,8 @@ export const CollaborationSessionProvider = ({ children }) => {
       sendOperation,
       sendCursor,
       fetchSessionSnapshot,
+      messages,
+      sendChatMessage,
     ],
   );
 

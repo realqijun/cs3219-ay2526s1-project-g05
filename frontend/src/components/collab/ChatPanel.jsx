@@ -7,9 +7,8 @@ import { Send } from "lucide-react";
 import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 
 export default function ChatPanel() {
-  const { messages } = useCollaborationSession();
+  const { messages, sendChatMessage } = useCollaborationSession();
   const [newMessage, setNewMessage] = useState("");
-  const { sendChatMessage } = useCollaborationSession();
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -35,7 +34,9 @@ export default function ChatPanel() {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.isCurrentUser ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  message.isCurrentUser ? "justify-end" : "justify-start"
+                }`}
               >
                 <div
                   className={`max-w-[80%] rounded-lg p-3 ${
@@ -44,10 +45,15 @@ export default function ChatPanel() {
                       : "bg-secondary"
                   }`}
                 >
-                  <p className="text-sm font-medium mb-1">{message.sender?.name || "User"}</p>
+                  <p className="text-sm font-medium mb-1">
+                    {message.sender?.name || "User"}
+                  </p>
                   <p className="text-sm">{message.content}</p>
                   <p className="text-xs mt-1 opacity-70">
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(message.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                 </div>
               </div>

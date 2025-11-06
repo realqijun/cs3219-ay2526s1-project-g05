@@ -457,7 +457,7 @@ export default function CodeEditorPanel() {
       state,
       parent: editorRef.current,
     });
-  }, [effectiveLanguage, handleEditorUpdate, session]);
+  }, [effectiveLanguage, handleEditorUpdate, session?.id]);
 
   useEffect(() => {
     return () => {
@@ -500,7 +500,7 @@ export default function CodeEditorPanel() {
     if (!session?.id) return "Waiting for session";
     if (isJoining) return "Joining session...";
     return connected ? "Live" : "Reconnecting...";
-  }, [session, connected, isJoining]);
+  }, [session?.id, connected, isJoining]);
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">

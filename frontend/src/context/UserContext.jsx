@@ -80,6 +80,7 @@ export const UserProvider = ({ children }) => {
       setUser(response.user);
       return response.user;
     } catch (e) {
+      console.log("Error refreshing user data:", e.status);
       return null;
     }
   }, [setUser]);

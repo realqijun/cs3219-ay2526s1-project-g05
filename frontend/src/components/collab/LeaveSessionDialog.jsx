@@ -54,13 +54,10 @@ export default function LeaveSessionDialog({
     }
   }, [requestRejected, lastRequestTime]);
 
-  // 1) "Leave anyway" = just me leaving, session may continue
   const handleLeaveAnyway = async () => {
     setOpen(false);
     try {
-      // tell server we left
-      await leaveSession?.({ terminateForAll: false });
-      // after context cleans up, we can go to disconnected screen
+      await leaveSession?.({ terminateForAll: true });
       navigate("/session-disconnected", { state: { reason: "left" } });
       toast("Session Disconnected", {
         description: "You have left the session.",
@@ -71,7 +68,6 @@ export default function LeaveSessionDialog({
     }
   };
 
-  // 2) "Request to end" = your existing “ask partner to end” flow
   const handleRequestEnd = () => {
     onRequestEnd?.();
     setOpen(false);
@@ -80,7 +76,6 @@ export default function LeaveSessionDialog({
     });
   };
 
-  // 3) "Force end" = end for everyone
   const handleForceEnd = async () => {
     setOpen(false);
     try {

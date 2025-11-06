@@ -29,7 +29,7 @@ export default function SessionPage() {
         <div className="flex-1 overflow-hidden">
           <ResizablePanelGroup direction="horizontal">
             {/* Problem Panel */}
-            <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
+            <ResizablePanel defaultSize={25} minSize={25} maxSize={40}>
               {/* ProblemPanel uses useSession() internally; no prop required */}
               <ProblemPanel />
             </ResizablePanel>
@@ -49,7 +49,7 @@ export default function SessionPage() {
             <ResizableHandle withHandle />
 
             {/* Chat Panel */}
-            <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
+            <ResizablePanel defaultSize={25} minSize={25} maxSize={40}>
               {displayAIPanel ? (
                 <AIPanel setDisplayAIPanel={setDisplayAIPanel} />
               ) : (

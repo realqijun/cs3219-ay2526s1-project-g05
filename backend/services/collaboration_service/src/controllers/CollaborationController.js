@@ -47,12 +47,36 @@ export class CollaborationController {
     }
   };
 
+  sendCustomMessage = async (req, res, next) => {
+    try {
+      const { message } = req.body;
+      const response = await this.collaborationService.sendCustomMessage(
+        req.params.sessionId,
+        message,
+      );
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   explainCode = async (req, res, next) => {
     try {
       const response = await this.collaborationService.explainCode(
         req.params.sessionId,
       );
-      res.json({ explanation: response.explanation });
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getConversation = async (req, res, next) => {
+    try {
+      const response = await this.collaborationService.getConversation(
+        req.params.sessionId,
+      );
+      res.json({ conversation: response.conversation });
     } catch (error) {
       next(error);
     }

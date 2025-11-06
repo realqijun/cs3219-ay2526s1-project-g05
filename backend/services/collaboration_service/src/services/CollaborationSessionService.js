@@ -749,28 +749,124 @@ export class CollaborationSessionService {
     return this.sanitizeSession(session);
   }
 
+  async createConversation(sessionId) {
+    const conversation = await this.openaiClient.conversations.create({
+      metadata: { sessionId: sessionId },
+    });
+
+    await this.repository.updateById(sessionId, {
+      set: { openai_conversationId: conversation.id },
+    });
+
+    return conversation.id;
+  }
+
+  async getConversationId(sessionId) {
+    const session = await this.repository.findById(sessionId);
+    let conversationId = session?.openai_conversationId;
+    if (!conversationId) {
+      conversationId = await this.createConversation(sessionId);
+    }
+
+    return conversationId;
+  }
+
+  async getConversation(sessionId) {
+    const conversationId = await this.getConversationId(sessionId);
+
+    const result = await this.openaiClient.conversations.items.list(
+      conversationId,
+      { order: "asc" },
+    );
+
+    const finalConversation = [];
+    for (const item of result.data) {
+      if (item.role === "system" || item.type === "reasoning") continue;
+
+      finalConversation.push({
+        type: item.type,
+        role: item.role,
+        content: item.content[0]?.text,
+      });
+    }
+
+    return {
+      conversationId: conversationId,
+      conversation: finalConversation,
+    };
+  }
+
+  async sendCustomMessage(sessionId, message) {
+    const { conversation, conversationId } =
+      await this.getConversation(sessionId);
+
+    conversation.push({
+      type: "message",
+      role: "user",
+      content: message,
+    });
+    const response = await this.openaiClient.responses.create({
+      model: "gpt-5-nano",
+      instructions: "You are a patient, technically strong coding assistant.",
+      input: message,
+      conversation: conversationId,
+      max_output_tokens: 2000,
+    });
+
+    conversation.push({
+      type: "message",
+      role: "assistant",
+      content: response.output_text,
+    });
+
+    return {
+      conversation,
+      response: response.output_text,
+    };
+  }
+
   async explainCode(sessionId) {
     if (!sessionId) {
       throw new ApiError(400, "Session ID is required.");
     }
 
     const session = await this.repository.findById(sessionId);
+    const { conversation, conversationId } =
+      await this.getConversation(sessionId);
+
     const question = await fetchQuestion(session.questionId);
 
+    const finalInput = `Could you explain how to solve the following coding question?
+**Question:**
+${question.body}
+**User's Code:**
+${session.code}`;
+
+    conversation.push({
+      type: "message",
+      role: "user",
+      content: finalInput,
+    });
     const response = await this.openaiClient.responses.create({
       model: "gpt-5-nano",
       instructions: `You are a patient, technically strong coding assistant. Your main job is to explain programming questions and solutions clearly, not just give final answers.
-When a user asks a question: Limit each explanation to 1,000 words or less. If the full explanation would be longer, prioritise the most important ideas, give a compact summary, and suggest how the user could explore the topic further.
-Provide appropriate formatting in markdown, such as headers, code blocks and new lines. Only return the FULL explanation, nothing else.`,
-      input: `**Question:**
-${question.body}
-**User's Code:**
-${session.code}`,
+When a user asks a question: Limit each explanation to 1,000 words or less. Provide appropriate formatting in markdown, such as headers, code blocks and new lines. 
+The question and the user's query and code will be attached below. Only return the FULL explanation, nothing else.
+`,
+      input: finalInput,
+      conversation: conversationId,
       max_output_tokens: 2000,
     });
 
+    conversation.push({
+      type: "message",
+      role: "assistant",
+      content: response.output_text,
+    });
+
     return {
-      explanation: response.output_text,
+      conversation,
+      response: response.output_text,
     };
   }
 }

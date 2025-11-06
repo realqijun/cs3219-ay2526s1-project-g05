@@ -1,7 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSession } from "@/hooks/useSession";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import Markdown from "react-markdown";
+import "./Markdown.css";
 
 function badgeVariantForDifficulty(diff) {
   const d = (diff || "").toLowerCase();
@@ -9,14 +13,6 @@ function badgeVariantForDifficulty(diff) {
   if (d === "medium") return "default";
   if (d === "hard") return "destructive";
   return "outline";
-}
-
-function renderCodeish(val) {
-  if (val == null) return null;
-  const text = typeof val === "string" ? val : JSON.stringify(val, null, 2);
-  return (
-    <code className="text-sm whitespace-pre-wrap break-words">{text}</code>
-  );
 }
 
 export default function ProblemPanel() {
@@ -86,7 +82,7 @@ export default function ProblemPanel() {
       </CardHeader>
 
       <CardContent className="flex-1 overflow-hidden !p-2">
-        <ScrollArea className="h-full">
+        <div className="h-full w-full overflow-x-hidden overflow-y-auto">
           <div className="p-3 space-y-6">
             {/* Topics */}
             {Array.isArray(topics) && topics.length > 0 && (
@@ -99,91 +95,16 @@ export default function ProblemPanel() {
               </div>
             )}
 
-            {/* Description */}
-            <div>
-              <h3 className="font-semibold mb-2">Description</h3>
-              {renderDescription()}
+            <div className="markdown-body">
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw, rehypeSanitize]}
+              >
+                {descriptionHtml}
+              </Markdown>
             </div>
-
-            {/* Examples */}
-            {Array.isArray(examples) && examples.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-3">Examples</h3>
-                <div className="space-y-4">
-                  {examples.map((ex, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-secondary/50 rounded-lg p-4 space-y-2"
-                    >
-                      {"input" in ex && (
-                        <div>
-                          <span className="text-sm font-medium">Input: </span>
-                          {renderCodeish(ex.input)}
-                        </div>
-                      )}
-                      {"output" in ex && (
-                        <div>
-                          <span className="text-sm font-medium">Output: </span>
-                          {renderCodeish(ex.output)}
-                        </div>
-                      )}
-                      {ex.explanation && (
-                        <div>
-                          <span className="text-sm font-medium">
-                            Explanation:{" "}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {ex.explanation}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Constraints */}
-            {Array.isArray(constraints) && constraints.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2">Constraints</h3>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {constraints.map((c, idx) => (
-                    <li key={idx} className="flex items-start">
-                      <span className="mr-2">•</span>
-                      <code className="flex-1 whitespace-pre-wrap break-words">
-                        {typeof c === "string" ? c : JSON.stringify(c)}
-                      </code>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Hints (HTML array) */}
-            {Array.isArray(hints) && hints.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2">Hints</h3>
-                <ul className="space-y-1 text-sm text-muted-foreground list-disc list-inside">
-                  {hints.map((h, i) => (
-                    <li key={i} dangerouslySetInnerHTML={{ __html: h }} />
-                    // if sanitizing: dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(h) }}
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Optional: single code block if present */}
-            {codeBlock && (
-              <div>
-                <h3 className="font-semibold mb-2">Starter Code</h3>
-                <pre className="bg-muted/50 p-3 rounded overflow-auto text-sm">
-                  {codeBlock}
-                </pre>
-              </div>
-            )}
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

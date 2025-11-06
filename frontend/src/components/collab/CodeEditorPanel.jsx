@@ -528,11 +528,11 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
             </Select>
             <Button
               onClick={handleAIExplanation}
-              className="bg-purple-500 hover:bg-purple-400"
+              className="bg-purple-600 hover:bg-purple-500"
               size="sm"
             >
               <Sparkles className="w-4 h-4 mr-1" />
-              Explain
+              AI
             </Button>
             <Button onClick={handleRun} size="sm">
               <Play className="w-4 h-4 mr-1" />

@@ -1,43 +1,98 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles, Send } from "lucide-react";
 import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 import { useEffect } from "react";
 import { collaborationApi } from "@/lib/collaborationApi";
 import Markdown from "react-markdown";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import "./Markdown.css";
+import { useRef } from "react";
 
 export default function AIPanel({ setDisplayAIPanel }) {
-  const [loading, setLoading] = useState(false);
-  const [explanation, setExplanation] = useState("");
+  const chatContainerRef = useRef(null);
+
+  const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [conversation, setConversation] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
   const { session } = useCollaborationSession();
 
+  const scrollToBottom = () => {
+    if (!chatContainerRef.current) return;
+
+    chatContainerRef.current.scrollTo({
+      top: chatContainerRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  };
+
   const handleExplainCode = async () => {
-    setLoading(true);
+    setIsUpdating(true);
     try {
-      console.log(session);
       const response = await collaborationApi.explainCode(session?.id);
-      setExplanation(response.explanation);
+      setConversation(response.conversation);
     } catch (e) {
       toast.error("Failed to get code explanation from AI.");
+    }
+    setIsUpdating(false);
+  };
+
+  const handleSendMessage = async () => {
+    if (conversation.length === 0) return;
+    setIsUpdating(true);
+    try {
+      const response = await collaborationApi.sendCustomMessage(
+        session?.id,
+        newMessage,
+      );
+      setConversation(response.conversation);
+      setNewMessage("");
+    } catch (e) {
+      toast.error("Failed to send message to AI.");
+    }
+    setIsUpdating(false);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleGetConversation = async () => {
+    setLoading(true);
+    try {
+      const response = await collaborationApi.getConversation(session?.id);
+      setConversation(response.conversation);
+    } catch (e) {
+      toast.error("Failed to get AI conversation");
     }
     setLoading(false);
   };
 
   useEffect(() => {
     if (!session) return;
-    // handleExplainCode();
+    handleGetConversation();
   }, [session]);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversation, isUpdating]);
+
   return (
-    <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
+    <Card className="h-full w-full flex flex-col border-0 rounded-none shadow-none">
       <CardHeader className="border-b !h-20">
         <div className="w-full flex justify-between items-center">
           <span className="text-xl font-semibold tracking-wider">
-            AI Explanation
+            AI Assistant
           </span>
           <Button
             onClick={() => {
@@ -49,21 +104,97 @@ export default function AIPanel({ setDisplayAIPanel }) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-        <ScrollArea className="flex-1 p-4">
-          {false ? (
-            <div className="flex flex-col items-center">
-              <h1 className="text-xl tracking-wider">Explaining Code...</h1>
-              <Loader2 className="w-12 h-12 mt-4 text-primary animate-spin" />
+      <CardContent className="w-full h-full flex-1 flex flex-col !p-0 overflow-hidden">
+        {loading ? (
+          <div className="flex flex-col items-center mt-4">
+            <h1 className="text-xl tracking-wider">Loading Conversation...</h1>
+            <Loader2 className="w-12 h-12 mt-4 text-primary animate-spin" />
+          </div>
+        ) : (
+          <>
+            <div className="h-full flex flex-col">
+              <div
+                ref={chatContainerRef}
+                className="overflow-y-auto h-full p-3"
+              >
+                {isUpdating || conversation.length > 0 ? (
+                  <>
+                    {conversation.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex mt-4 ${
+                          message.role === "user"
+                            ? "justify-end"
+                            : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`w-[95%] overflow-hidden rounded-lg shadow-xl p-3 ${
+                            message.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-purple-700 text-white"
+                          }`}
+                        >
+                          <p className="text-sm font-medium mb-1">
+                            {message.role === "user" ? "User" : "AI Assistant"}
+                          </p>
+                          <div className="markdown-body">
+                            <Markdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                            >
+                              {message.content}
+                            </Markdown>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className="flex flex-col justify-center items-center text-center">
+                    <h1 className="text-lg font-bold">Squeek Squeek</h1>
+                    <h3 className="mt-1">
+                      It is a little lonely here... Start by clicking on the
+                      "Explain" button below!
+                    </h3>
+                  </div>
+                )}
+
+                {isUpdating && (
+                  <div className="flex flex-col items-center mt-4">
+                    <h1 className="text-xl tracking-wider">Updating</h1>
+                    <Loader2 className="w-8 h-8 mt-4 text-primary animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="shadow-2xl flex items-center bg-secondary p-1">
+                <Input
+                  placeholder="Ask the assistant a question..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  disabled={conversation.length === 0 || isUpdating}
+                  className="flex-1"
+                />
+                <Button
+                  disabled={conversation.length === 0 || isUpdating}
+                  onClick={handleSendMessage}
+                  size="icon"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={handleExplainCode}
+                  disabled={isUpdating}
+                  className="bg-purple-600 hover:bg-purple-500 ml-1"
+                >
+                  <Sparkles className="w-4 h-4 mr-1" />
+                  Explain
+                </Button>
+              </div>
             </div>
-          ) : (
-            <Markdown>
-              {
-                "Here's a clear, efficient approach and a ready-to-use Python implementation.\n\nIdea:\n- Build a frequency map (multiset) for the smaller array.\n- Iterate through the larger array, and for each value that exists in the map with positive count, append it to the result and decrement the count.\n- This yields the intersection counting duplicates appropriately, in O(n + m) time and O(min(n, m)) extra space.\n\nWhy this works:\n- Each element in the result is present in both arrays as many times as it appears in both.\n- By always counting from the smaller array, we minimize extra space.\n\nAlgorithm steps:\n1. If nums1 is longer than nums2, swap them (so we count from the smaller one).\n2. Build a dict counts of nums1.\n3. For each x in nums2, if counts[x] > 0, append x to result and decrement counts[x].\n4. Return the result.\n\nPython implementation:\n\nclass Solution:\n    def intersect(self, nums1: List[int], nums2: List[int]) -> List[int]:\n        # Ensure we build the frequency map from the smaller array\n        if len(nums1) > len(nums2):\n            nums1, nums2 = nums2, nums1\n\n        counts = {}\n        for x in nums1:\n            counts[x] = counts.get(x, 0) + 1\n\n        res = []\n        for y in nums2:\n            if counts.get(y, 0) > 0:\n                res.append(y)\n                counts[y] -= 1\n\n        return res\n\nNotes and alternatives:\n- Counter version (more concise, same logic):\n  from collections import Counter\n\n  class Solution:\n      def intersect(self, nums1: List[int], nums2: List[int]) -> List[int]:\n          if len(nums1) > len(nums2):\n              nums1, nums2 = nums2, nums1\n          c = Counter(nums1)\n          res = []\n          for n in nums2:\n              if c[n] > 0:\n                  res.append(n)\n                  c[n] -= 1\n          return res\n\nFollow-up insights:\n- If both arrays are already sorted:\n  - Use two pointers i, j starting at 0; advance the pointer with the smaller value, and when equal, append to result and move both pointers. This is O(n + m) time and O(1) extra space.\n- If nums1 is much smaller than nums2:\n  - The described approach (build map from the smaller array) is optimal in terms of space usage.\n"
-              }
-            </Markdown>
-          )}
-        </ScrollArea>
+          </>
+        )}
       </CardContent>
     </Card>
   );

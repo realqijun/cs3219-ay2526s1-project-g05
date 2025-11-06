@@ -44,9 +44,9 @@ export const UserProvider = ({ children }) => {
   }, [loading, user, token, location]);
 
   const setUserAndStorage = useCallback(
-    (newUser, token, rememberMe = false) => {
+    (newUser, token = undefined, rememberMe = false) => {
       setUser(newUser);
-      setToken(token);
+      if (typeof token !== "undefined") setToken(token);
 
       const storage = rememberMe ? localStorage : sessionStorage;
       if (newUser) {
@@ -69,7 +69,7 @@ export const UserProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     navigate("/login", { replace: true, state: {} });
-    setUserAndStorage(null);
+    setUserAndStorage(null, null);
     toast.success("Logged out successfully!");
   }, [setUserAndStorage, navigate]);
 
@@ -80,7 +80,9 @@ export const UserProvider = ({ children }) => {
       setUser(response.user);
       return response.user;
     } catch (e) {
-      console.log("Error refreshing user data:", e.status);
+      if (e.status === 401) {
+        setUserAndStorage(null, null); // Invalid token, maybe expired
+      }
       return null;
     }
   }, [setUser]);

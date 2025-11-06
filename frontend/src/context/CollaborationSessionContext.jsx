@@ -57,7 +57,6 @@ export const CollaborationSessionProvider = ({ children }) => {
   const versionRef = useRef(-1);
   const joinInFlightRef = useRef(false);
   const snapshotTimeoutRef = useRef(null);
-  const suppressAutoJoinRef = useRef(false);
   const sentClientMessageIds = useRef(new Set());
 
   const [session, setSession] = useState(null);
@@ -191,22 +190,13 @@ export const CollaborationSessionProvider = ({ children }) => {
         resetState();
       }
 
+      if (location.pathname === "/session") navigate("/matchmaking");
+
       return;
     }
 
-    const AUTO_CONNECT_ROUTES = new Set(["/session"]);
-    if (!AUTO_CONNECT_ROUTES.has(location.pathname)) {
-      // We have an activeSessionId but we're not on /session.
-      // Make sure socket is not connected to avoid flicker.
-      if (socketRef.current) {
-        disconnectSocket();
-        resetState();
-      }
-      return;
-    }
-
-    if (suppressAutoJoinRef.current) {
-      return;
+    if (location.pathname !== "/session") {
+      navigate("/session");
     }
 
     if (
@@ -243,7 +233,6 @@ export const CollaborationSessionProvider = ({ children }) => {
     const handleConnect = () => {
       setConnected(true);
 
-      if (suppressAutoJoinRef.current) return;
       if (joinInFlightRef.current) return;
 
       joinInFlightRef.current = true;
@@ -273,19 +262,12 @@ export const CollaborationSessionProvider = ({ children }) => {
           }
 
           applySessionState(normalized);
-
-          if (!suppressAutoJoinRef.current) {
-            toast.success("Connected to collaboration session.");
-          }
         },
       );
     };
 
     const handleConnectError = (error) => {
       console.error("Collaboration socket connect error:", error);
-      if (!suppressAutoJoinRef.current) {
-        toast.error("Unable to connect to collaboration service.");
-      }
     };
 
     const handleDisconnect = () => {
@@ -437,8 +419,6 @@ export const CollaborationSessionProvider = ({ children }) => {
     async ({ terminateForAll = false } = {}) => {
       const activeSessionId = sessionIdRef.current;
 
-      suppressAutoJoinRef.current = true;
-
       try {
         if (socketRef.current) {
           await emitWithAck("session:leave", {
@@ -459,10 +439,6 @@ export const CollaborationSessionProvider = ({ children }) => {
         } catch (e) {
           console.warn("refreshUserData failed:", e);
         }
-
-        setTimeout(() => {
-          suppressAutoJoinRef.current = false;
-        }, 5000);
       }
     },
     [emitWithAck, disconnectSocket, resetState, refreshUserData],

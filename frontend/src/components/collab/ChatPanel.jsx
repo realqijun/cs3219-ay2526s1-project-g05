@@ -25,10 +25,10 @@ export default function ChatPanel() {
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
-      <CardHeader className="border-b">
+      <CardHeader className="border-b !h-20">
         <CardTitle className="text-xl">Chat</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+      <CardContent className="flex-1 flex flex-col !p-3 overflow-hidden">
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {messages.map((message) => (

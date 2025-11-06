@@ -46,6 +46,17 @@ export class CollaborationController {
       next(error);
     }
   };
+
+  explainCode = async (req, res, next) => {
+    try {
+      const response = await this.collaborationService.explainCode(
+        req.params.sessionId,
+      );
+      res.json({ explanation: response.explanation });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export const errorMiddleware = (err, _req, res, _next) => {

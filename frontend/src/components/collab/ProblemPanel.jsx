@@ -14,7 +14,9 @@ function badgeVariantForDifficulty(diff) {
 function renderCodeish(val) {
   if (val == null) return null;
   const text = typeof val === "string" ? val : JSON.stringify(val, null, 2);
-  return <code className="text-sm whitespace-pre-wrap break-words">{text}</code>;
+  return (
+    <code className="text-sm whitespace-pre-wrap break-words">{text}</code>
+  );
 }
 
 export default function ProblemPanel() {
@@ -58,30 +60,41 @@ export default function ProblemPanel() {
       );
     }
     if (descriptionText) {
-      return <p className="text-muted-foreground leading-relaxed">{descriptionText}</p>;
+      return (
+        <p className="text-muted-foreground leading-relaxed">
+          {descriptionText}
+        </p>
+      );
     }
-    return <p className="text-muted-foreground italic">No description provided.</p>;
+    return (
+      <p className="text-muted-foreground italic">No description provided.</p>
+    );
   };
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
-      <CardHeader className="border-b">
+      <CardHeader className="border-b !h-20">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl">{title}</CardTitle>
-          <Badge variant={badgeVariantForDifficulty(difficulty)} className="ml-2">
+          <Badge
+            variant={badgeVariantForDifficulty(difficulty)}
+            className="ml-2"
+          >
             {difficulty}
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-hidden p-0">
+      <CardContent className="flex-1 overflow-hidden !p-2">
         <ScrollArea className="h-full">
-          <div className="p-6 space-y-6">
+          <div className="p-3 space-y-6">
             {/* Topics */}
             {Array.isArray(topics) && topics.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {topics.map((t) => (
-                  <Badge key={t} variant="outline">{t}</Badge>
+                  <Badge key={t} variant="outline">
+                    {t}
+                  </Badge>
                 ))}
               </div>
             )}
@@ -98,7 +111,10 @@ export default function ProblemPanel() {
                 <h3 className="font-semibold mb-3">Examples</h3>
                 <div className="space-y-4">
                   {examples.map((ex, idx) => (
-                    <div key={idx} className="bg-secondary/50 rounded-lg p-4 space-y-2">
+                    <div
+                      key={idx}
+                      className="bg-secondary/50 rounded-lg p-4 space-y-2"
+                    >
                       {"input" in ex && (
                         <div>
                           <span className="text-sm font-medium">Input: </span>
@@ -113,8 +129,12 @@ export default function ProblemPanel() {
                       )}
                       {ex.explanation && (
                         <div>
-                          <span className="text-sm font-medium">Explanation: </span>
-                          <span className="text-sm text-muted-foreground">{ex.explanation}</span>
+                          <span className="text-sm font-medium">
+                            Explanation:{" "}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {ex.explanation}
+                          </span>
                         </div>
                       )}
                     </div>

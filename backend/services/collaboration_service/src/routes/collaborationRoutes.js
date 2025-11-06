@@ -21,6 +21,16 @@ export const createCollaborationRouter = (controller) => {
   );
 
   /**
+   * GET /sessions/:sessionId
+   * @summary Fetch a collaboration session by its identifier
+   */
+  router.post(
+    "/sessions/:sessionId/explain-code",
+    [authenticate(false)],
+    controller.explainCode,
+  );
+
+  /**
    * POST /sessions/:sessionId/terminate
    * @summary [Unused for now] Administrative termination of a collaboration session
    */

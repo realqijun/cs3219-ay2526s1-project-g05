@@ -139,7 +139,6 @@ export default function LeaveSessionDialog() {
 
                 <Button
                   onClick={forceEndEnabled ? handleForceEnd : handleRequestEnd}
-                  disabled={!forceEndEnabled}
                   className={cn(
                     "gap-2 flex-1",
                     forceEndEnabled && "bg-destructive hover:bg-destructive/90",

@@ -508,7 +508,7 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
-      <CardHeader className="border-b">
+      <CardHeader className="border-b !h-20">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <CardTitle className="text-xl">Code Editor</CardTitle>
@@ -541,7 +541,7 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 p-0 overflow-hidden">
+      <CardContent className="flex-1 !p-0 overflow-hidden">
         <div ref={editorRef} className="h-full w-full" />
       </CardContent>
     </Card>

@@ -7,6 +7,7 @@ import {
   addUserPastSession,
 } from "../utils/fetchRequests.js";
 import { parseDate } from "../utils/misc.js";
+import OpenAI from "openai";
 
 const MAX_PARTICIPANTS = 2;
 const DEFAULT_LANGUAGE = "javascript";
@@ -20,6 +21,9 @@ export class CollaborationSessionService {
     this.lockDurationMs = LOCK_DURATION_MS;
     this.reconnectWindowMs = RECONNECT_WINDOW_MS;
     this.locks = new Map();
+    this.openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
   }
 
   now() {
@@ -743,5 +747,30 @@ export class CollaborationSessionService {
     }
     await this.handleSessionEnded(currentSession, session ?? currentSession);
     return this.sanitizeSession(session);
+  }
+
+  async explainCode(sessionId) {
+    if (!sessionId) {
+      throw new ApiError(400, "Session ID is required.");
+    }
+
+    const session = await this.repository.findById(sessionId);
+    const question = await fetchQuestion(session.questionId);
+
+    const response = await this.openaiClient.responses.create({
+      model: "gpt-5-nano",
+      instructions: `You are a patient, technically strong coding assistant. Your main job is to explain programming questions and solutions clearly, not just give final answers.
+When a user asks a question: Limit each explanation to 1,000 words or less. If the full explanation would be longer, prioritise the most important ideas, give a compact summary, and suggest how the user could explore the topic further.
+Provide appropriate formatting in markdown, such as headers, code blocks and new lines. Only return the FULL explanation, nothing else.`,
+      input: `**Question:**
+${question.body}
+**User's Code:**
+${session.code}`,
+      max_output_tokens: 2000,
+    });
+
+    return {
+      explanation: response.output_text,
+    };
   }
 }

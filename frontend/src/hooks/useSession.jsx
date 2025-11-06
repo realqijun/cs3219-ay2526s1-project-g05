@@ -15,7 +15,6 @@ function isPlaceholder(code) {
   return false;
 }
 
-// ✅ Map backend -> UI-consistent shape used by panels
 function normalizeQuestion(q) {
   if (!q) return null;
   return {
@@ -24,18 +23,14 @@ function normalizeQuestion(q) {
     difficulty: q.difficulty ?? "Unknown",
     topics: Array.isArray(q.topics) ? q.topics : [],
 
-    // description variants
-    descriptionHtml: q.body ?? null,        // your API returns HTML here
-    descriptionText: q.description ?? "",   // optional plain-text fallback
+    descriptionHtml: q.body ?? null,
+    descriptionText: q.description ?? "",
 
-    // optional extras if present in your API
     examples: q.examples ?? q.samples ?? [],
     constraints: q.constraints ?? q.limits ?? [],
-    hints: q.hints ?? [],                   // array of HTML strings
+    hints: q.hints ?? [],
 
-    // starter code/stubs (from your API shape)
-    starterCode:
-      q.starterCode ??
+    starterCode: q.starterCode ??
       q.stubs ?? {
         javascript: q.jsStub,
         python: q.pyStub,
@@ -49,7 +44,8 @@ function normalizeQuestion(q) {
 }
 
 export function useSession() {
-  const { session, code, version, sendOperation } = useCollaborationSession() ?? {};
+  const { session, code, version, sendOperation } =
+    useCollaborationSession() ?? {};
   const [problem, setProblem] = useState(null);
 
   const seededRef = useRef(false);
@@ -57,7 +53,9 @@ export function useSession() {
 
   // Reset seeding guard on session/question change
   useEffect(() => {
-    const key = `${session?.id ?? "no-session"}:${session?.questionId ?? "no-q"}`;
+    const key = `${session?.id ?? "no-session"}:${
+      session?.questionId ?? "no-q"
+    }`;
     if (key !== lastKeyRef.current) {
       seededRef.current = false;
       lastKeyRef.current = key;
@@ -81,7 +79,9 @@ export function useSession() {
         if (!cancelled) setProblem(null);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [session?.questionId]);
 
   // Choose language (session wins, then problem, then default)
@@ -110,7 +110,8 @@ export function useSession() {
     const current = typeof code === "string" ? code : "";
     if (!isPlaceholder(current)) return;
 
-    const desired = language === "python" ? starterByLang.python : starterByLang.javascript;
+    const desired =
+      language === "python" ? starterByLang.python : starterByLang.javascript;
     if (desired && desired !== current) {
       sendOperation({ type: "replace", content: desired, version });
       if (typeof sendOperation.flush === "function") sendOperation.flush();
@@ -120,7 +121,7 @@ export function useSession() {
 
   return {
     session,
-    problem,        // now normalized
+    problem,
     language,
     code,
     starterByLang,

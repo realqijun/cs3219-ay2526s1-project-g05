@@ -58,6 +58,7 @@ export const CollaborationSessionProvider = ({ children }) => {
   const joinInFlightRef = useRef(false);
   const snapshotTimeoutRef = useRef(null);
   const sentClientMessageIds = useRef(new Set());
+  const userJustLeft = useRef(false);
 
   const [session, setSession] = useState(null);
   const [connected, setConnected] = useState(false);
@@ -181,6 +182,22 @@ export const CollaborationSessionProvider = ({ children }) => {
     [user],
   );
 
+  const handleOtherUserLeft = useCallback(async ({ _message }) => {
+    if (userJustLeft.current) return; // Means it is the same user that left
+
+    toast.info("The other user has left the collaboration session.");
+    userJustLeft.current = true;
+
+    disconnectSocket();
+    resetState();
+
+    try {
+      await refreshUserData();
+    } catch (e) {
+      console.warn("refreshUserData failed:", e);
+    }
+  }, []);
+
   useEffect(() => {
     const activeSessionId = user?.collaborationSessionId;
 
@@ -190,12 +207,21 @@ export const CollaborationSessionProvider = ({ children }) => {
         resetState();
       }
 
-      if (location.pathname === "/session") navigate("/matchmaking");
+      if (location.pathname === "/session") {
+        if (userJustLeft.current) {
+          navigate("/session-disconnected", {
+            state: { reason: userJustLeft.current },
+          }); // userJustLeft is picked up here and "consumed", the user then gets directed to the disconnect page
+          userJustLeft.current = false;
+        } else {
+          navigate("/matchmaking");
+        }
+      }
 
       return;
     }
 
-    if (location.pathname !== "/session") {
+    if (!location.pathname.startsWith("/session")) {
       navigate("/session");
     }
 
@@ -291,6 +317,7 @@ export const CollaborationSessionProvider = ({ children }) => {
     socket.on("session:state", handleSessionState);
     socket.on("session:operation", handleSessionOperation);
     socket.on("session:chat:message", handleMessage);
+    socket.on("session:leave", handleOtherUserLeft);
 
     return () => {
       socket.off("connect", handleConnect);
@@ -299,6 +326,7 @@ export const CollaborationSessionProvider = ({ children }) => {
       socket.off("session:state", handleSessionState);
       socket.off("session:operation", handleSessionOperation);
       socket.off("session:chat:message", handleMessage);
+      socket.off("session:leave", handleOtherUserLeft);
       disconnectSocket();
       resetState();
     };
@@ -418,27 +446,28 @@ export const CollaborationSessionProvider = ({ children }) => {
   const leaveSession = useCallback(
     async ({ terminateForAll = false } = {}) => {
       const activeSessionId = sessionIdRef.current;
+      userJustLeft.current = true;
 
       try {
-        if (socketRef.current) {
-          await emitWithAck("session:leave", {
-            sessionId: activeSessionId,
-            terminateForAll,
-          });
-        } else if (collaborationApi.leaveSession) {
-          await collaborationApi.leaveSession(activeSessionId, terminateForAll);
-        }
+        await emitWithAck("session:leave", {
+          sessionId: activeSessionId,
+          terminateForAll,
+        });
       } catch (err) {
         console.error("leaveSession error:", err);
-      } finally {
-        disconnectSocket();
-        resetState();
+        userJustLeft.current = false;
+        return;
+      }
 
-        try {
-          await refreshUserData?.();
-        } catch (e) {
-          console.warn("refreshUserData failed:", e);
-        }
+      disconnectSocket();
+      resetState();
+
+      try {
+        await refreshUserData();
+      } catch (e) {
+        console.warn("refreshUserData failed:", e);
+        userJustLeft.current = false;
+        return;
       }
     },
     [emitWithAck, disconnectSocket, resetState, refreshUserData],

@@ -22,7 +22,6 @@ export default function LeaveSessionDialog({
   lastRequestTime,
   requestRejected,
 }) {
-  const navigate = useNavigate();
   const { leaveSession } = useCollaborationSession();
   const [open, setOpen] = useState(false);
   const [forceEndEnabled, setForceEndEnabled] = useState(false);
@@ -58,7 +57,6 @@ export default function LeaveSessionDialog({
     setOpen(false);
     try {
       await leaveSession?.({ terminateForAll: true });
-      navigate("/session-disconnected", { state: { reason: "left" } });
       toast("Session Disconnected", {
         description: "You have left the session.",
       });
@@ -80,7 +78,7 @@ export default function LeaveSessionDialog({
     setOpen(false);
     try {
       await leaveSession?.({ terminateForAll: true });
-      navigate("/session-disconnected", { state: { reason: "forced" } });
+
       toast("Session Ended", {
         description: "You have ended the session.",
       });

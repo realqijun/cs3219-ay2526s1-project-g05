@@ -94,9 +94,12 @@ export class CollaborationSocketManager {
           socket.data.user.id,
           {
             sessionId: socket.data.sessionId,
-            reason: "leave",
+            reason: "left",
+            terminateForAll: true,
           },
         );
+
+        this.io?.to(socket.data.sessionId).emit("session:leave", {});
 
         socket.data.hasLeft = true;
         socket.leave(session.id);
@@ -144,12 +147,15 @@ export class CollaborationSocketManager {
           clientMessageId: payload?.clientMessageId,
           sender: {
             id: socket.data.user?.id,
-            name: socket.data.user?.username || socket.data.user?.name || "User",
+            name:
+              socket.data.user?.username || socket.data.user?.name || "User",
           },
         };
 
         // Broadcast to the session room
-        this.io?.to(socket.data.sessionId).emit("session:chat:message", { message });
+        this.io
+          ?.to(socket.data.sessionId)
+          .emit("session:chat:message", { message });
 
         return { message };
       });

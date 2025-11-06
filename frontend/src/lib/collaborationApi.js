@@ -28,4 +28,13 @@ export const collaborationApi = {
       method: "GET",
     });
   },
+
+  explainCode: async (sessionId) => {
+    return apiFetch(
+      `${COLLABORATION_API_URL}/sessions/${sessionId}/explain-code`,
+      {
+        method: "POST",
+      },
+    );
+  },
 };

@@ -15,10 +15,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 
-export default function LeaveSessionDialog({
-  lastRequestTime,
-  requestRejected,
-}) {
+export default function LeaveSessionDialog() {
   const {
     leaveSession,
     partnerRequestedLeave,
@@ -28,32 +25,6 @@ export default function LeaveSessionDialog({
   const [open, setOpen] = useState(false);
   const [forceEndEnabled, setForceEndEnabled] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(null);
-
-  // countdown for "force end" after rejection
-  useEffect(() => {
-    if (requestRejected && lastRequestTime) {
-      const checkForceEnd = () => {
-        const elapsed = Date.now() - lastRequestTime;
-        const fiveMinutes = 5 * 60 * 1000;
-
-        if (elapsed >= fiveMinutes) {
-          setForceEndEnabled(true);
-          setTimeRemaining(null);
-        } else {
-          setForceEndEnabled(false);
-          const remaining = Math.ceil((fiveMinutes - elapsed) / 1000);
-          setTimeRemaining(remaining);
-        }
-      };
-
-      checkForceEnd();
-      const interval = setInterval(checkForceEnd, 1000);
-      return () => clearInterval(interval);
-    } else {
-      setForceEndEnabled(false);
-      setTimeRemaining(null);
-    }
-  }, [requestRejected, lastRequestTime]);
 
   const handleLeaveAnyway = async () => {
     setOpen(false);
@@ -160,18 +131,6 @@ export default function LeaveSessionDialog({
                 You can request to end the session with your partner, or leave
                 immediately and disconnect.
               </AlertDialogDescription>
-
-              {requestRejected && timeRemaining !== null && (
-                <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/5 p-3 animate-fade-in">
-                  <Clock className="h-4 w-4 text-warning" />
-                  <span className="text-sm font-medium">
-                    Force end available in:{" "}
-                    <span className="font-mono text-warning">
-                      {formatTime(timeRemaining)}
-                    </span>
-                  </span>
-                </div>
-              )}
             </AlertDialogHeader>
 
             <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
@@ -180,7 +139,7 @@ export default function LeaveSessionDialog({
 
                 <Button
                   onClick={forceEndEnabled ? handleForceEnd : handleRequestEnd}
-                  disabled={requestRejected && !forceEndEnabled}
+                  disabled={!forceEndEnabled}
                   className={cn(
                     "gap-2 flex-1",
                     forceEndEnabled && "bg-destructive hover:bg-destructive/90",

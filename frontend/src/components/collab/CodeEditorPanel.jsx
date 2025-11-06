@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play } from "lucide-react";
+import { Play, Sparkles } from "lucide-react";
 import {
   Decoration,
   EditorView,
@@ -212,7 +212,7 @@ const createRemoteCursorDecorations = (state, cursors) => {
   return builder.finish();
 };
 
-export default function CodeEditorPanel() {
+export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const applyingRemoteRef = useRef(false);
@@ -492,6 +492,10 @@ export default function CodeEditorPanel() {
     // TODO: Implement code execution
   };
 
+  const handleAIExplanation = () => {
+    setDisplayAIPanel(true);
+  };
+
   const handleLanguageChange = (newLanguage) => {
     setLanguage(newLanguage);
   };
@@ -522,8 +526,16 @@ export default function CodeEditorPanel() {
                 <SelectItem value="python">Python</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              onClick={handleAIExplanation}
+              className="bg-purple-500 hover:bg-purple-400"
+              size="sm"
+            >
+              <Sparkles className="w-4 h-4 mr-1" />
+              Explain
+            </Button>
             <Button onClick={handleRun} size="sm">
-              <Play className="w-4 h-4 mr-2" />
+              <Play className="w-4 h-4 mr-1" />
               Run
             </Button>
           </div>

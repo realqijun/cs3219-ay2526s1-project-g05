@@ -1,34 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send } from "lucide-react";
+import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 
 export default function ChatPanel() {
-  const [messages, setMessages] = useState([
-    {
-      id: "1",
-      sender: "Alex Chen",
-      content: "Hey! Ready to solve this problem together?",
-      timestamp: new Date(),
-      isCurrentUser: false
-    }
-  ]);
+  const { messages } = useCollaborationSession();
   const [newMessage, setNewMessage] = useState("");
+  const { sendChatMessage } = useCollaborationSession();
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
-
-    const message = {
-      id: Date.now().toString(),
-      sender: "You",
-      content: newMessage,
-      timestamp: new Date(),
-      isCurrentUser: true
-    };
-
-    setMessages([...messages, message]);
+    sendChatMessage(newMessage.trim());
     setNewMessage("");
   };
 
@@ -59,13 +44,10 @@ export default function ChatPanel() {
                       : "bg-secondary"
                   }`}
                 >
-                  <p className="text-sm font-medium mb-1">{message.sender}</p>
+                  <p className="text-sm font-medium mb-1">{message.sender?.name || "User"}</p>
                   <p className="text-sm">{message.content}</p>
                   <p className="text-xs mt-1 opacity-70">
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    })}
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
               </div>

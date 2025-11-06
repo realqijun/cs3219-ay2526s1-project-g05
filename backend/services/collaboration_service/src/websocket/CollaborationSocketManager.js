@@ -130,6 +130,31 @@ export class CollaborationSocketManager {
       });
     });
 
+    socket.on("session:chat:message", async (payload = {}, callback) => {
+      await this.handleAction(socket, payload, callback, async () => {
+        const content = (payload && payload.content) || "";
+        if (!content || typeof content !== "string") {
+          throw new ApiError(400, "Message content is required.");
+        }
+
+        const message = {
+          id: Date.now().toString(),
+          content,
+          timestamp: new Date().toISOString(),
+          clientMessageId: payload?.clientMessageId,
+          sender: {
+            id: socket.data.user?.id,
+            name: socket.data.user?.username || socket.data.user?.name || "User",
+          },
+        };
+
+        // Broadcast to the session room
+        this.io?.to(socket.data.sessionId).emit("session:chat:message", { message });
+
+        return { message };
+      });
+    });
+
     socket.on("session:end", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
         const session = await this.collaborationService.requestSessionEnd(

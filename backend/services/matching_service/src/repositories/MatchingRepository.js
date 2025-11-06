@@ -270,7 +270,7 @@ export class MatchingRepository {
         matchState.timestamp &&
         now - parseInt(matchState.timestamp, 10) > timeoutMs
       ) {
-        staleMatchIds.push(matchId);
+        staleMatchIds.push(matchIdWithoutPrefix);
       }
     }
     return staleMatchIds;

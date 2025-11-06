@@ -106,7 +106,11 @@ export class MatchingService {
       );
     }
 
-    const userId = await this.repository.enterQueue(user, criteria, priorityScore);
+    const userId = await this.repository.enterQueue(
+      user,
+      criteria,
+      priorityScore,
+    );
 
     const matchedUserInfo = await this.repository.findMatch(userId, criteria);
     if (!matchedUserInfo) {
@@ -117,7 +121,8 @@ export class MatchingService {
     const userB = matchedUserInfo.user;
 
     const question = await this._fetch_pro_max(
-      `http://localhost:${process.env.QUESTIONSERVICEPORT || 4002
+      `http://${process.env.QUESTIONSERVICE_NAME}:${
+        process.env.QUESTIONSERVICEPORT || 4002
       }/random?difficulty=${criteria.difficulty}&${criteria.topics
         .map((t) => `topic=${t}`)
         .join("&")}`,
@@ -197,7 +202,8 @@ export class MatchingService {
       await this.repository.deleteUser(partnerId);
 
       const response = await this._fetch_pro_max(
-        `http://localhost:${process.env.COLLABORATIONSERVICEPORT || 4004
+        `http://${process.env.COLLABORATIONSERVICE_NAME}:${
+          process.env.COLLABORATIONSERVICEPORT || 4004
         }/sessions`,
         {
           method: "POST",
@@ -268,12 +274,9 @@ export class MatchingService {
       return;
     }
     for (const userId of staleIds) {
-      this.notifier.notifySessionExpired(
-        userId,
-        {
-          message: `Session ${userId} has expired. You may cancel your participation in the queue, or rejoin with priority.`,
-        }
-      );
+      this.notifier.notifySessionExpired(userId, {
+        message: `Session ${userId} has expired. You may cancel your participation in the queue, or rejoin with priority.`,
+      });
       await this._handleUserDeletion(userId);
       // TODO: give user option to requeue or cancel
     }
@@ -289,18 +292,10 @@ export class MatchingService {
     const PRIORITY_OFFSET = 10 * 60 * 1000;
     const priorityScore = Date.now() - PRIORITY_OFFSET;
 
-    const matchDetails = await this.enterQueue(
-      user,
-      criteria,
-      priorityScore,
-    );
+    const matchDetails = await this.enterQueue(user, criteria, priorityScore);
 
     if (matchDetails) {
-      this.notifier.notifyUser(
-        user.id,
-        matchDetails,
-        "matchFound",
-      );
+      this.notifier.notifyUser(user.id, matchDetails, "matchFound");
     } else {
       this.notifier.notifyUser(
         user.id,
@@ -343,12 +338,9 @@ export class MatchingService {
         // unqueue the unconfirmed user
         await this.repository.deleteMatch(matchId);
         await this.repository.deleteUser(deleteId);
-        this.notifier.notifySessionExpired(
-          deleteId,
-          {
-            message: `Match ${matchId} has expired. You have been removed from the queue.`
-          }
-        );
+        this.notifier.notifySessionExpired(deleteId, {
+          message: `Match ${matchId} has expired. You have been removed from the queue.`,
+        });
         // requeue the confirmed user with priority
         await this.rejoinQueueWithPriority(
           matchState.users[requeueId].user,
@@ -358,14 +350,12 @@ export class MatchingService {
         await this.repository.deleteMatch(matchId);
         await this.repository.deleteUser(userAId);
         await this.repository.deleteUser(userBId);
-        this.notifier.notifySessionExpired(
-          userAId,
-          { message: `Match ${matchId} has expired. You have been removed from the queue.` }
-        );
-        this.notifier.notifySessionExpired(
-          userBId,
-          { message: `Match ${matchId} has expired. You have been removed from the queue.` }
-        );
+        this.notifier.notifySessionExpired(userAId, {
+          message: `Match ${matchId} has expired. You have been removed from the queue.`,
+        });
+        this.notifier.notifySessionExpired(userBId, {
+          message: `Match ${matchId} has expired. You have been removed from the queue.`,
+        });
       }
     }
   }

@@ -23,7 +23,7 @@ export class UserController {
     }
   };
 
-  getMe = async (req, res, next) => {
+  getMe = async (_req, res, next) => {
     try {
       const user = await this.userService.getUserById(res.locals.user.id);
       res.json({ user });
@@ -147,7 +147,7 @@ export class UserController {
   };
 }
 
-export const errorMiddleware = (err, req, res, _next) => {
+export const errorMiddleware = (err, _req, res, _next) => {
   if (err instanceof ApiError) {
     const payload = { message: err.message };
     if (Array.isArray(err.details)) {

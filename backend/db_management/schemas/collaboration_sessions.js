@@ -27,6 +27,8 @@ export const collaboration_sessions_schema = {
           description: "Must be one of the supported programming languages",
         },
 
+        openai_conversationId: { bsonType: ["string", "null"] },
+
         questionId: { bsonType: ["int", "long"], minimum: 0 },
 
         code: { bsonType: "string" },
@@ -68,7 +70,7 @@ export const collaboration_sessions_schema = {
 
         endRequests: {
           bsonType: "array",
-          items: { bsonType: "object" },
+          items: { bsonType: "string" },
         },
 
         cursorPositions: {

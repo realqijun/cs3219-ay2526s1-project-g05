@@ -1,14 +1,13 @@
-import { Navbar } from "@/components/Navbar"
-import { Footer } from '@/components/Footer'
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 function MainLayout({ children }) {
   return (
-    <div>
+    <div className="w-screen h-screen overflow-hidden flex flex-col">
       <Navbar />
-      <div>{children}</div>
-      <Footer />
+      <div className="flex-1 overflow-y-auto pb-1">{children}</div>
     </div>
-  )
+  );
 }
 
-export default MainLayout
+export default MainLayout;

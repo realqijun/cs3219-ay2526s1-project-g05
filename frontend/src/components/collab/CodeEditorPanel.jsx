@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play } from "lucide-react";
+import { Play, Sparkles } from "lucide-react";
 import {
   Decoration,
   EditorView,
@@ -212,7 +212,7 @@ const createRemoteCursorDecorations = (state, cursors) => {
   return builder.finish();
 };
 
-export default function CodeEditorPanel() {
+export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const applyingRemoteRef = useRef(false);
@@ -411,6 +411,7 @@ export default function CodeEditorPanel() {
 
   useEffect(() => {
     if (!editorRef.current) return;
+    if (viewRef.current) return;
 
     const initialDoc =
       session?.id != null ? "" : defaultCode[effectiveLanguage] ?? "";
@@ -456,12 +457,14 @@ export default function CodeEditorPanel() {
       state,
       parent: editorRef.current,
     });
+  }, [effectiveLanguage, handleEditorUpdate, session?.id]);
 
+  useEffect(() => {
     return () => {
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, [effectiveLanguage, handleEditorUpdate, session?.id]);
+  }, []);
 
   useEffect(() => {
     if (!viewRef.current) return;
@@ -489,6 +492,10 @@ export default function CodeEditorPanel() {
     // TODO: Implement code execution
   };
 
+  const handleAIExplanation = () => {
+    setDisplayAIPanel(true);
+  };
+
   const handleLanguageChange = (newLanguage) => {
     setLanguage(newLanguage);
   };
@@ -501,7 +508,7 @@ export default function CodeEditorPanel() {
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
-      <CardHeader className="border-b">
+      <CardHeader className="border-b !h-20">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <CardTitle className="text-xl">Code Editor</CardTitle>
@@ -519,14 +526,22 @@ export default function CodeEditorPanel() {
                 <SelectItem value="python">Python</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              onClick={handleAIExplanation}
+              className="bg-purple-600 hover:bg-purple-500"
+              size="sm"
+            >
+              <Sparkles className="w-4 h-4 mr-1" />
+              AI
+            </Button>
             <Button onClick={handleRun} size="sm">
-              <Play className="w-4 h-4 mr-2" />
+              <Play className="w-4 h-4 mr-1" />
               Run
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 p-0 overflow-hidden">
+      <CardContent className="flex-1 !p-0 overflow-hidden">
         <div ref={editorRef} className="h-full w-full" />
       </CardContent>
     </Card>

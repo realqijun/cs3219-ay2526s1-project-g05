@@ -9,6 +9,7 @@ import {
 } from "./controllers/UserController.js";
 import { createUserRouter } from "./routes/userRoutes.js";
 import cors from "cors";
+import proxyAddr from 'proxy-addr';
 
 export class UserServiceApplication {
   constructor({ port = process.env.USERSERVICEPORT || 4001 } = {}) {
@@ -37,6 +38,9 @@ export class UserServiceApplication {
       app.use(cors());
       console.log("CORS enabled for development");
     }
+    else if (process.env.NODE_ENV === "production") {
+      app.set('trust proxy', proxyAddr.compile(["loopback", process.env.MAIN_SUBNET, process.env.INTERNAL_SUBNET])); // loopback means from same host, the other is the subnet for internal services
+    } 
 
     app.get("/status", (_req, res) => {
       res.json({ status: "User service is running" });

@@ -43,7 +43,6 @@ export class MatchingServiceApplication {
       });
     }, 2 * 60 * 1000);
 
-    app.enable("trust proxy");
     app.use(express.json());
     startSwaggerDocs(app, "Matching Service API", this.port);
 

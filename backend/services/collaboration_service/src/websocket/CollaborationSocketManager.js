@@ -19,7 +19,7 @@ export class CollaborationSocketManager {
         return next(new Error("Authentication error: " + result.error));
       }
 
-      socket.data.user = result.decoded;
+      socket.data.user = result.user;
       next();
     });
 
@@ -94,9 +94,12 @@ export class CollaborationSocketManager {
           socket.data.user.id,
           {
             sessionId: socket.data.sessionId,
-            reason: "leave",
+            reason: "left",
+            terminateForAll: true,
           },
         );
+
+        socket.to(socket.data.sessionId).emit("session:leave", {});
 
         socket.data.hasLeft = true;
         socket.leave(session.id);
@@ -144,12 +147,15 @@ export class CollaborationSocketManager {
           clientMessageId: payload?.clientMessageId,
           sender: {
             id: socket.data.user?.id,
-            name: socket.data.user?.username || socket.data.user?.name || "User",
+            name:
+              socket.data.user?.username || socket.data.user?.name || "User",
           },
         };
 
         // Broadcast to the session room
-        this.io?.to(socket.data.sessionId).emit("session:chat:message", { message });
+        this.io
+          ?.to(socket.data.sessionId)
+          .emit("session:chat:message", { message });
 
         return { message };
       });
@@ -162,6 +168,10 @@ export class CollaborationSocketManager {
           socket.data.user.id,
           payload,
         );
+
+        if (session.status === "ended")
+          this.io?.to(socket.data.sessionId).emit("session:ended"); // This sends to everyone
+        else socket.to(socket.data.sessionId).emit("session:end"); // This only sends to other users in the room, not itself
         this.emitSessionState(session);
         return { session };
       });
@@ -169,6 +179,7 @@ export class CollaborationSocketManager {
 
     socket.on("disconnect", async () => {
       const { sessionId, user, hasLeft } = socket.data ?? {};
+      console.log("Socket disconnected", { socketId: socket.id });
       if (!sessionId || hasLeft) return;
 
       if (this.hasActiveSocketForUser(sessionId, user?.id, socket.id)) return;
@@ -200,7 +211,7 @@ export class CollaborationSocketManager {
   }
 
   async handleAction(
-    socket,
+    _socket,
     payload,
     callback,
     handler,

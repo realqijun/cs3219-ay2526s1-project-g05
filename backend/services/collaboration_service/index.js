@@ -1,6 +1,12 @@
-import { config } from "dotenv";
+import dotenv from "dotenv"
+import path from "path"
 import { CollaborationApplication } from "./src/CollaborationApplication.js";
 
+if (process.env.NODE_ENV === "production") {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env.prod") });
+} else {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env") });
+}
 const port = process.env.COLLABORATIONSERVICEPORT || 4004;
 const application = new CollaborationApplication({ port });
 

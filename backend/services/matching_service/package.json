@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "test": "echo \"Error: no test specified\"",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.20.0",
     "nodemon": "^3.1.10",
+    "proxy-addr": "^2.0.7",
     "redis": "^5.8.3"
   },
   "type": "module"

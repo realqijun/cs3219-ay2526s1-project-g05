@@ -3,12 +3,10 @@ import { DataTable } from "@/components/questions/data-table";
 import MainLayout from "@/layout/MainLayout";
 import { getQuestions } from "@/lib/getQuestions";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 export default function QuestionPage() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {

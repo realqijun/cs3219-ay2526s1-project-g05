@@ -18,7 +18,7 @@ export class PasswordHasher {
   async verify(hash, password) {
     try {
       return await argon2.verify(hash, password, this.options);
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

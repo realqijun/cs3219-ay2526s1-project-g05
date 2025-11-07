@@ -46,6 +46,7 @@ import {
 } from "@codemirror/autocomplete";
 import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 import { useUserContext } from "@/context/UserContext";
+import { executeCode } from "@/lib/codeExecutionApi";
 import { Annotation } from "@codemirror/state";
 
 export const ExternalChange = Annotation.define();
@@ -53,6 +54,12 @@ export const ExternalChange = Annotation.define();
 const languageExtensions = {
   javascript: javascript(),
   python: python(),
+};
+
+const sanitizeLanguage = (value) => {
+  if (typeof value !== "string") return "javascript";
+  const normalized = value.trim().toLowerCase();
+  return normalized === "python" ? "python" : "javascript";
 };
 
 const defaultCode = {
@@ -224,7 +231,7 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
   const sessionIdRef = useRef(null);
   const versionRef = useRef(0);
   const lastCursorRef = useRef(null);
-  const [language, setLanguage] = useState("javascript");
+  const [language, setLanguage] = useState(() => sanitizeLanguage("python"));
 
   const { user } = useUserContext();
 
@@ -271,14 +278,13 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
 
   useEffect(() => {
     if (!session?.language) return;
-    setLanguage((prev) =>
-      prev === session.language ? prev : session.language,
-    );
+    const normalized = sanitizeLanguage(session.language);
+    setLanguage((prev) => (prev === normalized ? prev : normalized));
   }, [session?.language]);
 
-  const effectiveLanguage = useMemo(() => {
-    return languageExtensions[language] ? language : "javascript";
-  }, [language]);
+  const effectiveLanguage = useMemo(() => sanitizeLanguage(language), [
+    language,
+  ]);
 
   const currentUserId = useMemo(() => normalizeUserId(user), [user]);
 
@@ -365,12 +371,12 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
         const changeRange = getChangeRange(update.changes);
         const normalizedRange = changeRange
           ? {
-              start: changeRange.start,
-              end:
-                changeRange.endExclusive <= changeRange.start
-                  ? changeRange.start
-                  : changeRange.endExclusive - 1,
-            }
+            start: changeRange.start,
+            end:
+              changeRange.endExclusive <= changeRange.start
+                ? changeRange.start
+                : changeRange.endExclusive - 1,
+          }
           : undefined;
 
         sendOperationRef.current({
@@ -486,10 +492,14 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
     });
   }, [remoteCursors]);
 
-  const handleRun = () => {
+  const handleRun = async () => {
     const code = viewRef.current?.state.doc.toString() || "";
-    console.log("Running code:", code);
-    // TODO: Implement code execution
+    const result = await executeCode({
+      language: sanitizeLanguage(language),
+      code,
+      input: "",
+    });
+    alert(JSON.stringify(result));
   };
 
   const handleAIExplanation = () => {
@@ -497,7 +507,7 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
   };
 
   const handleLanguageChange = (newLanguage) => {
-    setLanguage(newLanguage);
+    setLanguage(sanitizeLanguage(newLanguage));
   };
 
   const connectionLabel = useMemo(() => {
@@ -517,9 +527,14 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={language} onValueChange={handleLanguageChange}>
+            <Select
+              value={sanitizeLanguage(language)}
+              onValueChange={handleLanguageChange}
+            >
               <SelectTrigger className="w-[140px]">
-                <SelectValue />
+                <SelectValue>
+                  {language === "python" ? "Python" : "JavaScript"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="javascript">JavaScript</SelectItem>

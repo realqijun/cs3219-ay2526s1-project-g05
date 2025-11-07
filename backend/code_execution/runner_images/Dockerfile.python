@@ -1,0 +1,10 @@
+FROM python:3.10-slim
+
+RUN groupadd --gid 1000 runner \
+    && useradd --uid 1000 --gid runner --shell /bin/false --create-home runner
+
+WORKDIR /tmp/run
+
+USER runner
+
+CMD ["python3", "./solution.py"]

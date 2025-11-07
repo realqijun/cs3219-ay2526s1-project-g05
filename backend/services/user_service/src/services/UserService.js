@@ -13,13 +13,13 @@ export class UserService {
     if (!user) return null;
     const {
       _id,
-      passwordHash,
-      passwordResetToken,
-      passwordResetExpiresAt,
-      failedLoginAttempts,
-      failedLoginWindowStart,
-      accountLocked,
-      accountLockedAt,
+      _passwordHash,
+      _ppasswordResetToken,
+      _ppasswordResetExpiresAt,
+      _pfailedLoginAttempts,
+      _pfailedLoginWindowStart,
+      _paccountLocked,
+      _paccountLockedAt,
       ...rest
     } = user;
     return {
@@ -269,7 +269,7 @@ export class UserService {
       throw new ApiError(404, "User not found.");
     }
 
-    return this.sanitizeUser(updatedUser ?? user);
+    return this.sanitizeUser(updatedUser);
   }
   async updateCurrentCollaborationSession(userId, sessionId) {
     if (sessionId !== null && typeof sessionId !== "string") {

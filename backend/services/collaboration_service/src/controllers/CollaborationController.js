@@ -46,9 +46,44 @@ export class CollaborationController {
       next(error);
     }
   };
+
+  sendCustomMessage = async (req, res, next) => {
+    try {
+      const { message } = req.body;
+      const response = await this.collaborationService.sendCustomMessage(
+        req.params.sessionId,
+        message,
+      );
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  explainCode = async (req, res, next) => {
+    try {
+      const response = await this.collaborationService.explainCode(
+        req.params.sessionId,
+      );
+      res.json(response);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getConversation = async (req, res, next) => {
+    try {
+      const response = await this.collaborationService.getConversation(
+        req.params.sessionId,
+      );
+      res.json({ conversation: response.conversation });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
-export const errorMiddleware = (err, req, res, _next) => {
+export const errorMiddleware = (err, _req, res, _next) => {
   if (err instanceof ApiError) {
     const payload = { message: err.message };
     if (Array.isArray(err.details)) {

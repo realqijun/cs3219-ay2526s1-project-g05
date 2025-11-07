@@ -23,28 +23,126 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<App />} />
-      <Route path="/login" element={<GuestRoute redirectTo="/matchmaking"><LoginPage /></GuestRoute>} />
-      <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
-      <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
+      <Route
+        path="/login"
+        element={
+          <GuestRoute redirectTo="/matchmaking">
+            <LoginPage />
+          </GuestRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <GuestRoute>
+            <RegisterPage />
+          </GuestRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <GuestRoute>
+            <ForgotPasswordPage />
+          </GuestRoute>
+        }
+      />
 
       {/* Questions List */}
-      <Route path="/problemset" element={<QuestionPage />} />
-      <Route path="/question/:id" element={<QuestionDetailPage />} />
+      <Route
+        path="/problemset"
+        element={
+          <ProtectedRoute>
+            <QuestionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/question/:id"
+        element={
+          <ProtectedRoute>
+            <QuestionDetailPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Matching Flow */}
-      <Route path="/matchmaking" element={<ProtectedRoute><MatchmakingPage /></ProtectedRoute>} />
-      <Route path="/matching" element={<ProtectedRoute><MatchingPage /></ProtectedRoute>} />
-      <Route path="/matched" element={<ProtectedRoute><MatchedPage /></ProtectedRoute>} />
-      <Route path="/match-timeout" element={<ProtectedRoute><MatchTimeoutPage /></ProtectedRoute>} />
+      <Route
+        path="/matchmaking"
+        element={
+          <ProtectedRoute>
+            <MatchmakingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/matching"
+        element={
+          <ProtectedRoute>
+            <MatchingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/matched"
+        element={
+          <ProtectedRoute>
+            <MatchedPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/match-timeout"
+        element={
+          <ProtectedRoute>
+            <MatchTimeoutPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Profile */}
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="/session-history" element={<ProtectedRoute><PastSessionsPage /></ProtectedRoute>} />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/session-history"
+        element={
+          <ProtectedRoute>
+            <PastSessionsPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Session */}
-      <Route path="/session" element={<ProtectedRoute><SessionPage /></ProtectedRoute>} />
-      <Route path="/session-disconnected" element={<ProtectedRoute><SessionDisconnectedPage /></ProtectedRoute>} />
-      <Route path="/session-ended" element={<ProtectedRoute><SessionEndedPage /></ProtectedRoute>} />
+      <Route
+        path="/session"
+        element={
+          <ProtectedRoute>
+            <SessionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/session-disconnected"
+        element={
+          <ProtectedRoute>
+            <SessionDisconnectedPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/session-ended"
+        element={
+          <ProtectedRoute>
+            <SessionEndedPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Error + Catch-all */}
       <Route path="/404" element={<ErrorPage />} />

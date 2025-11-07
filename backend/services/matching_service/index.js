@@ -1,6 +1,13 @@
 import { MatchingServiceApplication } from './src/MatchingServiceApplication.js';
 import { RedisClient } from './src/redis/RedisClient.js';
+import dotenv from 'dotenv';
+import path from "path"
 
+if (process.env.NODE_ENV === "production") {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env.prod") });
+} else {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env") });
+}
 const port = process.env.MATCHINGSERVICEPORT || 4003;
 const matchingApp = new MatchingServiceApplication({ port });
 

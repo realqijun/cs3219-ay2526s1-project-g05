@@ -12,6 +12,7 @@ import {
 } from "./controllers/CollaborationController.js";
 import { createCollaborationRouter } from "./routes/collaborationRoutes.js";
 import { CollaborationSocketManager } from "./websocket/CollaborationSocketManager.js";
+import { RedisClient } from "./utils/RedisClient.js";
 
 export class CollaborationApplication {
   constructor({ port = process.env.COLLABORATIONSERVICEPORT || 4004 } = {}) {
@@ -30,6 +31,7 @@ export class CollaborationApplication {
       process.env.COLLABORATIONSERVICE_DB_USER,
       process.env.COLLABORATIONSERVICE_DB_PASSWORD,
     );
+    await RedisClient.connect();
     const repository = await CollaborationSessionRepository.initialize(
       MongoClientInstance.db,
     );
@@ -42,7 +44,6 @@ export class CollaborationApplication {
     });
 
     const app = express();
-    app.enable("trust proxy");
     app.use(express.json());
     if (process.env.NODE_ENV === "development") {
       app.use(cors());

@@ -1,5 +1,13 @@
 import { UserServiceApplication } from "./src/UserServiceApplication.js";
 import { MongoClientInstance } from "../../common_scripts/mongo.js";
+import dotenv from "dotenv";
+import path from "path"
+
+if (process.env.NODE_ENV === "production") {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env.prod") });
+} else {
+  dotenv.config({ path: path.join(import.meta.dirname, "..", ".env") });
+}
 
 const port = process.env.USERSERVICEPORT || 4001;
 const application = new UserServiceApplication({ port });

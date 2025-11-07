@@ -1,97 +1,110 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useSession } from "@/hooks/useSession";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import Markdown from "react-markdown";
+import "./Markdown.css";
 
-export default function ProblemPanel({ problem }) {
-  // Mock data for now
-  const defaultProblem = {
-    title: "Two Sum",
-    difficulty: "Easy",
-    description: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.",
-    examples: [
-      {
-        input: "nums = [2,7,11,15], target = 9",
-        output: "[0,1]",
-        explanation: "Because nums[0] + nums[1] == 9, we return [0, 1]."
-      },
-      {
-        input: "nums = [3,2,4], target = 6",
-        output: "[1,2]"
-      }
-    ],
-    constraints: [
-      "2 <= nums.length <= 10^4",
-      "-10^9 <= nums[i] <= 10^9",
-      "Only one valid answer exists."
-    ]
+function badgeVariantForDifficulty(diff) {
+  const d = (diff || "").toLowerCase();
+  if (d === "easy") return "secondary";
+  if (d === "medium") return "default";
+  if (d === "hard") return "destructive";
+  return "outline";
+}
+
+export default function ProblemPanel() {
+  const { problem } = useSession();
+
+  if (!problem) {
+    return (
+      <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl">No problem selected</CardTitle>
+            <Badge variant="outline">—</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 p-6 text-sm text-muted-foreground">
+          Choose a question to see its details here.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const {
+    title = "Untitled Problem",
+    difficulty = "Unknown",
+    topics = [],
+    descriptionHtml,
+    descriptionText = "",
+    examples = [],
+    constraints = [],
+    hints = [],
+    codeBlock,
+  } = problem;
+
+  const renderDescription = () => {
+    if (descriptionHtml) {
+      return (
+        <div
+          className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
+          dangerouslySetInnerHTML={{ __html: descriptionHtml /* safe */ }}
+        />
+      );
+    }
+    if (descriptionText) {
+      return (
+        <p className="text-muted-foreground leading-relaxed">
+          {descriptionText}
+        </p>
+      );
+    }
+    return (
+      <p className="text-muted-foreground italic">No description provided.</p>
+    );
   };
-
-  const displayProblem = problem || defaultProblem;
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
-      <CardHeader className="border-b">
+      <CardHeader className="border-b !h-20">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl">{displayProblem.title}</CardTitle>
-          <Badge 
-            variant={displayProblem.difficulty === "Easy" ? "secondary" : "default"}
+          <CardTitle className="text-xl">{title}</CardTitle>
+          <Badge
+            variant={badgeVariantForDifficulty(difficulty)}
             className="ml-2"
           >
-            {displayProblem.difficulty}
+            {difficulty}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden p-0">
-        <ScrollArea className="h-full">
-          <div className="p-6 space-y-6">
-            <div>
-              <h3 className="font-semibold mb-2">Description</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {displayProblem.description}
-              </p>
-            </div>
 
-            <div>
-              <h3 className="font-semibold mb-3">Examples</h3>
-              <div className="space-y-4">
-                {displayProblem.examples.map((example, idx) => (
-                  <div key={idx} className="bg-secondary/50 rounded-lg p-4 space-y-2">
-                    <div>
-                      <span className="text-sm font-medium">Input: </span>
-                      <code className="text-sm">{example.input}</code>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium">Output: </span>
-                      <code className="text-sm">{example.output}</code>
-                    </div>
-                    {example.explanation && (
-                      <div>
-                        <span className="text-sm font-medium">Explanation: </span>
-                        <span className="text-sm text-muted-foreground">
-                          {example.explanation}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+      <CardContent className="flex-1 overflow-hidden !p-2">
+        <div className="h-full w-full overflow-x-hidden overflow-y-auto">
+          <div className="p-3 space-y-6">
+            {/* Topics */}
+            {Array.isArray(topics) && topics.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {topics.map((t) => (
+                  <Badge key={t} variant="outline">
+                    {t}
+                  </Badge>
                 ))}
               </div>
-            </div>
-
-            {displayProblem.constraints && displayProblem.constraints.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2">Constraints</h3>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {displayProblem.constraints.map((constraint, idx) => (
-                    <li key={idx} className="flex items-start">
-                      <span className="mr-2">•</span>
-                      <code className="flex-1">{constraint}</code>
-                    </li>
-                  ))}
-                </ul>
-              </div>
             )}
+
+            <div className="markdown-body">
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw, rehypeSanitize]}
+              >
+                {descriptionHtml}
+              </Markdown>
+            </div>
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

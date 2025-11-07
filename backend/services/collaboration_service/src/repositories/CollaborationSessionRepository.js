@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
-
+import { RedisClient } from "../utils/RedisClient.js";
+import { parseDate } from "../utils/misc.js";
 export class CollaborationSessionRepository {
   constructor(db) {
     this.collection = db.collection("collaboration_sessions");
@@ -49,7 +50,38 @@ export class CollaborationSessionRepository {
     if (!ObjectId.isValid(id)) {
       return null;
     }
-    return this.collection.findOne({ _id: new ObjectId(id) });
+
+    // Update redis state for this session
+    const session = await RedisClient.client.get(`collab_session:${id}`);
+    if (session) {
+      const parsedSession = JSON.parse(session);
+
+      return {
+        ...parsedSession,
+        lastConflictAt: parseDate(parsedSession.lastConflictAt),
+        createdAt: parseDate(parsedSession.createdAt),
+        updatedAt: parseDate(parsedSession.updatedAt),
+        participants: parsedSession.participants.map((p) => ({
+          ...p,
+          joinedAt: parseDate(p.joinedAt),
+          lastSeenAt: parseDate(p.lastActiveAt),
+          disconnectedAt: parseDate(p.disconnectedAt),
+          reconnectBy: parseDate(p.reconnectBy),
+        })),
+      };
+    }
+
+    const session_from_db = await this.collection.findOne({
+      _id: new ObjectId(id),
+    });
+    if (session_from_db) {
+      await RedisClient.client.set(
+        `collab_session:${id}`,
+        JSON.stringify(session_from_db),
+      );
+    }
+
+    return session_from_db;
   }
 
   async updateById(id, operations, options = {}) {
@@ -57,22 +89,28 @@ export class CollaborationSessionRepository {
       return null;
     }
     const update = this.buildUpdate(operations);
-    const result = await this.collection.findOneAndUpdate(
-      { _id: new ObjectId(id) },
-      update,
-      { returnDocument: "after", ...options },
+
+    let result;
+    try {
+      result = await this.collection.findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        update,
+        { returnDocument: "after", ...options },
+      );
+    } catch (e) {
+      console.dir(e, { depth: null });
+    }
+
+    // Update redis state for this session
+    await RedisClient.client.set(
+      `collab_session:${id}`,
+      JSON.stringify(result),
+      {
+        EX: 300, // expire in 5 minutes
+      },
     );
 
     return result;
-  }
-
-  async updateOne(filter, operations, options = {}) {
-    const update = this.buildUpdate(operations);
-    const result = await this.collection.findOneAndUpdate(filter, update, {
-      returnDocument: "after",
-      ...options,
-    });
-    return result.value;
   }
 
   async deleteById(id) {
@@ -80,6 +118,10 @@ export class CollaborationSessionRepository {
       return false;
     }
     const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
+
+    // Update redis state for this session
+    await RedisClient.client.del(`collab_session:${id}`);
+
     return result.deletedCount === 1;
   }
 

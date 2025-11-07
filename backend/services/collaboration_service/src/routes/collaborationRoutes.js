@@ -21,6 +21,36 @@ export const createCollaborationRouter = (controller) => {
   );
 
   /**
+   * POST /sessions/:sessionId/explain-code
+   * @summary Generate a new explanation for the code in the collaboration session
+   */
+  router.post(
+    "/sessions/:sessionId/explain-code",
+    [authenticate(false)],
+    controller.explainCode,
+  );
+
+  /**
+   * GET /sessions/:sessionId/conversation
+   * @summary Fetch the conversation for this collaboration session
+   */
+  router.get(
+    "/sessions/:sessionId/conversation",
+    [authenticate(false)],
+    controller.getConversation,
+  );
+
+  /**
+   * GET /sessions/:sessionId/message
+   * @summary Fetch the conversation for this collaboration session
+   */
+  router.post(
+    "/sessions/:sessionId/message",
+    [authenticate(false)],
+    controller.sendCustomMessage,
+  );
+
+  /**
    * POST /sessions/:sessionId/terminate
    * @summary [Unused for now] Administrative termination of a collaboration session
    */

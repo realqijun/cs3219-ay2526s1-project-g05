@@ -1,34 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send } from "lucide-react";
+import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 
 export default function ChatPanel() {
-  const [messages, setMessages] = useState([
-    {
-      id: "1",
-      sender: "Alex Chen",
-      content: "Hey! Ready to solve this problem together?",
-      timestamp: new Date(),
-      isCurrentUser: false
-    }
-  ]);
+  const { messages, sendChatMessage } = useCollaborationSession();
   const [newMessage, setNewMessage] = useState("");
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
-
-    const message = {
-      id: Date.now().toString(),
-      sender: "You",
-      content: newMessage,
-      timestamp: new Date(),
-      isCurrentUser: true
-    };
-
-    setMessages([...messages, message]);
+    sendChatMessage(newMessage.trim());
     setNewMessage("");
   };
 
@@ -41,16 +25,18 @@ export default function ChatPanel() {
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
-      <CardHeader className="border-b">
+      <CardHeader className="border-b !h-20">
         <CardTitle className="text-xl">Chat</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+      <CardContent className="flex-1 flex flex-col !p-3 overflow-hidden">
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.isCurrentUser ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  message.isCurrentUser ? "justify-end" : "justify-start"
+                }`}
               >
                 <div
                   className={`max-w-[80%] rounded-lg p-3 ${
@@ -59,12 +45,14 @@ export default function ChatPanel() {
                       : "bg-secondary"
                   }`}
                 >
-                  <p className="text-sm font-medium mb-1">{message.sender}</p>
+                  <p className="text-sm font-medium mb-1">
+                    {message.sender?.name || "User"}
+                  </p>
                   <p className="text-sm">{message.content}</p>
                   <p className="text-xs mt-1 opacity-70">
-                    {message.timestamp.toLocaleTimeString([], {
+                    {new Date(message.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
-                      minute: "2-digit"
+                      minute: "2-digit",
                     })}
                   </p>
                 </div>

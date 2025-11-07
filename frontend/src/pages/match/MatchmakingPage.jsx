@@ -49,10 +49,10 @@ export default function MatchmakingPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-background">
+      <div className="pb-4 bg-background">
         <div className="container mx-auto px-4 md:py-6">
           {/* Container for header + cards */}
-          <div className="p-4 rounded-2xl space-y-8">
+          <div className="rounded-2xl">
             {/* Header */}
             <div className="mb-4">
               <Button

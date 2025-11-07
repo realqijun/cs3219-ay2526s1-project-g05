@@ -1,0 +1,118 @@
+services:
+  peerprep_mongo:
+    image: mongo:8.0.14-noble
+    restart: unless-stopped
+    container_name: "peerprep_mongo"
+    ports:
+      - "127.0.0.1:27018:27017" # Map to a different address for seeding use only
+    volumes:
+      - mongo_data:/data/db # Use a named volume called "mongo_data", and mount it to /data/db for reading by MongoDB
+    networks:
+      - internal_mongo_redis
+
+  peerprep_redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    container_name: "peerprep_redis"
+    volumes:
+      - redis_data:/data # Use a named volume for Redis data persistence
+    command: >
+      redis-server 
+      --appendonly yes 
+      --notify-keyspace-events KEA
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lfu
+    networks:
+      - internal_mongo_redis
+  
+  peerprep_frontend_nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: "peerprep_nginx"
+    ports:
+      - "127.0.0.1:5173:80"       # Expose Nginx on localhost:8080 as we have an external reverse proxy handling SSL termination (another nginx)
+    depends_on:
+      - peerprep_user_service
+      - peerprep_question_service
+      - peerprep_matching_service
+      - peerprep_collaboration_service
+    networks:
+      - main
+  
+  peerprep_user_service:
+    build:
+      context: ./backend
+      dockerfile: ./services/user_service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    container_name: "peerprep_user_service"
+    networks:
+      - main
+      - internal_mongo_redis
+    depends_on:
+      - peerprep_mongo
+      - peerprep_redis
+
+  peerprep_question_service:
+    build:
+      context: ./backend
+      dockerfile: ./services/question_service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    container_name: "peerprep_question_service"
+    networks:
+      - main
+      - internal_mongo_redis
+    depends_on:
+      - peerprep_mongo
+      - peerprep_redis
+  
+  peerprep_matching_service:
+    build:
+      context: ./backend
+      dockerfile: ./services/matching_service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    container_name: "peerprep_matching_service"
+    networks:
+      - main
+      - internal_mongo_redis
+    depends_on:
+      - peerprep_mongo
+      - peerprep_redis
+
+  peerprep_collaboration_service:
+    build:
+      context: ./backend
+      dockerfile: ./services/collaboration_service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    container_name: "peerprep_collaboration_service"
+    networks:
+      - main
+      - internal_mongo_redis
+    depends_on:
+      - peerprep_mongo
+      - peerprep_redis
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  main:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+  internal_mongo_redis:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.6.0.0/16     

@@ -28,4 +28,29 @@ export const collaborationApi = {
       method: "GET",
     });
   },
+
+  explainCode: async (sessionId) => {
+    return apiFetch(
+      `${COLLABORATION_API_URL}/sessions/${sessionId}/explain-code`,
+      {
+        method: "POST",
+      },
+    );
+  },
+
+  getConversation: async (sessionId) => {
+    return apiFetch(
+      `${COLLABORATION_API_URL}/sessions/${sessionId}/conversation`,
+      {
+        method: "GET",
+      },
+    );
+  },
+
+  sendCustomMessage: async (sessionId, message) => {
+    return apiFetch(`${COLLABORATION_API_URL}/sessions/${sessionId}/message`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    });
+  },
 };

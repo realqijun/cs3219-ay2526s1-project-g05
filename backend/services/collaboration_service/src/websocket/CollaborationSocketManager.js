@@ -19,7 +19,7 @@ export class CollaborationSocketManager {
         return next(new Error("Authentication error: " + result.error));
       }
 
-      socket.data.user = result.decoded;
+      socket.data.user = result.user;
       next();
     });
 
@@ -50,24 +50,41 @@ export class CollaborationSocketManager {
     });
 
     socket.on("session:operation", async (payload = {}, callback) => {
-      await this.handleAction(socket, payload, callback, async () => {
-        const result = await this.collaborationService.recordOperation(
-          socket.data.sessionId,
-          socket.data.user.id,
-          payload,
-        );
+      await this.handleAction(
+        socket,
+        payload,
+        callback,
+        async () => {
+          const updatedSession =
+            await this.collaborationService.resolveOperation(
+              socket.data.sessionId,
+              socket.data.user.id,
+              payload,
+            );
 
-        const roomId = result?.session?.id ?? socket.data.sessionId;
+          const roomId = updatedSession?.session?.id;
 
-        if (roomId) {
-          this.io?.to(roomId).emit("session:operation", {
-            session: result.session,
-            conflict: result.conflict,
-          });
-        }
+          if (roomId) {
+            this.io?.to(roomId).emit("session:operation", {
+              session: updatedSession.session,
+              conflict: updatedSession.conflict,
+            });
+          }
 
-        return result;
-      });
+          if (updatedSession.conflict) {
+            return null;
+          }
+
+          const result = await this.collaborationService.recordOperation(
+            socket.data.sessionId,
+            socket.data.user.id,
+            updatedSession.session,
+          );
+
+          return result;
+        },
+        false,
+      ); // Do not callback to avoid repeat calls
     });
 
     socket.on("session:leave", async (payload = {}, callback) => {
@@ -77,9 +94,12 @@ export class CollaborationSocketManager {
           socket.data.user.id,
           {
             sessionId: socket.data.sessionId,
-            reason: "leave",
+            reason: "left",
+            terminateForAll: true,
           },
         );
+
+        socket.to(socket.data.sessionId).emit("session:leave", {});
 
         socket.data.hasLeft = true;
         socket.leave(session.id);
@@ -113,6 +133,34 @@ export class CollaborationSocketManager {
       });
     });
 
+    socket.on("session:chat:message", async (payload = {}, callback) => {
+      await this.handleAction(socket, payload, callback, async () => {
+        const content = (payload && payload.content) || "";
+        if (!content || typeof content !== "string") {
+          throw new ApiError(400, "Message content is required.");
+        }
+
+        const message = {
+          id: Date.now().toString(),
+          content,
+          timestamp: new Date().toISOString(),
+          clientMessageId: payload?.clientMessageId,
+          sender: {
+            id: socket.data.user?.id,
+            name:
+              socket.data.user?.username || socket.data.user?.name || "User",
+          },
+        };
+
+        // Broadcast to the session room
+        this.io
+          ?.to(socket.data.sessionId)
+          .emit("session:chat:message", { message });
+
+        return { message };
+      });
+    });
+
     socket.on("session:end", async (payload = {}, callback) => {
       await this.handleAction(socket, payload, callback, async () => {
         const session = await this.collaborationService.requestSessionEnd(
@@ -120,6 +168,10 @@ export class CollaborationSocketManager {
           socket.data.user.id,
           payload,
         );
+
+        if (session.status === "ended")
+          this.io?.to(socket.data.sessionId).emit("session:ended"); // This sends to everyone
+        else socket.to(socket.data.sessionId).emit("session:end"); // This only sends to other users in the room, not itself
         this.emitSessionState(session);
         return { session };
       });
@@ -127,6 +179,7 @@ export class CollaborationSocketManager {
 
     socket.on("disconnect", async () => {
       const { sessionId, user, hasLeft } = socket.data ?? {};
+      console.log("Socket disconnected", { socketId: socket.id });
       if (!sessionId || hasLeft) return;
 
       if (this.hasActiveSocketForUser(sessionId, user?.id, socket.id)) return;
@@ -157,10 +210,16 @@ export class CollaborationSocketManager {
     });
   }
 
-  async handleAction(socket, payload, callback, handler) {
+  async handleAction(
+    _socket,
+    payload,
+    callback,
+    handler,
+    shouldCallback = true,
+  ) {
     try {
       const result = await handler(payload);
-      if (typeof callback === "function") {
+      if (typeof callback === "function" && shouldCallback) {
         callback({ ok: true, ...result });
       }
     } catch (error) {

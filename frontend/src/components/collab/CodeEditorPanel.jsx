@@ -56,6 +56,12 @@ const languageExtensions = {
   python: python(),
 };
 
+const sanitizeLanguage = (value) => {
+  if (typeof value !== "string") return "javascript";
+  const normalized = value.trim().toLowerCase();
+  return normalized === "python" ? "python" : "javascript";
+};
+
 const defaultCode = {
   javascript: `function twoSum(nums, target) {
   // Write your solution here
@@ -225,7 +231,7 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
   const sessionIdRef = useRef(null);
   const versionRef = useRef(0);
   const lastCursorRef = useRef(null);
-  const [language, setLanguage] = useState("javascript");
+  const [language, setLanguage] = useState(() => sanitizeLanguage("python"));
 
   const { user } = useUserContext();
 
@@ -272,14 +278,13 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
 
   useEffect(() => {
     if (!session?.language) return;
-    setLanguage((prev) =>
-      prev === session.language ? prev : session.language,
-    );
+    const normalized = sanitizeLanguage(session.language);
+    setLanguage((prev) => (prev === normalized ? prev : normalized));
   }, [session?.language]);
 
-  const effectiveLanguage = useMemo(() => {
-    return languageExtensions[language] ? language : "javascript";
-  }, [language]);
+  const effectiveLanguage = useMemo(() => sanitizeLanguage(language), [
+    language,
+  ]);
 
   const currentUserId = useMemo(() => normalizeUserId(user), [user]);
 
@@ -489,7 +494,11 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
 
   const handleRun = async () => {
     const code = viewRef.current?.state.doc.toString() || "";
-    const result = await executeCode({ language, code, input: "" });
+    const result = await executeCode({
+      language: sanitizeLanguage(language),
+      code,
+      input: "",
+    });
     alert(JSON.stringify(result));
   };
 
@@ -498,7 +507,7 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
   };
 
   const handleLanguageChange = (newLanguage) => {
-    setLanguage(newLanguage);
+    setLanguage(sanitizeLanguage(newLanguage));
   };
 
   const connectionLabel = useMemo(() => {
@@ -518,9 +527,14 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={language} onValueChange={handleLanguageChange}>
+            <Select
+              value={sanitizeLanguage(language)}
+              onValueChange={handleLanguageChange}
+            >
               <SelectTrigger className="w-[140px]">
-                <SelectValue />
+                <SelectValue>
+                  {language === "python" ? "Python" : "JavaScript"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="javascript">JavaScript</SelectItem>

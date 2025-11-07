@@ -49,7 +49,7 @@ export class MatchingServiceApplication {
     if (process.env.NODE_ENV === "development") {
       app.use(cors());
     }
-    app.get("/status", (_req, res) => {
+    app.get("/health", (_req, res) => {
       res.json({ status: "Matching service is running" });
     });
     app.use("/", createMatchingRouter(controller));

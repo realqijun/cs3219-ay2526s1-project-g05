@@ -69,7 +69,7 @@ export default function ProblemPanel() {
 
   return (
     <Card className="h-full flex flex-col border-0 rounded-none shadow-none">
-      <CardHeader className="border-b !h-20">
+      <CardHeader className="border-b min-h-20">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl">{title}</CardTitle>
           <Badge

@@ -29,6 +29,13 @@ export const collaborationApi = {
     });
   },
 
+  getSessionAllowEnded: async (sessionId) => {
+    return apiFetch(
+      `${COLLABORATION_API_URL}/sessions/${sessionId}?includeEnded=1`,
+      { method: "GET" }
+    );
+  },
+
   explainCode: async (sessionId) => {
     return apiFetch(
       `${COLLABORATION_API_URL}/sessions/${sessionId}/explain-code`,

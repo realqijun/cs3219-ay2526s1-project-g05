@@ -1,5 +1,6 @@
 # Collaboration Service
 
+## Overview
 The collaboration service powers PeerPrep's real-time paired programming experience. It
 provides a REST API and WebSocket gateway for managing collaborative rooms, synchronising
 editor content, coordinating question changes and ensuring that participants can rejoin a

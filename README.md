@@ -9,6 +9,8 @@
 - You are required to develop individual microservices within separate folders within this repository.
 - The teaching team should be given access to the repositories as we may require viewing the history of the repository in case of any disputes or disagreements.
 
+![Logo](images/logo.png)
+
 # Table of Contents
 - [1. Product Overview](#1-product-overview)
 - [2. Project Architecture](#2-project-architecture)
@@ -16,14 +18,11 @@
 - [4. Installation & Setup](#4-installation-and-setup)
 
 # 1. Product Overview
-## 1.1 Slogan
-Collaborative tool for technical interviews
-
-## 1.2 Key Features
+## 1.1 Key Features
 - Real-time Matchmaking: Users are matched instantly based on chosen difficulty and topics.
 - Collaborative Code Editor: Synchronous, low-latency coding environment.
 
-## 1.3 Product Visualizations
+## 1.2 Product Visualizations
 ![Landing Page](images/LandingPage.png)
 ![Login Page](images/LoginPage.png)
 ![MatchMaking Page](images/MatchMakingPage.png)

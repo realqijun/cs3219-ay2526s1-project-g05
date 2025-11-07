@@ -16,7 +16,8 @@ const difficultyColors = {
 };
 
 function formatDuration(ms) {
-  if (!ms || ms < 0) return "—";
+  if (ms == null || ms < 0) return "—";
+  if (ms === 0) return "0 min";
   const mins = Math.floor(ms / 60000);
   if (mins < 60) return `${mins} min`;
   const h = Math.floor(mins / 60);

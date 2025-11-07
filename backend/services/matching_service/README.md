@@ -1,7 +1,7 @@
 # Matching Service
 
 ## Overview
-The Matching Service is an Express-based microservice that manages user matchmaking for PeerPrep. It boots through `MatchingServiceApplication`, and exposes a `/status` health check.
+The Matching Service is an Express-based microservice that manages user matchmaking for PeerPrep. It boots through `MatchingServiceApplication`, and exposes a `/health` health check.
 
 ## Configuration
 The service reads the Redis database name from `backend/.env`, which you can scaffold from the template.

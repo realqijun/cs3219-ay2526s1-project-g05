@@ -5,6 +5,7 @@ import os from "os";
 import crypto from "crypto";
 import tar from "tar-stream";
 import { Writable } from "stream";
+import { makeCodeRunnable } from "./utils/makeCodeExecutable.js";
 
 const docker = new Docker();
 const MAX_TIMEOUT_MS = 5000;
@@ -50,8 +51,9 @@ export async function executeCode(code, language, input) {
     message: "",
   };
 
+  const executableCode = makeCodeRunnable(code, language);
   try {
-    await writeFile(codeFilePath, code);
+    await writeFile(codeFilePath, executableCode);
     await writeFile(inputFilePath, input || "");
 
     startTime = process.hrtime.bigint();
@@ -82,7 +84,7 @@ export async function executeCode(code, language, input) {
       INPUT_FILENAME,
     );
 
-    const shellCommand = `/bin/sh -c "${config.command} ${containerCodePath} < ${containerInputPath}"`;
+    const shellCommand = `${config.command} ${containerCodePath} < ${containerInputPath}`;
     const execCommand = ["/bin/sh", "-c", shellCommand];
 
     const { stdout, stderr, exitCode } = await executeCommandInContainer({
@@ -172,7 +174,7 @@ async function executeCommandInContainer({ container, command, timeout }) {
   const stream = await execInstance.start({ detach: false, Tty: false });
 
   const streamPromise = new Promise((resolve) => {
-    docker.modem.demuxStream(
+    container.modem.demuxStream(
       stream,
       new Writable({
         write(chunk, _encoding, callback) {
@@ -188,10 +190,24 @@ async function executeCommandInContainer({ container, command, timeout }) {
       }),
     );
 
-    stream.on("end", async () => {
+    const onEnd = async () => {
+      cleanup();
       const inspect = await execInstance.inspect();
       resolve({ stdout, stderr, exitCode: inspect.ExitCode });
-    });
+    };
+
+    const onError = (err) => {
+      cleanup();
+      reject(err);
+    };
+
+    const cleanup = () => {
+      stream.removeListener("end", onEnd);
+      stream.removeListener("error", onError);
+    };
+
+    stream.on("end", onEnd);
+    stream.on("error", onError);
   });
 
   const timeoutPromise = new Promise((_, reject) => {

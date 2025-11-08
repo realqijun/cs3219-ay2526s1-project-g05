@@ -15,7 +15,7 @@ export class CodeExecutionApplication {
     const app = express();
     app.enable("trust proxy");
     app.use(express.json());
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV !== "production") {
       app.use(cors());
     }
     app.use("/", createCodeExecutionRouter());

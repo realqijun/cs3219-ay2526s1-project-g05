@@ -71,7 +71,7 @@ return (
               </Badge>
             )}
           </div>
-          <Link to="/past-sessions" className="text-sm text-muted-foreground hover:underline shrink-0">
+          <Link to="/session-history" className="text-sm text-muted-foreground hover:underline shrink-0">
             ← Back to Past Sessions
           </Link>
         </div>

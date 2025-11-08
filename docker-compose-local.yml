@@ -24,39 +24,6 @@ services:
       --maxmemory 4gb
       --maxmemory-policy allkeys-lfu
 
-  peerprep_coderunner:
-    image: peerprep-runner-service:latest
-    build:
-      context: ./backend/
-      dockerfile: ./services/code_execution_service/Dockerfile
-
-    container_name: "peerprep_coderunner"
-    restart: unless-stopped
-    ports:
-      - "4005:4005"
-    env_file:
-      - ./backend/.env
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      - js_sandbox
-      - py_sandbox
-
-  js_sandbox:
-    image: peerprep/js-sandbox:latest
-    build:
-      context: ./backend/services/code_execution_service/runner_images
-      dockerfile: Dockerfile.javascript
-    # command doesnt do anything main thing is to build the image
-    command: ["true"]
-
-  py_sandbox:
-    image: peerprep/py-sandbox:latest
-    build:
-      context: ./backend/services/code_execution_service/runner_images
-      dockerfile: Dockerfile.python
-    command: ["true"]
-
 volumes:
   mongo_data:
   redis_data:

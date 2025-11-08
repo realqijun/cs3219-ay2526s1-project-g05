@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Code2, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import MainLayout from "@/layout/MainLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUserContext } from "@/context/UserContext";
+import MainLayout from "@/layout/MainLayout";
 import { collaborationApi } from "@/lib/collaborationApi";
 import { getQuestionById } from "@/lib/getQuestions";
+import { Calendar, Clock, Code2, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const difficultyColors = {
   Easy: "bg-green-500/10 text-green-600 border-green-500/20",
@@ -217,22 +217,27 @@ export default function PastSessions() {
                   <Card
                     key={session.id}
                     className="hover:shadow-lg transition-shadow border-2"
+                    onClick={() => navigate(`/session/${session.id}`)}
                   >
                     <CardHeader>
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-xl mb-2 flex items-center gap-2">
+                          <CardTitle className="text-xl mb-2 flex items-center gap-2 min-w-0">
                             <Code2 className="w-5 h-5 text-primary shrink-0" />
-                            <span>{problemTitle}</span>
+                             <span className="min-w-0 break-words [overflow-wrap:anywhere] whitespace-normal leading-snug">
+                              {problemTitle}
+                             </span>
                           </CardTitle>
                           <CardDescription className="flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            Partnered with {session.partner}
+                            <User className="w-4 h-4 shrink-0" />
+                            <span className="truncate sm:whitespace-normal">
+                              Partnered with {session.partner}
+                            </span>
                           </CardDescription>
                         </div>
                         <Badge
                           variant={difficulty ? "outline" : "secondary"}
-                          className={`${diffClass} shrink-0`}
+                          className={`${diffClass} shrink-0 sm:ml-4`}
                         >
                           {difficulty || "—"}
                         </Badge>

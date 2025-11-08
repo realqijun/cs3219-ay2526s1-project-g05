@@ -1,5 +1,0 @@
-{
-    "language": "python",
-    "code": "i = 0\nwhile True:\n    i += 1\n",
-    "input": ""
-}

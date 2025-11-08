@@ -5,10 +5,11 @@ import os from "os";
 import crypto from "crypto";
 import tar from "tar-stream";
 import { Writable } from "stream";
+import { makeCodeRunnable } from "./utils/makeCodeExecutable.js";
 
 const docker = new Docker();
 const MAX_TIMEOUT_MS = 5000;
-const CONTAINER_WORKDIR = "/tmp/run";
+const CONTAINER_WORKDIR = "/home/nonroot";
 const CODE_FILENAME = "solution"; // name of file in docker container
 const INPUT_FILENAME = "input.txt";
 const LANGUAGE_CONFIG = {
@@ -38,7 +39,6 @@ export async function executeCode(code, language, input) {
   const containerCodePath = `${CONTAINER_WORKDIR}/${CODE_FILENAME}${config.extension}`;
   const containerInputPath = `${CONTAINER_WORKDIR}/${INPUT_FILENAME}`;
 
-  let startTime;
   let container;
   let cleanupFiles = [codeFilePath, inputFilePath];
 
@@ -50,14 +50,14 @@ export async function executeCode(code, language, input) {
     message: "",
   };
 
+  const executableCode = makeCodeRunnable(code, language, containerInputPath);
   try {
-    await writeFile(codeFilePath, code);
+    await writeFile(codeFilePath, executableCode);
     await writeFile(inputFilePath, input || "");
 
-    startTime = process.hrtime.bigint();
     const containerConfig = {
       Image: config.image,
-      Cmd: ["tail", "-f", "/dev/null"],
+      Cmd: [containerCodePath],
       Tty: false,
       HostConfig: {
         NetworkMode: "none",
@@ -67,7 +67,6 @@ export async function executeCode(code, language, input) {
       },
     };
     container = await docker.createContainer(containerConfig);
-    await container.start();
 
     await copyFileToContainer(
       container,
@@ -82,19 +81,23 @@ export async function executeCode(code, language, input) {
       INPUT_FILENAME,
     );
 
-    const shellCommand = `/bin/sh -c "${config.command} ${containerCodePath} < ${containerInputPath}"`;
-    const execCommand = ["/bin/sh", "-c", shellCommand];
+    const {
+      stdout,
+      stderr,
+      startTime,
+      endTime,
+      exitCode,
+      error,
+    } = // If resolve() successfully
+      await exeuteContainer({ container, timeout: MAX_TIMEOUT_MS });
 
-    const { stdout, stderr, exitCode } = await executeCommandInContainer({
-      container,
-      command: execCommand,
-      timeout: MAX_TIMEOUT_MS,
-    });
+    if (error) {
+      console.log("ERROR OCCURRED:", error);
+    }
 
     // kill the container after execution
     await container.kill().catch(() => {});
 
-    const endTime = process.hrtime.bigint();
     result.executionTimeMs = Number(endTime - startTime) / 1000000;
     result.output = stdout;
 
@@ -108,11 +111,9 @@ export async function executeCode(code, language, input) {
     }
   } catch (error) {
     const endTime = process.hrtime.bigint();
-    if (startTime) {
-      result.executionTimeMs = Number(endTime - startTime) / 1000000;
-    } else {
-      result.executionTimeMs = 0;
-    }
+    const startTime = error.startTime;
+
+    result.executionTimeMs = Number(endTime - startTime) / 1000000;
 
     if (error.message === "TIMEOUT_EXCEEDED") {
       result.status = "Time Limit Exceeded";
@@ -155,51 +156,82 @@ async function copyFileToContainer(
 }
 
 /**
- * Utility function to execute a command inside a running container with a timeout.
+ * Utility function to attach Writables to gather execution output, and start the container.
  */
-async function executeCommandInContainer({ container, command, timeout }) {
-  let stdout = "";
+async function exeuteContainer({ container, timeout }) {
   let stderr = "";
+  let stdout = "";
+  let startTime = process.hrtime.bigint();
+  let endTime = null;
 
-  const execConfig = {
-    Cmd: command,
-    AttachStdout: true,
-    AttachStderr: true,
-  };
+  await container.start();
+  const waitPromise = container.wait(); // resolves to { StatusCode }
+  const logStream = await container.logs({
+    follow: true,
+    stdout: true,
+    stderr: true,
+  });
 
-  const execInstance = await container.exec(execConfig);
+  const logsPromise = new Promise((resolve, reject) => {
+    const cleanup = () => {
+      logStream.removeListener("end", onEnd);
+      logStream.removeListener("error", onError);
+    };
 
-  const stream = await execInstance.start({ detach: false, Tty: false });
+    const onEnd = () => {
+      endTime = process.hrtime.bigint();
+      cleanup();
+      resolve();
+    };
 
-  const streamPromise = new Promise((resolve) => {
-    docker.modem.demuxStream(
-      stream,
+    const onError = (err) => {
+      cleanup();
+      reject(err);
+    };
+
+    container.modem.demuxStream(
+      logStream,
       new Writable({
-        write(chunk, _encoding, callback) {
+        write(chunk, _enc, cb) {
           stdout += chunk.toString();
-          callback();
+          cb();
         },
       }),
       new Writable({
-        write(chunk, _encoding, callback) {
+        write(chunk, _enc, cb) {
           stderr += chunk.toString();
-          callback();
+          cb();
         },
       }),
     );
 
-    stream.on("end", async () => {
-      const inspect = await execInstance.inspect();
-      resolve({ stdout, stderr, exitCode: inspect.ExitCode });
-    });
+    logStream.on("end", onEnd);
+    logStream.on("error", onError);
   });
 
+  // Main promise: wait for container to exit AND logs to finish
+  const mainPromise = (async () => {
+    const [{ StatusCode }] = await Promise.all([waitPromise, logsPromise]);
+
+    return {
+      stdout,
+      stderr,
+      startTime,
+      endTime,
+      exitCode: StatusCode,
+      error: null,
+    };
+  })();
+
+  // Timeout promise
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(async () => {
       await container.kill().catch(() => {});
-      reject(new Error("TIMEOUT_EXCEEDED"));
+      const err = new Error("TIMEOUT_EXCEEDED");
+      err.startTime = startTime;
+      reject(err);
     }, timeout);
   });
 
-  return Promise.race([streamPromise, timeoutPromise]);
+  return Promise.race([mainPromise, timeoutPromise]);
 }

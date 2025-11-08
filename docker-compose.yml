@@ -100,6 +100,21 @@ services:
     depends_on:
       - peerprep_mongo
       - peerprep_redis
+  
+  peerprep_code_execution_service:
+    build:
+      context: ./backend
+      dockerfile: ./services/code_execution_service/Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    container_name: "peerprep_code_execution_service"
+    networks:
+      - main
+      - internal_mongo_redis
+    depends_on:
+      - peerprep_mongo
+      - peerprep_redis
 
 volumes:
   mongo_data:

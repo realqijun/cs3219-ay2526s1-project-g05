@@ -11,7 +11,10 @@ with open("${inputFilePath}", "r") as f:
 solutionClass = Solution()
 for method_name, method in inspect.getmembers(solutionClass, predicate=inspect.ismethod):
     if not method_name.startswith("_"): # Skip default methods
-        method(solutionClass)
+        sig = inspect.signature(method)
+        num_params = len(sig.parameters)
+        args = [None] * num_params  # Placeholder for arguments
+        method(*args)
 `;
 };
 

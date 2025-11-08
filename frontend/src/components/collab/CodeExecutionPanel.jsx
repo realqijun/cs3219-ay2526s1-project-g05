@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Play, AlertTriangle, CheckCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useRef, useEffect } from "react";
 
 const STATUS_MAP = {
   Ready: { color: "text-gray-500", icon: Play },

@@ -48,7 +48,6 @@ import { useCollaborationSession } from "@/context/CollaborationSessionContext";
 import { useUserContext } from "@/context/UserContext";
 import { executeCode } from "@/lib/codeExecutionApi";
 import { Annotation } from "@codemirror/state";
-import CodeExecutionPanel from "./CodeExecutionPanel";
 
 export const ExternalChange = Annotation.define();
 

@@ -35,10 +35,6 @@ export default function SessionPage() {
   const [displayPanel, setDisplayPanel] = useState(PANELS.CHAT);
   const [executionHistory, setExecutionHistory] = useState([initialExecutionResult]);
 
-  const setPanel = useCallback((panelName) => {
-    setDisplayPanel(panelName);
-  }, []);
-
   const handleCodeExecuted = useCallback((result) => {
     setExecutionHistory((prev) => {
       const newEntry = { ...result, timestamp: new Date().toLocaleTimeString() };
@@ -50,15 +46,15 @@ export default function SessionPage() {
       }
       return [newEntry, ...prev];
     });
-    setPanel(PANELS.EXECUTION);
+    setDisplayPanel(PANELS.EXECUTION);
   }, []);
 
   const handleDisplayAIPanel = useCallback((shouldDisplay) => {
-    setPanel(shouldDisplay ? PANELS.AI : PANELS.CHAT);
-  }, [setPanel]);
+    setDisplayPanel(shouldDisplay ? PANELS.AI : PANELS.CHAT);
+  }, [setDisplayPanel]);
   const handleDisplayExecutionPanel = useCallback((shouldDisplay) => {
-    setPanel(shouldDisplay ? PANELS.EXECUTION : PANELS.CHAT);
-  }, [setPanel]);
+    setDisplayPanel(shouldDisplay ? PANELS.EXECUTION : PANELS.CHAT);
+  }, [setDisplayPanel]);
 
   const RightPanel = () => {
     switch (displayPanel) {

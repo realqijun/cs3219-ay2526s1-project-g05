@@ -2,9 +2,23 @@ FROM node:22.19-bullseye-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install -g pnpm && pnpm install
+# We build all services from the root /backend as the context
+COPY ./common_scripts common_scripts
+COPY ./services/code_execution_service/package.json services/code_execution_service/package.json
+COPY ./services/code_execution_service/src services/code_execution_service/src
+COPY ./services/code_execution_service/index.js services/code_execution_service/index.js
+COPY ./services/code_execution_service/pnpm-lock.yaml services/code_execution_service/pnpm-lock.yaml
+COPY ./package.json .
+COPY ./pnpm-lock.yaml .
+COPY ./pnpm-workspace.yaml .
+COPY ./.env.prod .
 
-COPY . .
+# Install pnpm
+RUN npm install -g pnpm@10.17.1 
 
-CMD [ "node", "index.js" ]
+# Install dependemcoes for all workspaces (only 1 workspace in this case)
+RUN pnpm -r install --frozen-lockfile
+
+WORKDIR /app/services/matching_service
+
+CMD ["pnpm", "run", "start"]

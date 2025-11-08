@@ -23,6 +23,11 @@ export const createUserRouter = (controller) => {
     controller.resetPassword,
   );
   router.post(
+    "/add-current-code-runner",
+    [authenticate(true)],
+    controller.addCurrentCodeRunner,
+  );
+  router.post(
     "/add-past-collaboration-session",
     [authenticate(true)],
     controller.addPastCollaborationSession,

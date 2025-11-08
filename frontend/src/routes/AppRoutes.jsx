@@ -3,21 +3,22 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import App from "@/App";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import LoginPage from "@/pages/auth/LoginPage";
-import ProfilePage from "@/pages/profile/ProfilePage";
 import RegisterPage from "@/pages/auth/RegisterPage";
 import ErrorPage from "@/pages/ErrorPage";
 import MatchedPage from "@/pages/match/MatchedPage";
 import MatchingPage from "@/pages/match/MatchingPage";
 import MatchmakingPage from "@/pages/match/MatchmakingPage";
-import QuestionPage from "@/pages/questions/QuestionPage";
 import MatchTimeoutPage from "@/pages/match/MatchTimeoutPage";
-import SessionPage from "@/pages/session/SessionPage";
 import PastSessionsPage from "@/pages/profile/PastSessionsPage";
+import ProfilePage from "@/pages/profile/ProfilePage";
 import QuestionDetailPage from "@/pages/questions/QuestionDetailPage";
-import SessionEndedPage from "@/pages/session/SessionEndedPage";
+import QuestionPage from "@/pages/questions/QuestionPage";
 import SessionDisconnectedPage from "@/pages/session/SessionDisconnectedPage";
-import { ProtectedRoute } from "@/routes/ProtectedRoute";
+import SessionEndedPage from "@/pages/session/SessionEndedPage";
+import SessionPage from "@/pages/session/SessionPage";
+import SessionViewerPage from "@/pages/session/SessionViewerPage";
 import { GuestRoute } from "@/routes/GuestRoute";
+import { ProtectedRoute } from "@/routes/ProtectedRoute";
 
 export default function AppRoutes() {
   return (
@@ -140,6 +141,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <SessionEndedPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/session/:sessionId"
+        element={
+          <ProtectedRoute>
+            <SessionViewerPage />
           </ProtectedRoute>
         }
       />

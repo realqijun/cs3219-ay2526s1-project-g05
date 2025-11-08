@@ -7,7 +7,6 @@ COPY ./common_scripts common_scripts
 COPY ./services/code_execution_service/package.json services/code_execution_service/package.json
 COPY ./services/code_execution_service/src services/code_execution_service/src
 COPY ./services/code_execution_service/index.js services/code_execution_service/index.js
-COPY ./services/code_execution_service/pnpm-lock.yaml services/code_execution_service/pnpm-lock.yaml
 COPY ./package.json .
 COPY ./pnpm-lock.yaml .
 COPY ./pnpm-workspace.yaml .
@@ -19,6 +18,6 @@ RUN npm install -g pnpm@10.17.1
 # Install dependemcoes for all workspaces (only 1 workspace in this case)
 RUN pnpm -r install --frozen-lockfile
 
-WORKDIR /app/services/matching_service
+WORKDIR /app/services/code_execution_service
 
 CMD ["pnpm", "run", "start"]

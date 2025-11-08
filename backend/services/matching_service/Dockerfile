@@ -7,7 +7,6 @@ COPY ./common_scripts common_scripts
 COPY ./services/matching_service/package.json services/matching_service/package.json
 COPY ./services/matching_service/src services/matching_service/src
 COPY ./services/matching_service/index.js services/matching_service/index.js
-COPY ./services/matching_service/pnpm-lock.yaml services/matching_service/pnpm-lock.yaml
 COPY ./package.json .
 COPY ./pnpm-lock.yaml .
 COPY ./pnpm-workspace.yaml .

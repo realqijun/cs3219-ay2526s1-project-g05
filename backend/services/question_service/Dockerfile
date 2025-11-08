@@ -6,7 +6,6 @@ WORKDIR /app
 COPY ./common_scripts common_scripts
 COPY ./services/question_service/package.json services/question_service/package.json
 COPY ./services/question_service/src services/question_service/src
-COPY ./services/question_service/pnpm-lock.yaml services/question_service/pnpm-lock.yaml
 COPY ./package.json .
 COPY ./pnpm-lock.yaml .
 COPY ./pnpm-workspace.yaml .

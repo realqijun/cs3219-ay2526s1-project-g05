@@ -96,9 +96,14 @@ return (
                 <CardTitle>Problem</CardTitle>
               </CardHeader>
               <CardContent>
-                {question?.body
-                  ? <div className="break-words overflow-hidden" dangerouslySetInnerHTML={{ __html: question.body }} />
-                  : <p className="text-muted-foreground">No description available.</p>}
+                {question?.body ? (
+                  <div
+                    className="break-words text-sm leading-relaxed space-y-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted/60 [&_pre]:p-4 [&_code]:font-mono [&_img]:max-w-full [&_table]:w-full"
+                    dangerouslySetInnerHTML={{ __html: question.body }}
+                  />
+                ) : (
+                  <p className="text-muted-foreground">No description available.</p>
+                )}
               </CardContent>
             </Card>
 

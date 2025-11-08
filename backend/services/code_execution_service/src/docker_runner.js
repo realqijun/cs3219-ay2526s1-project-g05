@@ -2,7 +2,6 @@ import Docker from "dockerode";
 import { writeFile, unlink, readFile } from "fs/promises";
 import path from "path";
 import os from "os";
-import crypto from "crypto";
 import tar from "tar-stream";
 import { Writable } from "stream";
 import { makeCodeRunnable } from "./utils/makeCodeExecutable.js";

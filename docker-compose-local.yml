@@ -27,8 +27,8 @@ services:
   peerprep_coderunner:
     image: peerprep-runner-service:latest
     build:
-      context: ./backend/services/code_execution_service
-      dockerfile: Dockerfile
+      context: ./backend/
+      dockerfile: ./services/code_execution_service/Dockerfile
 
     container_name: "peerprep_coderunner"
     restart: unless-stopped

@@ -27,7 +27,7 @@ services:
   peerprep_coderunner:
     image: peerprep-runner-service:latest
     build:
-      context: ./backend/code_execution
+      context: ./backend/services/code_execution_service
       dockerfile: Dockerfile
 
     container_name: "peerprep_coderunner"
@@ -45,7 +45,7 @@ services:
   js_sandbox:
     image: peerprep/js-sandbox:latest
     build:
-      context: ./backend/code_execution/runner_images
+      context: ./backend/services/code_execution_service/runner_images
       dockerfile: Dockerfile.javascript
     # command doesnt do anything main thing is to build the image
     command: ["true"]
@@ -53,7 +53,7 @@ services:
   py_sandbox:
     image: peerprep/py-sandbox:latest
     build:
-      context: ./backend/code_execution/runner_images
+      context: ./backend/services/code_execution_service/runner_images
       dockerfile: Dockerfile.python
     command: ["true"]
 

@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:22.19-bullseye-slim
 
 WORKDIR /app
 
@@ -7,8 +7,4 @@ RUN npm install -g pnpm && pnpm install
 
 COPY . .
 
-# hard coded code execution service port
-EXPOSE 4005
-
 CMD [ "node", "index.js" ]
-# CMD ["sh", "-c", "echo \"Runtime variable value: $CODEEXECUTIONPORT\""]

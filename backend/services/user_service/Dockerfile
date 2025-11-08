@@ -8,7 +8,6 @@ COPY ./common_scripts common_scripts
 COPY ./services/user_service/package.json services/user_service/package.json
 COPY ./services/user_service/src services/user_service/src
 COPY ./services/user_service/index.js services/user_service/index.js
-COPY ./services/user_service/pnpm-lock.yaml services/user_service/pnpm-lock.yaml
 COPY ./package.json .
 COPY ./pnpm-lock.yaml .
 COPY ./pnpm-workspace.yaml .

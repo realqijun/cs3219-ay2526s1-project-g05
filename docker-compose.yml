@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     container_name: "peerprep_nginx"
     ports:
-      - "127.0.0.1:5173:80"       # Expose Nginx on localhost:8080 as we have an external reverse proxy handling SSL termination (another nginx)
+      - "127.0.0.1:5173:80"       # Expose Nginx on localhost:5173 as we have an external reverse proxy handling SSL termination (another nginx)
     depends_on:
       - peerprep_user_service
       - peerprep_question_service
@@ -109,6 +109,8 @@ services:
     environment:
       - NODE_ENV=production
     container_name: "peerprep_code_execution_service"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Mount Docker socket for Docker-in-Docker
     networks:
       - main
       - internal_mongo_redis

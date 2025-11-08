@@ -2,7 +2,6 @@ import Docker from "dockerode";
 import { writeFile, unlink, readFile } from "fs/promises";
 import path from "path";
 import os from "os";
-import crypto from "crypto";
 import tar from "tar-stream";
 import { Writable } from "stream";
 import { makeCodeRunnable } from "./utils/makeCodeExecutable.js";
@@ -28,13 +27,12 @@ const LANGUAGE_CONFIG = {
 /**
  * Executes the user's code using Docker's copy and exec APIs.
  */
-export async function executeCode(code, language, input) {
+export async function executeCode(code, language, input, runnerName) {
   const config = LANGUAGE_CONFIG[language.toLowerCase()];
-  const fileId = crypto.randomUUID();
   const tempDir = os.tmpdir();
 
-  const codeFilePath = path.join(tempDir, `${fileId}${config.extension}`);
-  const inputFilePath = path.join(tempDir, `${fileId}${INPUT_FILENAME}`);
+  const codeFilePath = path.join(tempDir, `${runnerName}${config.extension}`);
+  const inputFilePath = path.join(tempDir, `${runnerName}${INPUT_FILENAME}`);
 
   const containerCodePath = `${CONTAINER_WORKDIR}/${CODE_FILENAME}${config.extension}`;
   const containerInputPath = `${CONTAINER_WORKDIR}/${INPUT_FILENAME}`;
@@ -56,6 +54,7 @@ export async function executeCode(code, language, input) {
     await writeFile(inputFilePath, input || "");
 
     const containerConfig = {
+      name: runnerName,
       Image: config.image,
       Cmd: [containerCodePath],
       Tty: false,
@@ -87,13 +86,8 @@ export async function executeCode(code, language, input) {
       startTime,
       endTime,
       exitCode,
-      error,
     } = // If resolve() successfully
       await exeuteContainer({ container, timeout: MAX_TIMEOUT_MS });
-
-    if (error) {
-      console.log("ERROR OCCURRED:", error);
-    }
 
     // kill the container after execution
     await container.kill().catch(() => {});
@@ -172,21 +166,15 @@ async function exeuteContainer({ container, timeout }) {
     stderr: true,
   });
 
-  const logsPromise = new Promise((resolve, reject) => {
+  const logsPromise = new Promise((resolve) => {
     const cleanup = () => {
       logStream.removeListener("end", onEnd);
-      logStream.removeListener("error", onError);
     };
 
     const onEnd = () => {
       endTime = process.hrtime.bigint();
       cleanup();
       resolve();
-    };
-
-    const onError = (err) => {
-      cleanup();
-      reject(err);
     };
 
     container.modem.demuxStream(
@@ -206,7 +194,6 @@ async function exeuteContainer({ container, timeout }) {
     );
 
     logStream.on("end", onEnd);
-    logStream.on("error", onError);
   });
 
   // Main promise: wait for container to exit AND logs to finish
@@ -219,7 +206,6 @@ async function exeuteContainer({ container, timeout }) {
       startTime,
       endTime,
       exitCode: StatusCode,
-      error: null,
     };
   })();
 

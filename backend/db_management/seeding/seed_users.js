@@ -33,6 +33,7 @@ export const seed_user = async (user) => {
     accountLockedAt: null,
     collaborationSessionId: null,
     pastCollaborationSessions: [],
+    codeRunnerServiceUsage: null,
   };
   const insertedDoc = await collection.insertOne(doc);
 
@@ -61,6 +62,7 @@ export const seed_users = async () => {
         accountLockedAt: null,
         collaborationSessionId: null,
         pastCollaborationSessions: [],
+        codeRunnerServiceUsage: null,
       })),
     );
 

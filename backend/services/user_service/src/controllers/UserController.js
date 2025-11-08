@@ -114,6 +114,22 @@ export class UserController {
     }
   };
 
+  addCurrentCodeRunner = async (req, res, next) => {
+    try {
+      const { containerId, userId } = req.body ?? {};
+      const user = await this.userService.addCurrentCodeRunner(
+        userId,
+        containerId,
+      );
+      res.json({
+        message: "Current code runner container id added successfully.",
+        user,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   addPastCollaborationSession = async (req, res, next) => {
     try {
       const { userId, sessionId } = req.body ?? {};

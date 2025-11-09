@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { createCodeExecutionRouter } from "./codeExecutionRoutes.js";
+import { startSwaggerDocs } from "../../../common_scripts/swagger_docs.js";
 
 export class CodeExecutionApplication {
   constructor({ port = process.env.CODEEXECUTIONPORT || 4005 } = {}) {
@@ -15,6 +16,8 @@ export class CodeExecutionApplication {
     const app = express();
     app.enable("trust proxy");
     app.use(express.json());
+
+    startSwaggerDocs(app, "Code Execution Service API", this.port);
     if (process.env.NODE_ENV !== "production") {
       app.use(cors());
     }

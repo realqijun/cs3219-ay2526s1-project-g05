@@ -769,6 +769,9 @@ export class CollaborationSessionService {
 
   async getConversationId(sessionId) {
     const session = await this.repository.findById(sessionId);
+    if (!session) {
+      throw new ApiError(404, "Collaboration session not found.");
+    }
     let conversationId = session?.openai_conversationId;
     if (!conversationId) {
       conversationId = await this.createConversation(sessionId);
@@ -837,6 +840,10 @@ export class CollaborationSessionService {
     }
 
     const session = await this.repository.findById(sessionId);
+    if (!session) {
+      throw new ApiError(404, "Collaboration session not found.");
+    }
+
     const { conversation, conversationId } =
       await this.getConversation(sessionId);
 

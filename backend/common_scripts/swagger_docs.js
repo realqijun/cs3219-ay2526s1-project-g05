@@ -20,6 +20,8 @@ export const startSwaggerDocs = (app, name, port) => {
     // Glob pattern to find your jsdoc files (multiple patterns can be added in an array)
     filesPattern: "./**/*.js",
     swaggerUIPath: "/docs",
+    exposeApiDocs: true,
+    apiDocsPath: "/api-docs",
   };
 
   expressJSDocSwagger(app)(options);

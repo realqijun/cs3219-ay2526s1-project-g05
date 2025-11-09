@@ -15,7 +15,7 @@ COPY ./.env.prod .
 RUN npm install -g pnpm@10.17.1 
 
 # Install dependemcoes for all workspaces (only 1 workspace in this case)
-RUN pnpm -r install --frozen-lockfile
+RUN pnpm -r install --prod --frozen-lockfile
 
 WORKDIR /app/services/question_service
 

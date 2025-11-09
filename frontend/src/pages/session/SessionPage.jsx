@@ -51,10 +51,10 @@ export default function SessionPage() {
 
   const handleDisplayAIPanel = useCallback((shouldDisplay) => {
     setDisplayPanel(shouldDisplay ? PANELS.AI : PANELS.CHAT);
-  }, [setDisplayPanel]);
+  }, []);
   const handleDisplayExecutionPanel = useCallback((shouldDisplay) => {
     setDisplayPanel(shouldDisplay ? PANELS.EXECUTION : PANELS.CHAT);
-  }, [setDisplayPanel]);
+  }, []);
 
   const RightPanel = () => {
     switch (displayPanel) {

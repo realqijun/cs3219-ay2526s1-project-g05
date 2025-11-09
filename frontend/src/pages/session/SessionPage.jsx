@@ -3,7 +3,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import ProblemPanel from "@/components/collab/ProblemPanel";
 import CodeEditorPanel from "@/components/collab/CodeEditorPanel";
 import ChatPanel from "@/components/collab/ChatPanel";
@@ -56,7 +56,7 @@ export default function SessionPage() {
     setDisplayPanel(shouldDisplay ? PANELS.EXECUTION : PANELS.CHAT);
   }, []);
 
-  const RightPanel = () => {
+  const RightPanel = useMemo(() => {
     switch (displayPanel) {
       case PANELS.AI:
         return (
@@ -73,7 +73,7 @@ export default function SessionPage() {
       default:
         return <ChatPanel />;
     }
-  };
+  }, [displayPanel, executionHistory, handleDisplayAIPanel, handleDisplayExecutionPanel]);
 
   return (
     <MainLayout>
@@ -110,7 +110,7 @@ export default function SessionPage() {
 
             {/* Chat Panel */}
             <ResizablePanel defaultSize={25} minSize={25} maxSize={40}>
-              <RightPanel />
+              {RightPanel}
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>

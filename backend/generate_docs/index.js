@@ -24,12 +24,10 @@ const start = async () => {
     const file_name = `${service}_docs.json`;
     await fs.writeFile(file_name, JSON.stringify(data));
 
-    const service_output = `../services/${service}/api_docs.html`;
-    const { _error, stdout, stderr } = await execAsync(
-      `npx @redocly/cli@latest build-docs ${file_name} -o ${service_output}`,
+    const service_output = `../services/${service}/api_docs.md`;
+    const { _error, _stdout, _stderr } = await execAsync(
+      `npx openapi-to-md ${file_name} ${service_output}`,
     );
-    console.log("stdout:", stdout);
-    console.log("stderr:", stderr);
 
     // Clean up JSON file
     await fs.unlink(file_name);

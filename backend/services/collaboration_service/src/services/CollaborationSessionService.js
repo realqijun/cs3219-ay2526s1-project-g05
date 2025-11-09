@@ -215,11 +215,17 @@ export class CollaborationSessionService {
     return this.sanitizeSession(session);
   }
 
-  async getSession(sessionId) {
-    let session = await this.repository.findById(sessionId);
-    session = await this.checkExpiredSession(session);
-    this.ensureActive(session);
-    return this.sanitizeSession(session);
+  async getSession(sessionId, { includeEnded = false } = {}) {
+    const session = await this.repository.findById(sessionId);
+    if (!session) throw new ApiError(404, "Session not found.");
+
+    const checked = await this.checkExpiredSession(session);
+
+    if (!includeEnded) {
+      this.ensureActive(checked);
+    }
+
+    return this.sanitizeSession(checked);
   }
 
   async joinSession(user, payload) {
@@ -763,6 +769,9 @@ export class CollaborationSessionService {
 
   async getConversationId(sessionId) {
     const session = await this.repository.findById(sessionId);
+    if (!session) {
+      throw new ApiError(404, "Collaboration session not found.");
+    }
     let conversationId = session?.openai_conversationId;
     if (!conversationId) {
       conversationId = await this.createConversation(sessionId);
@@ -831,6 +840,10 @@ export class CollaborationSessionService {
     }
 
     const session = await this.repository.findById(sessionId);
+    if (!session) {
+      throw new ApiError(404, "Collaboration session not found.");
+    }
+
     const { conversation, conversationId } =
       await this.getConversation(sessionId);
 

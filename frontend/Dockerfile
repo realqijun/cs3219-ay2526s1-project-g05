@@ -11,7 +11,7 @@ RUN npm install -g pnpm@10.17.1
 
 RUN pnpm install --frozen-lockfile --prod=false
 COPY . .
-RUN pnpm run build
+RUN pnpm run build --mode production
 
 # Stage 2 - Run Nginx container
 # Pull the latest (stable) nginx base image

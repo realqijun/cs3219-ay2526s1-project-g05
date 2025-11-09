@@ -243,6 +243,13 @@ export class UserService {
     return this.sanitizeUser(updatedUser ?? user);
   }
 
+  async addCurrentCodeRunner(userId, containerId) {
+    const updatedUser = await this.repository.updateById(userId, {
+      set: { codeRunnerServiceUsage: containerId },
+    });
+    return this.sanitizeUser(updatedUser);
+  }
+
   async addPastCollaborationSession(userId, sessionId) {
     if (typeof sessionId !== "string" || sessionId.trim().length === 0) {
       throw new ApiError(400, "A valid session ID is required.");

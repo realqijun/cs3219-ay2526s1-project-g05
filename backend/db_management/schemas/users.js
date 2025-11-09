@@ -68,6 +68,10 @@ export const users_schema = {
           items: { bsonType: "string" },
           description: "Array of strings for past collaborative session IDs",
         },
+        codeRunnerServiceUsage: {
+          bsonType: ["string", "null"],
+          description: "ID of container this user is running code on, if any",
+        },
       },
     },
   },

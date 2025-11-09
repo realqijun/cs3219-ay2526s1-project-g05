@@ -18,8 +18,8 @@ services:
     volumes:
       - redis_data:/data # Use a named volume for Redis data persistence
     command: >
-      redis-server 
-      --appendonly yes 
+      redis-server
+      --appendonly yes
       --notify-keyspace-events KEA
       --maxmemory 4gb
       --maxmemory-policy allkeys-lfu

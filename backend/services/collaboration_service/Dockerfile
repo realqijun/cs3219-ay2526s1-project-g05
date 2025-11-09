@@ -7,7 +7,6 @@ COPY ./common_scripts common_scripts
 COPY ./services/collaboration_service/package.json services/collaboration_service/package.json
 COPY ./services/collaboration_service/src services/collaboration_service/src
 COPY ./services/collaboration_service/index.js services/collaboration_service/index.js
-COPY ./services/collaboration_service/pnpm-lock.yaml services/collaboration_service/pnpm-lock.yaml
 COPY ./package.json .
 COPY ./pnpm-lock.yaml .
 COPY ./pnpm-workspace.yaml .
@@ -17,7 +16,7 @@ COPY ./.env.prod .
 RUN npm install -g pnpm@10.17.1 
 
 # Install dependemcoes for all workspaces (only 1 workspace in this case)
-RUN pnpm -r install --frozen-lockfile
+RUN pnpm -r install --prod --frozen-lockfile
 
 WORKDIR /app/services/collaboration_service
 

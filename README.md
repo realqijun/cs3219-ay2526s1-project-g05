@@ -61,3 +61,15 @@ This command will set up the foundational database containers (MongoDB and Redis
 ```bash
 docker-compose -f docker-compose-local.yml up -d
 ```
+- This sets up only MongoDB, for now
+
+# AI Use Summary
+
+Tools: ChatGPT (GPT‑5 Thinking), GitHub Copilot
+Prohibited phases avoided: requirements elicitation; architecture/design decisions.
+Allowed uses:
+
+- Generated JSDoc comment headers for type definitions for Swagger Docs
+
+Verification: All AI outputs reviewed, edited, and tested by the authors.
+Prompts/Key Exchanges: See /ai/usage-log.md at the end of this segment.

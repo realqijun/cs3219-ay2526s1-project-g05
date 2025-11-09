@@ -21,9 +21,15 @@ export class CollaborationController {
 
   getSession = async (req, res, next) => {
     try {
+      const includeEnded = ["1","true","yes"].includes(
+        String(req.query.includeEnded || "").toLowerCase()
+      );
+
       const session = await this.collaborationService.getSession(
         req.params.sessionId,
+        { includeEnded }
       );
+
       res.json({ session });
     } catch (error) {
       next(error);

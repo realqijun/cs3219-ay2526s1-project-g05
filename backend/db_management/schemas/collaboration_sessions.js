@@ -66,7 +66,16 @@ export const collaboration_sessions_schema = {
           },
         },
 
-        pendingQuestionChange: { bsonType: ["object", "null"] },
+        pendingQuestionChange: {
+          bsonType: ["object", "null"],
+          properties: {
+            questionId: { bsonType: "int" },
+            proposedBy: { bsonType: "string" },
+            rationale: { bsonType: ["string", "null"] },
+            approvals: { bsonType: "array", items: { bsonType: "string" } },
+            createdAt: { bsonType: "date" },
+          },
+        },
 
         endRequests: {
           bsonType: "array",
@@ -74,12 +83,25 @@ export const collaboration_sessions_schema = {
         },
 
         cursorPositions: {
-          // TODO: Update with final structure
           bsonType: "object",
           additionalProperties: true,
+          properties: {
+            line: { bsonType: "int" },
+            ch: { bsonType: "int" },
+            updatedAt: { bsonType: "date" },
+          },
         },
 
-        lastOperation: { bsonType: ["object", "null"] },
+        lastOperation: {
+          bsonType: ["object", "null"],
+          properties: {
+            userId: { bsonType: "string" },
+            type: { bsonType: "string" },
+            version: { bsonType: "int" },
+            timestamp: { bsonType: "date" },
+            conflict: { bsonType: "bool" },
+          },
+        },
 
         lastConflictAt: { bsonType: ["date", "null"] },
 

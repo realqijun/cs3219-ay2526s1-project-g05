@@ -9,7 +9,8 @@ import {
 } from "./controllers/UserController.js";
 import { createUserRouter } from "./routes/userRoutes.js";
 import cors from "cors";
-import proxyAddr from 'proxy-addr';
+import proxyAddr from "proxy-addr";
+import { startSwaggerDocs } from "../../../common_scripts/swagger_docs.js";
 
 export class UserServiceApplication {
   constructor({ port = process.env.USERSERVICEPORT || 4001 } = {}) {
@@ -34,13 +35,27 @@ export class UserServiceApplication {
     const app = express();
     app.use(express.json());
 
+    startSwaggerDocs(app, "User Service API", this.port);
+
     if (process.env.NODE_ENV === "development") {
       app.use(cors());
       console.log("CORS enabled for development");
+    } else if (process.env.NODE_ENV === "production") {
+      app.set(
+        "trust proxy",
+        proxyAddr.compile([
+          "loopback",
+          process.env.MAIN_SUBNET,
+          process.env.INTERNAL_SUBNET,
+        ]),
+      ); // loopback means from same host, the other is the subnet for internal services
     }
+<<<<<<< HEAD
     else if (process.env.NODE_ENV === "production") {
       app.set('trust proxy', proxyAddr.compile(["loopback", process.env.MAIN_SUBNET, process.env.INTERNAL_SUBNET])); // loopback means from same host, the other is the subnet for internal services
     }
+=======
+>>>>>>> master
 
     app.get("/status", (_req, res) => {
       res.json({ status: "User service is running" });

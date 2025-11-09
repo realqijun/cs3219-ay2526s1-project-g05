@@ -510,7 +510,7 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel, onCodeExe
     } catch (error) {
       console.error("Code execution failed:", error);
       result = {
-        status: "Error",
+        status: "Failure",
         output: "",
         error: "Failed to execute code. Please try again later.",
         executionTimeMs: 0,

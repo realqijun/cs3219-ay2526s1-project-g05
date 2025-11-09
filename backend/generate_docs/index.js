@@ -25,7 +25,7 @@ const start = async () => {
     await fs.writeFile(file_name, JSON.stringify(data));
 
     const service_output = `../services/${service}/api_docs.html`;
-    const { error, stdout, stderr } = await execAsync(
+    const { _error, stdout, stderr } = await execAsync(
       `npx @redocly/cli@latest build-docs ${file_name} -o ${service_output}`,
     );
     console.log("stdout:", stdout);

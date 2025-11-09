@@ -42,7 +42,7 @@ export default function CodeExecutionPanel({
                 const { color: statusColor, icon: StatusIcon } = STATUS_MAP[log.status] || STATUS_MAP.Ready;
 
                 return (
-                  <div key={index} className="border-b pb-2">
+                  <div key={log.timestamp || index} className="border-b pb-2">
                     <div className="flex items-center text-sm font-semibold">
                       <StatusIcon className={`w-4 h-4 mr-2 ${statusColor} ${log.status === "Running" ? "animate-spin" : ""}`} />
                       <span className={statusColor}>{log.status}</span>

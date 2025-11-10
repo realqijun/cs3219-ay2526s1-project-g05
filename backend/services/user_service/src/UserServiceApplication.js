@@ -50,12 +50,6 @@ export class UserServiceApplication {
         ]),
       ); // loopback means from same host, the other is the subnet for internal services
     }
-<<<<<<< HEAD
-    else if (process.env.NODE_ENV === "production") {
-      app.set('trust proxy', proxyAddr.compile(["loopback", process.env.MAIN_SUBNET, process.env.INTERNAL_SUBNET])); // loopback means from same host, the other is the subnet for internal services
-    }
-=======
->>>>>>> master
 
     app.get("/status", (_req, res) => {
       res.json({ status: "User service is running" });

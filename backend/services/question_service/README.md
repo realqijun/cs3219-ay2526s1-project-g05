@@ -61,7 +61,7 @@ curl http://localhost:4002/random
 ```
 
 ## Architecture
-- **Service layer** – provides functionalities to retrive questions, returns the question upon success and error codes upon failure.
+- **Service layer** – provides functionalities to retrieve questions, returns the question upon success and error codes upon failure.
 - **Repository layer** – communicates with the Mongo database for the retrieval of question collections. Uses collection methods like .find() and .findOne() to get the questions in the database.
 
 ## Error handling

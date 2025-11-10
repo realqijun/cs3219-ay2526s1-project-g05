@@ -11,7 +11,7 @@ const execAsync = promisify(exec);
 const servicePorts = {
   user_service: process.env.USERSERVICEPORT || 4001,
   question_service: process.env.QUESTIONSERVICEPORT || 4002,
-  //matching_service: process.env.MATCHINGSERVICEPORT || 4003,
+  matching_service: process.env.MATCHINGSERVICEPORT || 4003,
   collaboration_service: process.env.COLLABORATIONSERVICEPORT || 4004,
   code_execution_service: process.env.CODEEXECUTIONPORT || 4005,
 };

@@ -1,7 +1,31 @@
 # User Service
 
 ## Overview
-The User Service is an Express-based microservice that manages account registration, authentication, profile maintenance, deletion, and password resets for PeerPrep. It boots through `UserApplication`, which wires shared MongoDB connectivity, configures security middleware, exposes a `/status` health check, and mounts the REST API under `/api/users`. 【F:backend/services/user_service/src/UserApplication.js】
+The User Service is an Express-based microservice that manages account registration, authentication, profile maintenance, deletion, and password resets for PeerPrep. It boots through `UserApplication`, which wires shared MongoDB connectivity, and exposes a `/status` health check.【F:backend/services/user_service/src/UserApplication.js】
+
+## Configuration
+The service reads the MongoDB database name from `backend/.env`, which you can scaffold from the template. 【F:backend/.env.example】
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+## Getting started
+1. Install dependencies with pnpm (the repo uses pnpm workspaces). 【F:backend/services/user_service/package.json L1-L24】
+   ```bash
+   cd backend
+   pnpm -r install
+   ```
+2. Ensure a MongoDB instance is reachable at `mongodb://localhost:27017` and that `MONGO_DB_NAME` in `.env` points to the desired database. 【F:backend/common_scripts/mongo.js L1-L43】
+3. Start just the User Service:
+   ```bash
+   cd services/user_service
+   pnpm run dev
+   ```
+
+The service listens on the port defined by `USERSERVICEPORT` (defaults to `4001`).
+Swagger documentation is automatically hosted at `/docs`.
 
 ## Key capabilities
 - **Account lifecycle** – create, fetch, update, and delete users, with Argon2id hashing to protect stored credentials. 【F:backend/services/user_service/src/services/UserService.js】【F:backend/services/user_service/src/security/PasswordHasher.js】
@@ -10,7 +34,7 @@ The User Service is an Express-based microservice that manages account registrat
 - **Transport protections** – enforces HSTS headers everywhere and requires HTTPS in production deployments. 【F:backend/services/user_service/src/middleware/securityHeaders.js 】【F:backend/services/user_service/src/middleware/enforceHttps.js】
 
 ## API surface
-All endpoints are prefixed with `/api/users` via the service router. 【F:backend/services/user_service/src/routes/userRoutes.js】
+The API endpoints are not prefixed in development, they are simply `http://localhost:4001/`. In production, they are prefixed with `api/` because of the way NGINX adds an `api/` prefix to the URI of backend code. 【F:backend/services/user_service/src/routes/userRoutes.js】
 
 | Method & Path | Description |
 | --- | --- |
@@ -184,28 +208,6 @@ Successful response (`200 OK`):
 - **Service layer** – houses business rules for validation, uniqueness checks, credential hashing, login lockouts, and reset workflows. 【F:backend/services/user_service/src/services/UserService.js】
 - **Repository layer** – wraps the `users` MongoDB collection with helpers for CRUD operations, unique indexes, and reset-token lookups. 【F:backend/services/user_service/src/repositories/UserRepository.js】
 - **Validation & security utilities** – reusable validators and hashing/lockout helpers guarantee consistent input normalization and security posture. 【F:backend/services/user_service/src/validators/UserValidator.js】【F:backend/services/user_service/src/security/PasswordHasher.js】【F:backend/services/user_service/src/security/LoginSecurityManager.js】
-
-## Configuration
-The service reads the MongoDB database name from `backend/.env`, which you can scaffold from the template. 【F:backend/.env.example】
-
-```bash
-cd backend
-cp .env.example .env
-```
-
-## Running locally
-1. Install dependencies with pnpm (the repo uses pnpm workspaces). 【F:backend/services/user_service/package.json L1-L24】
-   ```bash
-   cd backend
-   pnpm -r install
-   ```
-2. Ensure a MongoDB instance is reachable at `mongodb://localhost:27017` and that `MONGO_DB_NAME` in `.env` points to the desired database. 【F:backend/common_scripts/mongo.js L1-L43】
-3. Start just the User Service:
-   ```bash
-   cd services/user_service
-   pnpm run dev
-   ```
-   This runs `nodemon index.js`, which boots the service on port `4001` by default. 【F:backend/services/user_service/package.json L5-L18】【F:backend/services/user_service/index.js L1-L26】
 
 ## Error handling
 Domain failures throw `ApiError` instances that encode status codes and optional details. The controller’s error middleware converts them into JSON responses, while unexpected errors return a generic 500 payload. 【F:backend/services/user_service/src/controllers/UserController.js L1-L86】

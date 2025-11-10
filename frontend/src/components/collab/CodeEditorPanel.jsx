@@ -219,7 +219,7 @@ const createRemoteCursorDecorations = (state, cursors) => {
   return builder.finish();
 };
 
-export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
+export default function CodeEditorPanel({ _problem, setDisplayAIPanel, onCodeExecuted, setDisplayExecutionPanel }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const applyingRemoteRef = useRef(false);
@@ -494,12 +494,32 @@ export default function CodeEditorPanel({ _problem, setDisplayAIPanel }) {
 
   const handleRun = async () => {
     const code = viewRef.current?.state.doc.toString() || "";
-    const result = await executeCode({
-      language: sanitizeLanguage(language),
-      code,
-      input: "",
-    });
-    alert(JSON.stringify(result));
+    if (onCodeExecuted) {
+      onCodeExecuted({ status: 'Running', message: 'Executing code...' });
+    }
+    if (setDisplayExecutionPanel) {
+      setDisplayExecutionPanel(true);
+    }
+    let result;
+    try {
+      result = await executeCode({
+        language: sanitizeLanguage(language),
+        code,
+        input: "",
+      });
+    } catch (error) {
+      console.error("Code execution failed:", error);
+      result = {
+        status: "Failure",
+        output: "",
+        error: "Failed to execute code. Please try again later.",
+        executionTimeMs: 0,
+        message: "Execution failed.",
+      };
+    }
+    if (onCodeExecuted) {
+      onCodeExecuted(result);
+    }
   };
 
   const handleAIExplanation = () => {

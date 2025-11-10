@@ -13,9 +13,9 @@ COPY ./pnpm-workspace.yaml .
 COPY ./.env.prod .
 
 # Install pnpm
-RUN npm install -g pnpm@10.17.1 
+RUN npm install -g pnpm@10.17.1
 
-# Install dependemcoes for all workspaces (only 1 workspace in this case)
+# Install dependencies for all workspaces (only 1 workspace in this case)
 RUN pnpm -r install --prod --frozen-lockfile
 
 WORKDIR /app/services/code_execution_service

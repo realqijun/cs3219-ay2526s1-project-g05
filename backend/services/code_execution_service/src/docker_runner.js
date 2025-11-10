@@ -105,7 +105,7 @@ export async function executeCode(code, language, input, runnerName) {
     }
   } catch (error) {
     const endTime = process.hrtime.bigint();
-    const startTime = error.startTime;
+    const startTime = error.startTime || endTime;
 
     result.executionTimeMs = Number(endTime - startTime) / 1000000;
 
